@@ -92,14 +92,19 @@ export function useBridge() {
         };
       }
 
+      // Get the base token (KTA) from the client for proper asset format
+      const baseToken = client.baseToken;
+      console.log('[Bridge] Using baseToken:', baseToken);
+
       // Initialize the Asset Movement client
       const assetMovementClient = new AssetMovementClient(client);
 
       // Find providers that support this transfer route
+      // Use baseToken directly as the asset (it has the proper SDK type)
       const providers = await assetMovementClient.getProvidersForTransfer({
-        from: { location: fromNetwork.location },
-        to: { location: toNetwork.location },
-        asset: { symbol: 'KTA' }
+        from: fromNetwork.location,
+        to: toNetwork.location,
+        asset: baseToken
       });
 
       if (!providers || providers.length === 0) {
@@ -116,7 +121,7 @@ export function useBridge() {
       // Initiate the transfer
       const transfer = await provider.initiateTransfer({
         value: valueInSmallestUnits,
-        asset: { symbol: 'KTA' },
+        asset: baseToken,
         from: { location: fromNetwork.location },
         to: { 
           location: toNetwork.location,
