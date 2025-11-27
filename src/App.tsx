@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { KeetaWalletProvider } from "./contexts/KeetaWalletContext";
+import { SettingsProvider } from "./contexts/SettingsContext";
 import { SwipeablePages } from "./components/SwipeablePages";
 import Index from "./pages/Index";
 import Send from "./pages/Send";
@@ -13,6 +14,7 @@ import Account from "./pages/Account";
 import Security from "./pages/Security";
 import Lock from "./pages/Lock";
 import AddressBook from "./pages/AddressBook";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,7 @@ const AppRoutes = () => (
       <Route path="/security" element={<Security />} />
       <Route path="/lock" element={<Lock />} />
       <Route path="/address-book" element={<AddressBook />} />
+      <Route path="/settings" element={<Settings />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
@@ -37,13 +40,15 @@ const AppRoutes = () => (
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <KeetaWalletProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </KeetaWalletProvider>
+      <SettingsProvider>
+        <KeetaWalletProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </KeetaWalletProvider>
+      </SettingsProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

@@ -1,18 +1,31 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSettings, FiatCurrency } from '@/contexts/SettingsContext';
+
+// Exchange rates relative to USD (approximate, would normally fetch from API)
+const EXCHANGE_RATES: Record<FiatCurrency, number> = {
+  USD: 1,
+  GBP: 0.79,
+  CAD: 1.36,
+  EUR: 0.92,
+  AUD: 1.53,
+};
 
 interface KtaPriceData {
   priceUsd: number | null;
+  priceFiat: number | null;
   volume24h: number | null;
   priceChange24h: number | null;
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
+  convertToFiat: (ktaAmount: number) => number | null;
+  convertFromFiat: (fiatAmount: number) => number | null;
 }
 
-// DexScreener API endpoint - update with actual KTA pair address when available
 const DEXSCREENER_API = 'https://api.dexscreener.com/latest/dex/search?q=KTA';
 
 export const useKtaPrice = (): KtaPriceData => {
+  const { fiatCurrency, formatFiat } = useSettings();
   const [priceUsd, setPriceUsd] = useState<number | null>(null);
   const [volume24h, setVolume24h] = useState<number | null>(null);
   const [priceChange24h, setPriceChange24h] = useState<number | null>(null);
@@ -32,7 +45,6 @@ export const useKtaPrice = (): KtaPriceData => {
 
       const data = await response.json();
       
-      // Find KTA pair in results
       const ktaPair = data.pairs?.find((pair: any) => 
         pair.baseToken?.symbol?.toUpperCase() === 'KTA' ||
         pair.quoteToken?.symbol?.toUpperCase() === 'KTA'
@@ -66,10 +78,35 @@ export const useKtaPrice = (): KtaPriceData => {
 
   useEffect(() => {
     fetchPrice();
-    // Refresh price every 60 seconds
     const interval = setInterval(fetchPrice, 60000);
     return () => clearInterval(interval);
   }, [fetchPrice]);
 
-  return { priceUsd, volume24h, priceChange24h, isLoading, error, refetch: fetchPrice };
+  // Convert KTA to selected fiat currency
+  const priceFiat = priceUsd !== null 
+    ? priceUsd * EXCHANGE_RATES[fiatCurrency] 
+    : null;
+
+  const convertToFiat = useCallback((ktaAmount: number): number | null => {
+    if (priceUsd === null) return null;
+    return ktaAmount * priceUsd * EXCHANGE_RATES[fiatCurrency];
+  }, [priceUsd, fiatCurrency]);
+
+  const convertFromFiat = useCallback((fiatAmount: number): number | null => {
+    if (priceUsd === null) return null;
+    const fiatToUsd = fiatAmount / EXCHANGE_RATES[fiatCurrency];
+    return fiatToUsd / priceUsd;
+  }, [priceUsd, fiatCurrency]);
+
+  return { 
+    priceUsd, 
+    priceFiat,
+    volume24h, 
+    priceChange24h, 
+    isLoading, 
+    error, 
+    refetch: fetchPrice,
+    convertToFiat,
+    convertFromFiat,
+  };
 };

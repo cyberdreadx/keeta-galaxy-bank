@@ -5,7 +5,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
 import { useKeetaWallet, AccountType } from "@/contexts/KeetaWalletContext";
 import { InternalTransferModal } from "@/components/InternalTransferModal";
-import { Copy, LogOut, Settings, Shield, Plus, Wallet, PiggyBank, ArrowRightLeft, Tag, BookUser } from "lucide-react";
+import { Copy, LogOut, Settings as SettingsIcon, Shield, Plus, Wallet, PiggyBank, ArrowRightLeft, Tag, BookUser } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
@@ -372,8 +372,11 @@ const Account = () => {
                   <span className="font-mono text-sm text-sw-blue/80 group-hover:text-sw-blue transition-colors">ADDRESS BOOK</span>
                 </button>
 
-                <button className="w-full flex items-center gap-3 p-3 bg-sw-blue/5 border border-sw-blue/20 rounded hover:bg-sw-blue/10 transition-colors group">
-                  <Settings className="w-5 h-5 text-sw-blue/60 group-hover:text-sw-blue transition-colors" />
+                <button 
+                  onClick={() => navigate("/settings")}
+                  className="w-full flex items-center gap-3 p-3 bg-sw-blue/5 border border-sw-blue/20 rounded hover:bg-sw-blue/10 transition-colors group"
+                >
+                  <SettingsIcon className="w-5 h-5 text-sw-blue/60 group-hover:text-sw-blue transition-colors" />
                   <span className="font-mono text-sm text-sw-blue/80 group-hover:text-sw-blue transition-colors">SETTINGS</span>
                 </button>
                 
