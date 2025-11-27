@@ -1,15 +1,14 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Send as SendIcon, Loader2 } from "lucide-react";
 import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
+import { BottomNav } from "@/components/BottomNav";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useKeetaBalance } from "@/hooks/useKeetaBalance";
 import { toast } from "sonner";
 
 const Send = () => {
-  const navigate = useNavigate();
   const { isConnected, client, network } = useKeetaWallet();
   const { balance, refetch } = useKeetaBalance();
   
@@ -85,17 +84,12 @@ const Send = () => {
       <div className="min-h-screen bg-sw-space text-sw-white relative overflow-hidden">
         <StarField />
         <Header />
-        <main className="container mx-auto px-4 py-8 relative z-10">
+        <main className="container mx-auto px-4 py-8 pt-20 pb-24 relative z-10">
           <StarWarsPanel title="// SEND CREDITS" className="max-w-lg mx-auto">
             <p className="text-sw-orange text-center">Please connect your wallet first</p>
-            <button
-              onClick={() => navigate("/")}
-              className="mt-4 w-full py-3 border border-sw-blue/30 bg-sw-blue/10 hover:bg-sw-blue/20 text-sw-blue font-mono transition-colors"
-            >
-              RETURN TO DASHBOARD
-            </button>
           </StarWarsPanel>
         </main>
+        <BottomNav />
       </div>
     );
   }
@@ -105,14 +99,7 @@ const Send = () => {
       <StarField />
       <Header />
       
-      <main className="container mx-auto px-4 py-8 relative z-10">
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 text-sw-blue hover:text-sw-blue-glow transition-colors mb-6 font-mono"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          BACK TO DASHBOARD
-        </button>
+      <main className="container mx-auto px-4 py-8 pt-20 pb-24 relative z-10">
 
         <StarWarsPanel title="// SEND CREDITS" className="max-w-lg mx-auto">
           <div className="space-y-6">
@@ -190,6 +177,8 @@ const Send = () => {
           </div>
         </StarWarsPanel>
       </main>
+      
+      <BottomNav />
     </div>
   );
 };
