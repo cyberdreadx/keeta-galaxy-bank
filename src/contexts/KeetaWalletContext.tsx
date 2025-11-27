@@ -143,11 +143,12 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
       // Use Keeta SDK's seedFromPassphrase for mnemonic conversion
       try {
         const seedResult = KeetaNet.lib.Account.seedFromPassphrase(trimmed);
-        // Handle different return types - could be string, buffer, or object with toString
+        // Handle different return types - could be string, Uint8Array, or object with toString
         if (typeof seedResult === 'string') {
           finalSeed = seedResult;
-        } else if (seedResult instanceof Uint8Array || Buffer.isBuffer(seedResult)) {
-          finalSeed = Buffer.from(seedResult).toString('hex').toUpperCase();
+        } else if (seedResult instanceof Uint8Array) {
+          // Convert Uint8Array to hex string
+          finalSeed = Array.from(seedResult).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
         } else if (seedResult && typeof seedResult.toString === 'function') {
           finalSeed = seedResult.toString();
         } else {
