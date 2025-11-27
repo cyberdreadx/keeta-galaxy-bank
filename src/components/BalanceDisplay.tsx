@@ -11,10 +11,12 @@ export const BalanceDisplay = () => {
   const { balance, isLoading, refetch } = useKeetaBalance();
 
   const formatBalance = (amount: number) => {
+    // Truncate to 2 decimals without rounding
+    const truncated = Math.floor(amount * 100) / 100;
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(amount);
+    }).format(truncated);
   };
 
   return (
