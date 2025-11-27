@@ -152,8 +152,8 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
         </motion.div>
       </div>
       
-      {/* BottomNav outside motion wrapper to preserve fixed positioning */}
-      <BottomNav />
+      {/* BottomNav outside motion wrapper - hidden on landing page */}
+      {location.pathname !== '/landing' && <BottomNav />}
     </>
   );
 };

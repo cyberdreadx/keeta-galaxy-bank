@@ -5,6 +5,7 @@ import { QuickActions } from "@/components/QuickActions";
 import { TransactionHistory } from "@/components/TransactionHistory";
 import { NetworkStats } from "@/components/NetworkStats";
 import { AssetPortfolio } from "@/components/AssetPortfolio";
+import { Footer } from "@/components/Footer";
 
 const Index = () => {
   return (
@@ -63,8 +64,8 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="text-center mt-12 pb-8">
+          {/* Footer Message */}
+          <div className="text-center mt-12 pb-4">
             <div className="inline-flex items-center gap-3">
               <div className="h-px w-12 bg-sw-blue/30" />
               <p className="font-mono text-xs text-sw-blue/60 tracking-[0.3em]">
@@ -78,6 +79,9 @@ const Index = () => {
           </div>
         </div>
       </main>
+      
+      {/* Footer with links */}
+      <Footer />
     </div>
   );
 };
