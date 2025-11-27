@@ -3,7 +3,7 @@ import { Hexagon, ExternalLink } from "lucide-react";
 
 export const Footer = () => {
   return (
-    <footer className="relative z-10 border-t border-sw-blue/20 bg-sw-space/50 backdrop-blur-sm">
+    <footer className="relative z-20 border-t border-sw-blue/20 bg-sw-space/50 backdrop-blur-sm pb-24 sm:pb-6">
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Logo & Brand */}
