@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { KeetaWalletProvider } from "./contexts/KeetaWalletContext";
+import { SwipeablePages } from "./components/SwipeablePages";
 import Index from "./pages/Index";
 import Send from "./pages/Send";
 import Receive from "./pages/Receive";
@@ -15,6 +16,22 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const AppRoutes = () => (
+  <SwipeablePages>
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/pay" element={<Pay />} />
+      <Route path="/send" element={<Send />} />
+      <Route path="/receive" element={<Receive />} />
+      <Route path="/account" element={<Account />} />
+      <Route path="/security" element={<Security />} />
+      <Route path="/lock" element={<Lock />} />
+      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </SwipeablePages>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -22,17 +39,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/pay" element={<Pay />} />
-            <Route path="/send" element={<Send />} />
-            <Route path="/receive" element={<Receive />} />
-            <Route path="/account" element={<Account />} />
-            <Route path="/security" element={<Security />} />
-            <Route path="/lock" element={<Lock />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppRoutes />
         </BrowserRouter>
       </KeetaWalletProvider>
     </TooltipProvider>
