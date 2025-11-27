@@ -142,9 +142,20 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
     if (words.length >= 12) {
       // Use Keeta SDK's seedFromPassphrase for mnemonic conversion
       try {
-        finalSeed = KeetaNet.lib.Account.seedFromPassphrase(trimmed, { asString: true });
+        const seedResult = KeetaNet.lib.Account.seedFromPassphrase(trimmed);
+        // Handle different return types - could be string, buffer, or object with toString
+        if (typeof seedResult === 'string') {
+          finalSeed = seedResult;
+        } else if (seedResult instanceof Uint8Array || Buffer.isBuffer(seedResult)) {
+          finalSeed = Buffer.from(seedResult).toString('hex').toUpperCase();
+        } else if (seedResult && typeof seedResult.toString === 'function') {
+          finalSeed = seedResult.toString();
+        } else {
+          throw new Error('Unexpected seed format');
+        }
       } catch (err: any) {
-        setState(prev => ({ ...prev, error: 'Invalid passphrase. Please check your words.' }));
+        console.error('seedFromPassphrase error:', err);
+        setState(prev => ({ ...prev, error: err.message || 'Invalid passphrase. Please check your words.' }));
         return;
       }
     }
