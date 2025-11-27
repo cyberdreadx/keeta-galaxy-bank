@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import * as bip39 from 'bip39';
 
 // Types for Keeta SDK (will be populated when SDK loads)
 interface KeetaAccount {
@@ -123,12 +124,29 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [KeetaNet, state.network]);
 
-  const importWallet = useCallback(async (seed: string) => {
-    if (!seed.trim()) {
+  const importWallet = useCallback(async (seedInput: string) => {
+    if (!seedInput.trim()) {
       setState(prev => ({ ...prev, error: 'Seed cannot be empty' }));
       return;
     }
-    await connectWithSeed(seed.trim(), state.network);
+
+    const trimmed = seedInput.trim();
+    let finalSeed = trimmed;
+
+    // Check if it's a BIP39 mnemonic (multiple words)
+    const words = trimmed.split(/\s+/);
+    if (words.length >= 12) {
+      // Validate mnemonic
+      if (!bip39.validateMnemonic(trimmed)) {
+        setState(prev => ({ ...prev, error: 'Invalid mnemonic phrase. Please check your words.' }));
+        return;
+      }
+      // Convert mnemonic to seed (returns 64 bytes, we use first 32)
+      const seedBuffer = bip39.mnemonicToSeedSync(trimmed);
+      finalSeed = seedBuffer.slice(0, 32).toString('hex').toUpperCase();
+    }
+
+    await connectWithSeed(finalSeed, state.network);
   }, [KeetaNet, state.network]);
 
   const disconnect = useCallback(() => {

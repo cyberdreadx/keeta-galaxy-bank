@@ -223,9 +223,12 @@ export const WalletConnect = ({ onClose }: WalletConnectProps) => {
                 type="password"
                 value={importSeed}
                 onChange={(e) => setImportSeed(e.target.value)}
-                placeholder="Your seed phrase..."
+                placeholder="24-word mnemonic or hex seed..."
                 className="bg-sw-dark/50 border-sw-blue/30 text-sw-blue font-mono text-sm focus:border-sw-yellow"
               />
+              <p className="font-mono text-[10px] text-sw-blue/40">
+                Supports 12/24-word mnemonic or 64-char hex seed
+              </p>
             </div>
 
             <div className="flex gap-2">
