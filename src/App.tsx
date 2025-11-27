@@ -12,6 +12,7 @@ import Pay from "./pages/Pay";
 import Account from "./pages/Account";
 import Security from "./pages/Security";
 import Lock from "./pages/Lock";
+import AddressBook from "./pages/AddressBook";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const AppRoutes = () => (
       <Route path="/account" element={<Account />} />
       <Route path="/security" element={<Security />} />
       <Route path="/lock" element={<Lock />} />
+      <Route path="/address-book" element={<AddressBook />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
