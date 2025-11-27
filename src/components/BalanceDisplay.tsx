@@ -4,11 +4,15 @@ import { Eye, EyeOff, RefreshCw, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useKeetaBalance } from "@/hooks/useKeetaBalance";
+import { useKtaPrice } from "@/hooks/useKtaPrice";
 
 export const BalanceDisplay = () => {
   const [isHidden, setIsHidden] = useState(false);
   const { isConnected, network } = useKeetaWallet();
   const { balance, isLoading, refetch } = useKeetaBalance();
+  const { priceUsd } = useKtaPrice();
+
+  const usdValue = priceUsd ? balance * priceUsd : null;
 
   const formatBalance = (amount: number) => {
     // Truncate to 2 decimals without rounding
@@ -17,6 +21,15 @@ export const BalanceDisplay = () => {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(truncated);
+  };
+
+  const formatUsd = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
   };
 
   return (
@@ -51,6 +64,11 @@ export const BalanceDisplay = () => {
               KTA
             </span>
           </div>
+          {isConnected && usdValue !== null && (
+            <p className={`font-mono text-lg text-sw-blue/80 mt-1 transition-all duration-300 ${isHidden ? 'blur-lg select-none' : ''}`}>
+              ≈ {isHidden ? "••••" : formatUsd(usdValue)}
+            </p>
+          )}
           {!isConnected && (
             <p className="font-mono text-xs text-sw-orange/80 mt-2 animate-pulse">
               WALLET DISCONNECTED
