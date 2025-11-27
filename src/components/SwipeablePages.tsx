@@ -2,6 +2,7 @@ import { ReactNode, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { BottomNav } from "@/components/BottomNav";
 
 interface SwipeablePagesProps {
   children: ReactNode;
@@ -85,64 +86,74 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
   }, [location.pathname]);
 
   if (!isSwipeEnabled) {
-    return <>{children}</>;
+    return (
+      <>
+        {children}
+        <BottomNav />
+      </>
+    );
   }
 
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < MAIN_PAGES.length - 1;
 
   return (
-    <div 
-      className="relative min-h-screen overflow-x-hidden"
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-    >
-      {/* Edge indicators */}
-      <AnimatePresence>
-        {swiping && swipeDirection === 'right' && hasPrev && (
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: swipeProgress, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-            className="fixed left-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none"
-          >
-            <div className="flex items-center gap-2 px-3 py-2 bg-sw-blue/20 border border-sw-blue/40 rounded backdrop-blur-sm">
-              <span className="text-sw-blue text-xl">‹</span>
-              <span className="font-mono text-xs text-sw-blue tracking-wider">
-                {PAGE_LABELS[currentIndex - 1]}
-              </span>
-            </div>
-          </motion.div>
-        )}
-        
-        {swiping && swipeDirection === 'left' && hasNext && (
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: swipeProgress, x: 0 }}
-            exit={{ opacity: 0, x: 30 }}
-            className="fixed right-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none"
-          >
-            <div className="flex items-center gap-2 px-3 py-2 bg-sw-blue/20 border border-sw-blue/40 rounded backdrop-blur-sm">
-              <span className="font-mono text-xs text-sw-blue tracking-wider">
-                {PAGE_LABELS[currentIndex + 1]}
-              </span>
-              <span className="text-sw-blue text-xl">›</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Page content with enter animation */}
-      <motion.div
-        key={location.pathname}
-        initial={{ opacity: 0, y: 15, filter: "blur(4px)" }}
-        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
-        className="min-h-screen"
+    <>
+      <div 
+        className="relative min-h-screen overflow-x-hidden"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
       >
-        {children}
-      </motion.div>
-    </div>
+        {/* Edge indicators */}
+        <AnimatePresence>
+          {swiping && swipeDirection === 'right' && hasPrev && (
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: swipeProgress, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+              className="fixed left-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none"
+            >
+              <div className="flex items-center gap-2 px-3 py-2 bg-sw-blue/20 border border-sw-blue/40 rounded backdrop-blur-sm">
+                <span className="text-sw-blue text-xl">‹</span>
+                <span className="font-mono text-xs text-sw-blue tracking-wider">
+                  {PAGE_LABELS[currentIndex - 1]}
+                </span>
+              </div>
+            </motion.div>
+          )}
+          
+          {swiping && swipeDirection === 'left' && hasNext && (
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: swipeProgress, x: 0 }}
+              exit={{ opacity: 0, x: 30 }}
+              className="fixed right-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none"
+            >
+              <div className="flex items-center gap-2 px-3 py-2 bg-sw-blue/20 border border-sw-blue/40 rounded backdrop-blur-sm">
+                <span className="font-mono text-xs text-sw-blue tracking-wider">
+                  {PAGE_LABELS[currentIndex + 1]}
+                </span>
+                <span className="text-sw-blue text-xl">›</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Page content with enter animation */}
+        <motion.div
+          key={location.pathname}
+          initial={{ opacity: 0, y: 15, filter: "blur(4px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="min-h-screen"
+        >
+          {children}
+        </motion.div>
+      </div>
+      
+      {/* BottomNav outside motion wrapper to preserve fixed positioning */}
+      <BottomNav />
+    </>
   );
 };
