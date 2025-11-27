@@ -28,9 +28,6 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
   const rotate = useTransform(x, [-200, 0, 200], [-3, 0, 3]);
   const opacity = useTransform(x, [-200, 0, 200], [0.8, 1, 0.8]);
 
-  // Indicator transforms
-  const indicatorX = useTransform(x, [-200, 0, 200], [30, 0, -30]);
-
   const handleDragStart = () => {
     setIsDragging(true);
   };
@@ -67,22 +64,6 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      {/* Page indicator dots */}
-      <motion.div 
-        className="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-background/80 backdrop-blur-sm rounded-full border border-sw-blue/20"
-        style={{ x: indicatorX }}
-      >
-        {MAIN_PAGES.map((_, idx) => (
-          <div
-            key={idx}
-            className={`w-2 h-2 rounded-full transition-all duration-300 ${
-              idx === currentIndex 
-                ? 'bg-sw-blue w-6' 
-                : 'bg-sw-blue/30'
-            }`}
-          />
-        ))}
-      </motion.div>
 
       {/* Edge indicators when dragging */}
       <AnimatePresence>
