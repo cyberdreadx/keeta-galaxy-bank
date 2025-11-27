@@ -1,5 +1,4 @@
-import { HologramCard } from "./HologramCard";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { StarWarsPanel } from "./StarWarsPanel";
 import { cn } from "@/lib/utils";
 
 interface Asset {
@@ -8,119 +7,88 @@ interface Asset {
   balance: number;
   value: number;
   change: number;
-  color: string;
 }
 
 const assets: Asset[] = [
-  {
-    symbol: "KTA",
-    name: "Keeta",
-    balance: 85000,
-    value: 102000,
-    change: 12.5,
-    color: "from-hologram to-hologram-glow",
-  },
-  {
-    symbol: "USDC",
-    name: "USD Coin",
-    balance: 15000,
-    value: 15000,
-    change: 0.01,
-    color: "from-blue-400 to-blue-600",
-  },
-  {
-    symbol: "ETH",
-    name: "Ethereum",
-    balance: 2.5,
-    value: 6250,
-    change: -3.2,
-    color: "from-purple-400 to-purple-600",
-  },
-  {
-    symbol: "BTC",
-    name: "Bitcoin",
-    balance: 0.05,
-    value: 2597.32,
-    change: 5.8,
-    color: "from-orange-400 to-orange-600",
-  },
+  { symbol: "KTA", name: "KEETA", balance: 85000, value: 102000, change: 12.5 },
+  { symbol: "USDC", name: "USD COIN", balance: 15000, value: 15000, change: 0.01 },
+  { symbol: "ETH", name: "ETHEREUM", balance: 2.5, value: 6250, change: -3.2 },
+  { symbol: "BTC", name: "BITCOIN", balance: 0.05, value: 2597.32, change: 5.8 },
 ];
 
 export const AssetPortfolio = () => {
   const totalValue = assets.reduce((acc, asset) => acc + asset.value, 0);
 
   return (
-    <HologramCard className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-display font-semibold text-foreground uppercase tracking-wider">
-          Asset Portfolio
-        </h3>
-        <span className="text-sm text-muted-foreground">
-          ${totalValue.toLocaleString()} total
-        </span>
-      </div>
-
-      <div className="space-y-4">
-        {assets.map((asset) => {
+    <StarWarsPanel title="// ASSET MANIFEST">
+      <div className="space-y-3">
+        {assets.map((asset, index) => {
           const percentage = (asset.value / totalValue) * 100;
 
           return (
             <div
               key={asset.symbol}
-              className="p-4 rounded-lg bg-muted/30 border border-border/50 hover:border-hologram/30 transition-all duration-300 cursor-pointer group"
+              className="relative border border-sw-blue/20 bg-sw-blue/5 p-4 hover:bg-sw-blue/10 hover:border-sw-blue/40 transition-all cursor-pointer animate-fade-in"
+              style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "w-10 h-10 rounded-full bg-gradient-to-br flex items-center justify-center font-display font-bold text-sm text-primary-foreground",
-                    asset.color
-                  )}>
-                    {asset.symbol.slice(0, 2)}
+                  {/* Symbol badge */}
+                  <div className="w-12 h-12 border border-sw-blue/40 bg-sw-blue/10 flex items-center justify-center">
+                    <span className="font-display font-bold text-sm text-sw-blue">
+                      {asset.symbol}
+                    </span>
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground">{asset.name}</p>
-                    <p className="text-sm text-muted-foreground">{asset.symbol}</p>
+                    <p className="font-mono text-sm text-sw-white">{asset.name}</p>
+                    <p className="font-mono text-xs text-sw-blue/60">
+                      {asset.balance.toLocaleString()} {asset.symbol}
+                    </p>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <p className="font-display font-semibold text-foreground">
+                  <p className="font-mono text-lg font-bold text-sw-yellow">
                     ${asset.value.toLocaleString()}
                   </p>
-                  <div className={cn(
-                    "flex items-center gap-1 text-sm",
-                    asset.change >= 0 ? "text-success" : "text-destructive"
+                  <p className={cn(
+                    "font-mono text-xs",
+                    asset.change >= 0 ? "text-sw-green" : "text-sw-red"
                   )}>
-                    {asset.change >= 0 ? (
-                      <TrendingUp className="w-3 h-3" />
-                    ) : (
-                      <TrendingDown className="w-3 h-3" />
-                    )}
-                    <span>{asset.change >= 0 ? '+' : ''}{asset.change}%</span>
-                  </div>
+                    {asset.change >= 0 ? '▲' : '▼'} {Math.abs(asset.change)}%
+                  </p>
                 </div>
               </div>
 
-              {/* Progress bar */}
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={cn("h-full bg-gradient-to-r rounded-full transition-all duration-500", asset.color)}
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
-                <span className="text-xs text-muted-foreground w-12 text-right">
-                  {percentage.toFixed(1)}%
-                </span>
+              {/* Allocation bar */}
+              <div className="h-1 bg-sw-dark border border-sw-blue/20">
+                <div
+                  className="h-full bg-gradient-to-r from-sw-blue to-sw-blue-glow transition-all duration-500"
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="font-mono text-[10px] text-sw-blue/60">ALLOCATION</span>
+                <span className="font-mono text-[10px] text-sw-blue">{percentage.toFixed(1)}%</span>
               </div>
 
-              <p className="text-sm text-muted-foreground mt-2">
-                {asset.balance.toLocaleString()} {asset.symbol}
-              </p>
+              {/* Corner markers */}
+              <div className="absolute top-1 left-1 w-2 h-2 border-l border-t border-sw-blue/30" />
+              <div className="absolute top-1 right-1 w-2 h-2 border-r border-t border-sw-blue/30" />
+              <div className="absolute bottom-1 left-1 w-2 h-2 border-l border-b border-sw-blue/30" />
+              <div className="absolute bottom-1 right-1 w-2 h-2 border-r border-b border-sw-blue/30" />
             </div>
           );
         })}
       </div>
-    </HologramCard>
+
+      {/* Total */}
+      <div className="mt-4 pt-4 border-t border-sw-blue/30 flex justify-between items-center">
+        <span className="font-mono text-xs text-sw-blue/60 tracking-widest">TOTAL VALUE</span>
+        <span className="font-display text-2xl font-bold text-sw-yellow [text-shadow:0_0_15px_hsl(var(--sw-yellow)/0.5)]">
+          ${totalValue.toLocaleString()}
+        </span>
+      </div>
+    </StarWarsPanel>
   );
 };
