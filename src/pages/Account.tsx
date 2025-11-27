@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
 import { useKeetaWallet, AccountType } from "@/contexts/KeetaWalletContext";
-import { Copy, LogOut, Settings, Shield, Plus, Wallet, PiggyBank } from "lucide-react";
+import { InternalTransferModal } from "@/components/InternalTransferModal";
+import { Copy, LogOut, Settings, Shield, Plus, Wallet, PiggyBank, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 const Account = () => {
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
   const navigate = useNavigate();
   const { play } = useSoundEffects();
   const { 
@@ -174,6 +177,22 @@ const Account = () => {
                       </div>
                     </button>
                   )}
+
+                  {/* Transfer Button - only show when savings exists */}
+                  {savingsAccount && (
+                    <button
+                      onClick={() => {
+                        play('click');
+                        setTransferModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-3 p-3 bg-sw-green/10 border border-sw-green/30 rounded hover:bg-sw-green/20 transition-colors group mt-4"
+                    >
+                      <ArrowRightLeft className="w-5 h-5 text-sw-green/70 group-hover:text-sw-green" />
+                      <span className="font-mono text-sm text-sw-green/80 group-hover:text-sw-green">
+                        TRANSFER BETWEEN ACCOUNTS
+                      </span>
+                    </button>
+                  )}
                 </div>
               </StarWarsPanel>
             )}
@@ -242,6 +261,11 @@ const Account = () => {
       </main>
 
       <BottomNav />
+      
+      <InternalTransferModal 
+        open={transferModalOpen} 
+        onOpenChange={setTransferModalOpen} 
+      />
     </div>
   );
 };
