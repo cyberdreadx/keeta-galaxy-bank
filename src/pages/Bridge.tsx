@@ -4,29 +4,18 @@ import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
+import { useBridge, BRIDGE_NETWORKS, BridgeNetwork } from "@/hooks/useBridge";
 import { toast } from "sonner";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
-
-interface Network {
-  id: string;
-  name: string;
-  symbol: string;
-  color: string;
-}
-
-const NETWORKS: Network[] = [
-  { id: "keeta", name: "Keeta L1", symbol: "KTA", color: "sw-blue" },
-  { id: "base", name: "Base", symbol: "KTA", color: "sw-green" },
-];
 
 const Bridge = () => {
   const { isConnected } = useKeetaWallet();
   const { play } = useSoundEffects();
+  const { initiateBridge, isBridging, status, transferId, reset } = useBridge();
   
-  const [fromNetwork, setFromNetwork] = useState<Network>(NETWORKS[0]);
-  const [toNetwork, setToNetwork] = useState<Network>(NETWORKS[1]);
+  const [fromNetwork, setFromNetwork] = useState<BridgeNetwork>(BRIDGE_NETWORKS[0]);
+  const [toNetwork, setToNetwork] = useState<BridgeNetwork>(BRIDGE_NETWORKS[1]);
   const [amount, setAmount] = useState("");
-  const [isBridging, setIsBridging] = useState(false);
 
   const handleSwapNetworks = () => {
     play('click');
@@ -48,19 +37,16 @@ const Bridge = () => {
       return;
     }
 
-    setIsBridging(true);
     play('send');
+    const result = await initiateBridge(fromNetwork, toNetwork, amount);
 
-    try {
-      // Bridge functionality coming soon - for now show info
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.info("Bridge functionality coming soon! Visit keeta.com for more info.");
-    } catch (err: any) {
-      console.error('[Bridge] Error:', err);
+    if (result.success) {
+      play('receive');
+      toast.success(`Bridge initiated! Transfer ID: ${result.transferId}`);
+      setAmount("");
+    } else {
       play('error');
-      toast.error(err.message || "Bridge failed");
-    } finally {
-      setIsBridging(false);
+      toast.info(result.error || "Bridge failed");
     }
   };
 
@@ -116,26 +102,35 @@ const Bridge = () => {
                 <Info className="w-5 h-5 text-sw-blue flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-mono text-xs text-sw-blue/80">
-                    Bridge KTA between Keeta L1 and Base network. Cross-chain transfers typically take 5-15 minutes.
+                    Bridge KTA between Keeta L1 and Base network using the Keeta Anchor SDK. Cross-chain transfers typically take 5-15 minutes.
                   </p>
                 </div>
               </div>
+
+              {/* Transfer ID Display */}
+              {transferId && (
+                <div className="p-3 bg-sw-green/10 border border-sw-green/30 rounded">
+                  <p className="font-mono text-xs text-sw-green/80">
+                    Transfer ID: {transferId}
+                  </p>
+                </div>
+              )}
 
               {/* From Network */}
               <div className="space-y-2">
                 <label className="font-mono text-xs text-sw-blue/80 tracking-widest uppercase">
                   FROM NETWORK
                 </label>
-                <div className={`p-4 border border-${fromNetwork.color}/40 bg-${fromNetwork.color}/10 rounded`}>
+                <div className="p-4 border border-sw-blue/40 bg-sw-blue/10 rounded">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 border border-${fromNetwork.color}/60 bg-${fromNetwork.color}/20 flex items-center justify-center`}>
-                        <span className={`font-mono text-xs text-${fromNetwork.color}`}>
+                      <div className="w-10 h-10 border border-sw-blue/60 bg-sw-blue/20 flex items-center justify-center">
+                        <span className="font-mono text-xs text-sw-blue">
                           {fromNetwork.id === 'keeta' ? 'L1' : 'B'}
                         </span>
                       </div>
                       <div>
-                        <p className={`font-display text-sm text-${fromNetwork.color}`}>{fromNetwork.name}</p>
+                        <p className="font-display text-sm text-sw-blue">{fromNetwork.name}</p>
                         <p className="font-mono text-xs text-sw-blue/50">{fromNetwork.symbol}</p>
                       </div>
                     </div>
@@ -158,16 +153,16 @@ const Bridge = () => {
                 <label className="font-mono text-xs text-sw-blue/80 tracking-widest uppercase">
                   TO NETWORK
                 </label>
-                <div className={`p-4 border border-${toNetwork.color}/40 bg-${toNetwork.color}/10 rounded`}>
+                <div className="p-4 border border-sw-green/40 bg-sw-green/10 rounded">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 border border-${toNetwork.color}/60 bg-${toNetwork.color}/20 flex items-center justify-center`}>
-                        <span className={`font-mono text-xs text-${toNetwork.color}`}>
+                      <div className="w-10 h-10 border border-sw-green/60 bg-sw-green/20 flex items-center justify-center">
+                        <span className="font-mono text-xs text-sw-green">
                           {toNetwork.id === 'keeta' ? 'L1' : 'B'}
                         </span>
                       </div>
                       <div>
-                        <p className={`font-display text-sm text-${toNetwork.color}`}>{toNetwork.name}</p>
+                        <p className="font-display text-sm text-sw-green">{toNetwork.name}</p>
                         <p className="font-mono text-xs text-sw-blue/50">{toNetwork.symbol}</p>
                       </div>
                     </div>
