@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
-import { BottomNav } from "@/components/BottomNav";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
 import { useAddressBook, Contact } from "@/hooks/useAddressBook";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
@@ -291,8 +290,6 @@ const AddressBook = () => {
           </div>
         </div>
       </main>
-
-      <BottomNav />
     </div>
   );
 };
