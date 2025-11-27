@@ -72,7 +72,17 @@ const Bridge = () => {
       setDestinationAddress("");
     } else {
       play('error');
-      toast.info(result.error || "Bridge failed");
+      if (result.noProviders) {
+        toast.info(result.error, {
+          duration: 6000,
+          action: {
+            label: "Visit Keeta",
+            onClick: () => window.open("https://keeta.com", "_blank")
+          }
+        });
+      } else {
+        toast.error(result.error || "Bridge failed");
+      }
     }
   };
 

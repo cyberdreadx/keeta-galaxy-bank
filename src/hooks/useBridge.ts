@@ -38,6 +38,7 @@ interface BridgeResult {
   transferId?: string;
   instructions?: any[];
   error?: string;
+  noProviders?: boolean;
 }
 
 export function useBridge() {
@@ -114,8 +115,12 @@ export function useBridge() {
       });
 
       if (!providers || providers.length === 0) {
-        setState(prev => ({ ...prev, isBridging: false, status: 'failed', error: 'No bridge providers available' }));
-        return { success: false, error: 'No bridge providers available for this route' };
+        setState(prev => ({ ...prev, isBridging: false, status: 'idle' }));
+        return { 
+          success: false, 
+          error: 'Bridge route not yet available. The Keeta L1 ↔ Base bridge is coming soon. Visit keeta.com for updates.',
+          noProviders: true
+        };
       }
 
       // Use the first available provider
