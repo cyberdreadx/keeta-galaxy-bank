@@ -1,5 +1,5 @@
-import { ReactNode, useState, useRef } from "react";
-import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
+import { ReactNode, useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 
@@ -14,41 +14,75 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { play } = useSoundEffects();
-  const [isDragging, setIsDragging] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [swiping, setSwiping] = useState(false);
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [swipeProgress, setSwipeProgress] = useState(0);
 
   const currentIndex = MAIN_PAGES.indexOf(location.pathname);
   const isSwipeEnabled = currentIndex !== -1;
 
-  const x = useMotionValue(0);
-  
-  // Simpler transforms - just opacity hints at edges
-  const leftOpacity = useTransform(x, [0, 100], [0, 0.8]);
-  const rightOpacity = useTransform(x, [-100, 0], [0.8, 0]);
+  const minSwipeDistance = 50;
 
-  const handleDragStart = () => {
-    setIsDragging(true);
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (!isSwipeEnabled) return;
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+    setSwiping(true);
   };
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
-    setIsDragging(false);
-    const threshold = 80;
-    const velocity = Math.abs(info.velocity.x);
-    const offset = info.offset.x;
-
-    // Fast swipe or far enough drag
-    if (offset < -threshold || (velocity > 300 && info.velocity.x < 0)) {
-      if (currentIndex < MAIN_PAGES.length - 1) {
-        play('navigate');
-        navigate(MAIN_PAGES[currentIndex + 1]);
-      }
-    } else if (offset > threshold || (velocity > 300 && info.velocity.x > 0)) {
-      if (currentIndex > 0) {
-        play('navigate');
-        navigate(MAIN_PAGES[currentIndex - 1]);
-      }
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart || !isSwipeEnabled) return;
+    const currentTouch = e.targetTouches[0].clientX;
+    setTouchEnd(currentTouch);
+    
+    const distance = touchStart - currentTouch;
+    const progress = Math.min(Math.abs(distance) / 150, 1);
+    setSwipeProgress(progress);
+    
+    if (distance > 20) {
+      setSwipeDirection('left');
+    } else if (distance < -20) {
+      setSwipeDirection('right');
+    } else {
+      setSwipeDirection(null);
     }
   };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd || !isSwipeEnabled) {
+      setSwiping(false);
+      setSwipeDirection(null);
+      setSwipeProgress(0);
+      return;
+    }
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && currentIndex < MAIN_PAGES.length - 1) {
+      play('navigate');
+      navigate(MAIN_PAGES[currentIndex + 1]);
+    } else if (isRightSwipe && currentIndex > 0) {
+      play('navigate');
+      navigate(MAIN_PAGES[currentIndex - 1]);
+    }
+
+    setSwiping(false);
+    setSwipeDirection(null);
+    setSwipeProgress(0);
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
+  // Reset on route change
+  useEffect(() => {
+    setSwiping(false);
+    setSwipeDirection(null);
+    setSwipeProgress(0);
+  }, [location.pathname]);
 
   if (!isSwipeEnabled) {
     return <>{children}</>;
@@ -58,47 +92,54 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
   const hasNext = currentIndex < MAIN_PAGES.length - 1;
 
   return (
-    <div ref={containerRef} className="relative min-h-screen overflow-x-hidden">
-      {/* Left edge indicator */}
-      {hasPrev && (
-        <motion.div
-          className="fixed left-0 top-0 bottom-0 w-16 flex items-center justify-center pointer-events-none z-40"
-          style={{ opacity: leftOpacity }}
-        >
-          <div className="flex flex-col items-center gap-1 text-sw-blue">
-            <span className="text-2xl">‹</span>
-            <span className="font-mono text-[10px] tracking-wider -rotate-90 whitespace-nowrap">
-              {PAGE_LABELS[currentIndex - 1]}
-            </span>
-          </div>
-        </motion.div>
-      )}
+    <div 
+      className="relative min-h-screen overflow-x-hidden"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* Edge indicators */}
+      <AnimatePresence>
+        {swiping && swipeDirection === 'right' && hasPrev && (
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: swipeProgress, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+            className="fixed left-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none"
+          >
+            <div className="flex items-center gap-2 px-3 py-2 bg-sw-blue/20 border border-sw-blue/40 rounded backdrop-blur-sm">
+              <span className="text-sw-blue text-xl">‹</span>
+              <span className="font-mono text-xs text-sw-blue tracking-wider">
+                {PAGE_LABELS[currentIndex - 1]}
+              </span>
+            </div>
+          </motion.div>
+        )}
+        
+        {swiping && swipeDirection === 'left' && hasNext && (
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: swipeProgress, x: 0 }}
+            exit={{ opacity: 0, x: 30 }}
+            className="fixed right-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none"
+          >
+            <div className="flex items-center gap-2 px-3 py-2 bg-sw-blue/20 border border-sw-blue/40 rounded backdrop-blur-sm">
+              <span className="font-mono text-xs text-sw-blue tracking-wider">
+                {PAGE_LABELS[currentIndex + 1]}
+              </span>
+              <span className="text-sw-blue text-xl">›</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Right edge indicator */}
-      {hasNext && (
-        <motion.div
-          className="fixed right-0 top-0 bottom-0 w-16 flex items-center justify-center pointer-events-none z-40"
-          style={{ opacity: rightOpacity }}
-        >
-          <div className="flex flex-col items-center gap-1 text-sw-blue">
-            <span className="text-2xl">›</span>
-            <span className="font-mono text-[10px] tracking-wider rotate-90 whitespace-nowrap">
-              {PAGE_LABELS[currentIndex + 1]}
-            </span>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Main content - simple horizontal drag */}
+      {/* Page content with enter animation */}
       <motion.div
-        drag="x"
-        dragDirectionLock
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.15}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        style={{ x }}
-        className="min-h-screen will-change-transform"
+        key={location.pathname}
+        initial={{ opacity: 0, y: 15, filter: "blur(4px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="min-h-screen"
       >
         {children}
       </motion.div>

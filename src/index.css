@@ -302,4 +302,312 @@
       box-shadow: 0 0 30px hsl(var(--sw-blue) / 0.7);
     }
   }
+
+  /* ========== STAR WARS LOADING ANIMATIONS ========== */
+
+  /* Holographic Spinner */
+  .sw-spinner {
+    width: 60px;
+    height: 60px;
+    border: 3px solid transparent;
+    border-top-color: hsl(var(--sw-blue));
+    border-radius: 50%;
+    position: relative;
+    animation: sw-spin 1s linear infinite;
+  }
+
+  .sw-spinner::before,
+  .sw-spinner::after {
+    content: '';
+    position: absolute;
+    border: 3px solid transparent;
+    border-radius: 50%;
+  }
+
+  .sw-spinner::before {
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    bottom: 5px;
+    border-top-color: hsl(var(--sw-yellow));
+    animation: sw-spin 2s linear infinite reverse;
+  }
+
+  .sw-spinner::after {
+    top: 15px;
+    left: 15px;
+    right: 15px;
+    bottom: 15px;
+    border-top-color: hsl(var(--sw-blue-glow));
+    animation: sw-spin 1.5s linear infinite;
+  }
+
+  @keyframes sw-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Targeting Computer Loader */
+  .sw-target-loader {
+    width: 80px;
+    height: 80px;
+    position: relative;
+  }
+
+  .sw-target-loader::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 2px solid hsl(var(--sw-blue) / 0.3);
+    border-radius: 50%;
+  }
+
+  .sw-target-loader::after {
+    content: '';
+    position: absolute;
+    inset: 10px;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      hsl(var(--sw-blue)) 60deg,
+      transparent 120deg
+    );
+    border-radius: 50%;
+    animation: sw-spin 1.5s linear infinite;
+    mask: radial-gradient(transparent 50%, black 51%);
+    -webkit-mask: radial-gradient(transparent 50%, black 51%);
+  }
+
+  /* Hyperdrive Loader */
+  .sw-hyperdrive {
+    width: 100px;
+    height: 4px;
+    background: hsl(var(--sw-blue) / 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .sw-hyperdrive::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--sw-blue)),
+      hsl(var(--sw-blue-glow)),
+      hsl(var(--sw-blue)),
+      transparent
+    );
+    animation: hyperdrive-streak 0.8s ease-in-out infinite;
+  }
+
+  @keyframes hyperdrive-streak {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* Data Download Bars */
+  .sw-download-bars {
+    display: flex;
+    gap: 4px;
+    align-items: flex-end;
+    height: 40px;
+  }
+
+  .sw-download-bar {
+    width: 6px;
+    background: hsl(var(--sw-blue));
+    box-shadow: 0 0 10px hsl(var(--sw-blue) / 0.5);
+    animation: sw-bar-pulse 1s ease-in-out infinite;
+  }
+
+  .sw-download-bar:nth-child(1) { animation-delay: 0s; }
+  .sw-download-bar:nth-child(2) { animation-delay: 0.1s; }
+  .sw-download-bar:nth-child(3) { animation-delay: 0.2s; }
+  .sw-download-bar:nth-child(4) { animation-delay: 0.3s; }
+  .sw-download-bar:nth-child(5) { animation-delay: 0.4s; }
+
+  @keyframes sw-bar-pulse {
+    0%, 100% { height: 10px; opacity: 0.5; }
+    50% { height: 40px; opacity: 1; }
+  }
+
+  /* Hologram Skeleton */
+  .sw-skeleton {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--sw-blue) / 0.1) 0%,
+      hsl(var(--sw-blue) / 0.2) 50%,
+      hsl(var(--sw-blue) / 0.1) 100%
+    );
+    background-size: 200% 100%;
+    animation: sw-skeleton-shimmer 1.5s ease-in-out infinite;
+    border-radius: 4px;
+  }
+
+  @keyframes sw-skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Transmission Loading */
+  .sw-transmission {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sw-transmission::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: hsl(var(--sw-blue));
+    box-shadow: 0 0 20px hsl(var(--sw-blue));
+    animation: transmission-scan 2s ease-in-out infinite;
+  }
+
+  @keyframes transmission-scan {
+    0%, 100% { top: 0; opacity: 1; }
+    50% { top: 100%; opacity: 0.5; }
+  }
+
+  /* Imperial Data Dots */
+  .sw-data-dots {
+    display: flex;
+    gap: 8px;
+  }
+
+  .sw-data-dot {
+    width: 8px;
+    height: 8px;
+    background: hsl(var(--sw-blue));
+    border-radius: 50%;
+    box-shadow: 0 0 10px hsl(var(--sw-blue));
+    animation: sw-dot-pulse 1.2s ease-in-out infinite;
+  }
+
+  .sw-data-dot:nth-child(1) { animation-delay: 0s; }
+  .sw-data-dot:nth-child(2) { animation-delay: 0.2s; }
+  .sw-data-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes sw-dot-pulse {
+    0%, 100% { transform: scale(0.5); opacity: 0.3; }
+    50% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Lightsaber Loading */
+  .sw-lightsaber-loader {
+    width: 120px;
+    height: 6px;
+    background: hsl(220 40% 15%);
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sw-lightsaber-loader::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0%;
+    background: linear-gradient(90deg, hsl(var(--sw-blue)), hsl(var(--sw-blue-glow)));
+    box-shadow: 0 0 20px hsl(var(--sw-blue)), 0 0 40px hsl(var(--sw-blue) / 0.5);
+    border-radius: 3px;
+    animation: lightsaber-ignite 1.5s ease-out infinite;
+  }
+
+  @keyframes lightsaber-ignite {
+    0% { width: 0%; }
+    70% { width: 100%; }
+    100% { width: 100%; opacity: 0.5; }
+  }
+
+  /* Page Transition */
+  .sw-page-enter {
+    animation: page-enter 0.4s ease-out;
+  }
+
+  @keyframes page-enter {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+      filter: blur(4px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+  }
+
+  /* Hologram Materialize */
+  .sw-materialize {
+    animation: hologram-materialize 0.6s ease-out;
+  }
+
+  @keyframes hologram-materialize {
+    0% {
+      opacity: 0;
+      transform: scale(0.95) translateY(10px);
+      filter: blur(4px) brightness(2);
+    }
+    50% {
+      filter: blur(0) brightness(1.5);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+      filter: blur(0) brightness(1);
+    }
+  }
+
+  /* Text Typing Effect */
+  .sw-typing {
+    overflow: hidden;
+    border-right: 2px solid hsl(var(--sw-blue));
+    white-space: nowrap;
+    animation: 
+      sw-typing-text 2s steps(20, end),
+      sw-blink-caret 0.5s step-end infinite;
+  }
+
+  @keyframes sw-typing-text {
+    from { width: 0; }
+    to { width: 100%; }
+  }
+
+  @keyframes sw-blink-caret {
+    from, to { border-color: transparent; }
+    50% { border-color: hsl(var(--sw-blue)); }
+  }
+
+  /* Glitch Effect */
+  .sw-glitch {
+    animation: sw-glitch-effect 2s infinite;
+  }
+
+  @keyframes sw-glitch-effect {
+    0%, 90%, 100% { 
+      transform: translate(0);
+      filter: none;
+    }
+    91% { 
+      transform: translate(-2px, 1px);
+      filter: hue-rotate(90deg);
+    }
+    92% { 
+      transform: translate(2px, -1px);
+      filter: hue-rotate(-90deg);
+    }
+    93% { 
+      transform: translate(0);
+      filter: none;
+    }
+  }
 }
