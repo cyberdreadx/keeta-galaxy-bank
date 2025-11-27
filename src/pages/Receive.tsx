@@ -7,14 +7,17 @@ import { BottomNav } from "@/components/BottomNav";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { toast } from "sonner";
 import QRCode from "qrcode";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 const Receive = () => {
   const { isConnected, publicKey, network } = useKeetaWallet();
+  const { play } = useSoundEffects();
   const [copied, setCopied] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (publicKey) {
+      play('receive');
       QRCode.toDataURL(publicKey, {
         width: 200,
         margin: 2,
@@ -30,11 +33,13 @@ const Receive = () => {
     if (!publicKey) return;
     
     try {
+      play('click');
       await navigator.clipboard.writeText(publicKey);
       setCopied(true);
       toast.success("Address copied to clipboard");
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
+      play('error');
       toast.error("Failed to copy address");
     }
   };

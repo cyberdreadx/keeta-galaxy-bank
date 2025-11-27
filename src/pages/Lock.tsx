@@ -3,15 +3,19 @@ import { StarField } from "@/components/StarField";
 import { Lock, Hexagon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 const PIN_STORAGE_KEY = "keeta_account_pin";
 
 const LockScreen = () => {
   const navigate = useNavigate();
+  const { play } = useSoundEffects();
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
 
   const handlePinInput = (digit: string) => {
+    play('keypad');
+    
     if (pin.length < 6) {
       const newPin = pin + digit;
       setPin(newPin);
@@ -21,9 +25,11 @@ const LockScreen = () => {
       const storedPin = localStorage.getItem(PIN_STORAGE_KEY);
       if (storedPin && newPin.length === storedPin.length) {
         if (newPin === storedPin) {
+          play('unlock');
           toast.success("Unlocked");
           navigate("/");
         } else {
+          play('error');
           setError(true);
           setPin("");
           toast.error("Incorrect PIN");
@@ -33,11 +39,13 @@ const LockScreen = () => {
   };
 
   const handleDelete = () => {
+    play('click');
     setPin(pin.slice(0, -1));
     setError(false);
   };
 
   const handleClear = () => {
+    play('click');
     setPin("");
     setError(false);
   };

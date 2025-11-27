@@ -6,6 +6,7 @@ import { Input } from './ui/input';
 import { Wallet, Key, Copy, Check, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 interface WalletConnectProps {
   onClose?: () => void;
@@ -24,6 +25,7 @@ export const WalletConnect = ({ onClose }: WalletConnectProps) => {
     disconnect,
     switchNetwork,
   } = useKeetaWallet();
+  const { play } = useSoundEffects();
 
   const [mode, setMode] = useState<'select' | 'import'>('select');
   const [importSeed, setImportSeed] = useState('');
@@ -31,6 +33,7 @@ export const WalletConnect = ({ onClose }: WalletConnectProps) => {
   const [copied, setCopied] = useState<'seed' | 'address' | null>(null);
 
   const handleCopy = async (text: string, type: 'seed' | 'address') => {
+    play('click');
     await navigator.clipboard.writeText(text);
     setCopied(type);
     toast.success(`${type === 'seed' ? 'Seed' : 'Address'} copied to clipboard`);
@@ -38,15 +41,26 @@ export const WalletConnect = ({ onClose }: WalletConnectProps) => {
   };
 
   const handleGenerate = async () => {
+    play('click');
     await generateNewWallet();
+    play('connect');
   };
 
   const handleImport = async () => {
+    play('click');
     await importWallet(importSeed);
     if (!error) {
+      play('connect');
       setImportSeed('');
       setMode('select');
+    } else {
+      play('error');
     }
+  };
+
+  const handleDisconnect = () => {
+    play('disconnect');
+    disconnect();
   };
 
   const truncateAddress = (address: string) => {
@@ -146,7 +160,7 @@ export const WalletConnect = ({ onClose }: WalletConnectProps) => {
 
           {/* Disconnect */}
           <Button
-            onClick={disconnect}
+            onClick={handleDisconnect}
             variant="outline"
             className="w-full border-sw-red/40 text-sw-red hover:bg-sw-red/10"
           >

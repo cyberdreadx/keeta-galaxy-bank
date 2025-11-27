@@ -2,6 +2,7 @@ import { Home, ArrowUpRight, ArrowDownLeft, User } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 const navItems = [
   { icon: Home, label: "HOME", path: "/" },
@@ -13,6 +14,7 @@ const navItems = [
 export const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { play } = useSoundEffects();
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -37,6 +39,13 @@ export const BottomNav = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  const handleNavigate = (path: string) => {
+    if (!isActive(path)) {
+      play('navigate');
+    }
+    navigate(path);
+  };
+
   return (
     <nav className={cn(
       "fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300",
@@ -59,7 +68,7 @@ export const BottomNav = () => {
             {navItems.map((item) => (
               <button
                 key={item.path}
-                onClick={() => navigate(item.path)}
+                onClick={() => handleNavigate(item.path)}
                 className={cn(
                   "relative flex flex-col items-center gap-1.5 px-6 py-2 transition-all group",
                   isActive(item.path)
