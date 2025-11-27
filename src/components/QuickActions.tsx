@@ -1,4 +1,5 @@
-import { Send, Download, RefreshCw, Scan, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { RefreshCw, Scan, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { StarWarsPanel } from "./StarWarsPanel";
 import { cn } from "@/lib/utils";
 
@@ -7,36 +8,51 @@ const actions = [
     icon: ArrowUpRight,
     label: "SEND",
     code: "TX-001",
+    path: "/send",
   },
   {
     icon: ArrowDownLeft,
     label: "RECEIVE",
     code: "RX-002",
+    path: "/receive",
   },
   {
     icon: RefreshCw,
     label: "SWAP",
     code: "SW-003",
+    path: null,
   },
   {
     icon: Scan,
     label: "SCAN",
     code: "SC-004",
+    path: null,
   },
 ];
 
 export const QuickActions = () => {
+  const navigate = useNavigate();
+  
+  const handleClick = (path: string | null) => {
+    if (path) {
+      navigate(path);
+    }
+  };
+
   return (
     <StarWarsPanel title="// COMMAND INTERFACE" className="h-full">
       <div className="grid grid-cols-2 gap-3">
-        {actions.map((action, index) => (
+        {actions.map((action) => (
           <button
             key={action.label}
+            onClick={() => handleClick(action.path)}
+            disabled={!action.path}
             className={cn(
               "group relative p-4 border border-sw-blue/30 bg-sw-blue/5",
               "hover:bg-sw-blue/10 hover:border-sw-blue/60",
               "transition-all duration-300",
-              "sw-target"
+              "sw-target",
+              !action.path && "opacity-50 cursor-not-allowed"
             )}
           >
             {/* Icon */}
