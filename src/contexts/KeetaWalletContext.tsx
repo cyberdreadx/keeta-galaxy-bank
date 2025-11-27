@@ -8,6 +8,8 @@ interface KeetaAccount {
 interface KeetaUserClient {
   chain: () => Promise<any>;
   account: () => Promise<any>;
+  allBalances: () => Promise<Record<string, any>>;
+  baseToken: { publicKeyString: { toString: () => string } };
 }
 
 interface KeetaWalletState {
