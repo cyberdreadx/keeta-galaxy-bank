@@ -1,9 +1,11 @@
 import { StarWarsPanel } from "./StarWarsPanel";
 import { HologramDisplay } from "./HologramDisplay";
 import { useEffect, useState } from "react";
+import { useKtaPrice } from "@/hooks/useKtaPrice";
 
 export const NetworkStats = () => {
   const [tps, setTps] = useState(9847523);
+  const { volume24h, priceChange24h } = useKtaPrice();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -11,6 +13,14 @@ export const NetworkStats = () => {
     }, 100);
     return () => clearInterval(interval);
   }, []);
+
+  const formatVolume = (vol: number | null) => {
+    if (vol === null) return "---";
+    if (vol >= 1e9) return `$${(vol / 1e9).toFixed(2)}B`;
+    if (vol >= 1e6) return `$${(vol / 1e6).toFixed(2)}M`;
+    if (vol >= 1e3) return `$${(vol / 1e3).toFixed(2)}K`;
+    return `$${vol.toFixed(2)}`;
+  };
 
   return (
     <StarWarsPanel title="// KEETA NETWORK TELEMETRY">
@@ -43,25 +53,27 @@ export const NetworkStats = () => {
         <div className="relative">
           <HologramDisplay
             label="24H VOLUME"
-            value="$2.4B"
+            value={formatVolume(volume24h)}
             variant="yellow"
             size="sm"
           />
           <div className="mt-2 h-1 bg-sw-dark border border-sw-yellow/30">
-            <div className="h-full bg-sw-yellow" style={{ width: '72%' }} />
+            <div className="h-full bg-sw-yellow" style={{ width: volume24h ? '72%' : '0%' }} />
           </div>
         </div>
 
         <div className="relative">
           <HologramDisplay
-            label="SYSTEM STATUS"
-            value="OPTIMAL"
-            variant="green"
+            label="24H CHANGE"
+            value={priceChange24h !== null ? `${priceChange24h >= 0 ? '+' : ''}${priceChange24h.toFixed(2)}%` : "---"}
+            variant={priceChange24h !== null && priceChange24h >= 0 ? 'green' : 'red'}
             size="sm"
           />
           <div className="mt-2 flex items-center gap-1 justify-center">
-            <div className="w-2 h-2 rounded-full bg-sw-green animate-pulse" />
-            <span className="font-mono text-[10px] text-sw-green">ALL SYSTEMS GO</span>
+            <div className={`w-2 h-2 rounded-full ${priceChange24h !== null && priceChange24h >= 0 ? 'bg-sw-green' : 'bg-sw-red'} animate-pulse`} />
+            <span className={`font-mono text-[10px] ${priceChange24h !== null && priceChange24h >= 0 ? 'text-sw-green' : 'text-sw-red'}`}>
+              {priceChange24h !== null ? (priceChange24h >= 0 ? 'BULLISH' : 'BEARISH') : 'NO DATA'}
+            </span>
           </div>
         </div>
       </div>

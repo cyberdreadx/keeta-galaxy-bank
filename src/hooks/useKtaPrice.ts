@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 
 interface KtaPriceData {
   priceUsd: number | null;
+  volume24h: number | null;
+  priceChange24h: number | null;
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -12,6 +14,8 @@ const DEXSCREENER_API = 'https://api.dexscreener.com/latest/dex/search?q=KTA';
 
 export const useKtaPrice = (): KtaPriceData => {
   const [priceUsd, setPriceUsd] = useState<number | null>(null);
+  const [volume24h, setVolume24h] = useState<number | null>(null);
+  const [priceChange24h, setPriceChange24h] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,18 +39,26 @@ export const useKtaPrice = (): KtaPriceData => {
       );
 
       if (ktaPair) {
-        const price = parseFloat(ktaPair.priceUsd || ktaPair.priceNative || '0');
+        const price = parseFloat(ktaPair.priceUsd || '0');
+        const volume = parseFloat(ktaPair.volume?.h24 || '0');
+        const change = parseFloat(ktaPair.priceChange?.h24 || '0');
+        
         setPriceUsd(price);
-        console.log('[useKtaPrice] Found KTA price:', price);
+        setVolume24h(volume);
+        setPriceChange24h(change);
+        console.log('[useKtaPrice] Found KTA - price:', price, 'volume:', volume, 'change:', change);
       } else {
-        // Fallback price for demo/testnet
-        console.log('[useKtaPrice] KTA not found on DexScreener, using fallback');
+        console.log('[useKtaPrice] KTA not found on DexScreener');
         setPriceUsd(null);
+        setVolume24h(null);
+        setPriceChange24h(null);
       }
     } catch (err: any) {
       console.error('[useKtaPrice] Error:', err);
       setError(err.message);
       setPriceUsd(null);
+      setVolume24h(null);
+      setPriceChange24h(null);
     } finally {
       setIsLoading(false);
     }
@@ -59,5 +71,5 @@ export const useKtaPrice = (): KtaPriceData => {
     return () => clearInterval(interval);
   }, [fetchPrice]);
 
-  return { priceUsd, isLoading, error, refetch: fetchPrice };
+  return { priceUsd, volume24h, priceChange24h, isLoading, error, refetch: fetchPrice };
 };
