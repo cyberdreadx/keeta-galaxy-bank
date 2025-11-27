@@ -40,6 +40,7 @@ interface KeetaWalletContextType extends KeetaWalletState {
   switchNetwork: (network: 'test' | 'main') => Promise<void>;
   createSavingsAccount: () => Promise<void>;
   switchAccount: (accountType: AccountType) => void;
+  transferBetweenAccounts: (from: AccountType, to: AccountType, amount: number) => Promise<void>;
 }
 
 const KeetaWalletContext = createContext<KeetaWalletContextType | null>(null);
@@ -241,6 +242,25 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
     }));
   }, [state.checkingAccount, state.savingsAccount]);
 
+  const transferBetweenAccounts = useCallback(async (from: AccountType, to: AccountType, amount: number) => {
+    const fromAccount = from === 'checking' ? state.checkingAccount : state.savingsAccount;
+    const toAccount = to === 'checking' ? state.checkingAccount : state.savingsAccount;
+
+    if (!fromAccount || !toAccount) {
+      throw new Error('Both accounts must exist for transfer');
+    }
+
+    // Convert amount to raw value (9 decimals for KTA)
+    const rawAmount = BigInt(Math.floor(amount * 1_000_000_000));
+
+    try {
+      await fromAccount.client.send(toAccount.publicKey, rawAmount);
+    } catch (err: any) {
+      console.error('Transfer error:', err);
+      throw new Error(err.message || 'Transfer failed');
+    }
+  }, [state.checkingAccount, state.savingsAccount]);
+
   const disconnect = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(SAVINGS_KEY);
@@ -279,6 +299,7 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
         switchNetwork,
         createSavingsAccount,
         switchAccount,
+        transferBetweenAccounts,
       }}
     >
       {children}
