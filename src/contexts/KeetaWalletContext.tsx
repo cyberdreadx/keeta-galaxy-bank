@@ -9,8 +9,11 @@ interface KeetaUserClient {
   chain: () => Promise<any>;
   account: () => Promise<any>;
   allBalances: () => Promise<Record<string, any>>;
-  baseToken: { publicKeyString: { toString: () => string } };
+  baseToken: any;
   send: (to: string, amount: bigint) => Promise<any>;
+  initBuilder: () => any;
+  computeBuilderBlocks: (builder: any) => Promise<any>;
+  publishBuilder: (builder: any) => Promise<any>;
 }
 
 export type AccountType = 'checking' | 'savings' | string;
@@ -322,6 +325,10 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
   }, [state.checkingAccount, state.savingsAccount, state.customAccounts]);
 
   const transferBetweenAccounts = useCallback(async (from: AccountType, to: AccountType, amount: number) => {
+    if (!KeetaNet) {
+      throw new Error('SDK not loaded');
+    }
+
     const getAccount = (accountType: AccountType) => {
       if (accountType === 'checking') return state.checkingAccount;
       if (accountType === 'savings') return state.savingsAccount;
@@ -350,27 +357,37 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
     console.log('[Transfer] Network:', state.network, 'Decimals:', decimals);
 
     try {
-      // Execute the transfer directly - the SDK should handle balance checking
-      console.log('[Transfer] Calling send()...');
-      const result = await fromAccount.client.send(toAccount.publicKey, rawAmount);
-      console.log('[Transfer] Success! Result:', result);
+      // Create recipient account object from public key string
+      const recipientAccount = KeetaNet.lib.Account.fromPublicKeyString(toAccount.publicKey);
+      console.log('[Transfer] Recipient account created');
+
+      // Use the builder pattern for proper transaction
+      const builder = fromAccount.client.initBuilder();
+      console.log('[Transfer] Builder initialized');
+
+      // Add send operation: amount to recipient using base token (KTA)
+      builder.send(recipientAccount, rawAmount, fromAccount.client.baseToken);
+      console.log('[Transfer] Send operation added to builder');
+
+      // Compute transaction blocks
+      const computed = await fromAccount.client.computeBuilderBlocks(builder);
+      console.log('[Transfer] Blocks computed:', computed?.blocks?.length || 0);
+
+      // Publish the transaction
+      const transaction = await fromAccount.client.publishBuilder(builder);
+      console.log('[Transfer] Transaction published:', transaction);
     } catch (err: any) {
       console.error('[Transfer] Error:', err);
       console.error('[Transfer] Error message:', err?.message);
-      console.error('[Transfer] Error stack:', err?.stack);
       
-      // Try to extract meaningful error
       const errStr = String(err?.message || err || '');
       
-      if (errStr.includes('insufficient') || errStr.includes('Insufficient')) {
+      if (errStr.includes('insufficient') || errStr.includes('Insufficient') || errStr.includes('balance')) {
         throw new Error('Insufficient KTA balance for this transfer');
-      }
-      if (errStr.includes('undefined is not an object') || errStr.includes('Cannot read')) {
-        throw new Error('Transfer failed: The destination account may need to be initialized first. Try sending a small amount from an external wallet.');
       }
       throw new Error(err?.message || 'Transfer failed. Please try again.');
     }
-  }, [state.checkingAccount, state.savingsAccount, state.customAccounts, state.network]);
+  }, [KeetaNet, state.checkingAccount, state.savingsAccount, state.customAccounts, state.network]);
 
   const disconnect = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
