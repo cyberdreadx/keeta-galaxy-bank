@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { WalletModal } from "./WalletModal";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 const PIN_STORAGE_KEY = "keeta_account_pin";
 
@@ -12,6 +13,7 @@ export const Header = () => {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [hasPin, setHasPin] = useState(false);
   const { isConnected, isConnecting, publicKey, network } = useKeetaWallet();
+  const { play } = useSoundEffects();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -32,6 +34,7 @@ export const Header = () => {
   };
 
   const handleLock = () => {
+    play('lock');
     if (hasPin) {
       navigate("/lock");
     } else {

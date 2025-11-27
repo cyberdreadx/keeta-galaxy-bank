@@ -7,10 +7,12 @@ import { BottomNav } from "@/components/BottomNav";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useKeetaBalance } from "@/hooks/useKeetaBalance";
 import { toast } from "sonner";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 const Send = () => {
   const { isConnected, client, network } = useKeetaWallet();
   const { balance, refetch } = useKeetaBalance();
+  const { play } = useSoundEffects();
   
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
@@ -23,32 +25,38 @@ const Send = () => {
 
   const handleSend = async () => {
     if (!client || !isConnected) {
+      play('error');
       toast.error("Wallet not connected");
       return;
     }
 
     if (!recipient.trim()) {
+      play('error');
       toast.error("Please enter a recipient address");
       return;
     }
 
     if (!recipient.startsWith("keeta_")) {
+      play('error');
       toast.error("Invalid Keeta address format");
       return;
     }
 
     const sendAmount = parseFloat(amount);
     if (isNaN(sendAmount) || sendAmount <= 0) {
+      play('error');
       toast.error("Please enter a valid amount");
       return;
     }
 
     if (sendAmount > balance) {
+      play('error');
       toast.error("Insufficient balance");
       return;
     }
 
     setIsSending(true);
+    play('send');
 
     try {
       // Convert amount to smallest unit (9 decimals for testnet, 18 for mainnet)
@@ -59,6 +67,7 @@ const Send = () => {
       const result = await client.send(recipient.trim(), amountInSmallestUnit);
       
       console.log('[Send] Transaction result:', result);
+      play('success');
       toast.success("Transaction sent successfully!");
       
       // Refresh balance
@@ -69,6 +78,7 @@ const Send = () => {
       setAmount("");
     } catch (err: any) {
       console.error('[Send] Transaction error:', err);
+      play('error');
       toast.error(err.message || "Failed to send transaction");
     } finally {
       setIsSending(false);
@@ -76,6 +86,7 @@ const Send = () => {
   };
 
   const handleMaxClick = () => {
+    play('click');
     setAmount(formatBalance(balance).replace(/,/g, ''));
   };
 
