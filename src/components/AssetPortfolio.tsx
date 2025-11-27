@@ -3,20 +3,22 @@ import { cn } from "@/lib/utils";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useKeetaBalance } from "@/hooks/useKeetaBalance";
 import { useKtaPrice } from "@/hooks/useKtaPrice";
+import { useSettings } from "@/contexts/SettingsContext";
 import { WalletIcon, Loader2 } from "lucide-react";
 
 interface Asset {
   symbol: string;
   name: string;
   balance: number;
-  valueUsd: number | null;
+  valueFiat: number | null;
   change: number | null;
 }
 
 export const AssetPortfolio = () => {
   const { isConnected } = useKeetaWallet();
   const { balance, isLoading } = useKeetaBalance();
-  const { priceUsd, priceChange24h } = useKtaPrice();
+  const { convertToFiat, priceChange24h } = useKtaPrice();
+  const { formatFiat } = useSettings();
 
   // Real asset from Keeta network - KTA is the native token
   const assets: Asset[] = isConnected ? [
@@ -24,22 +26,12 @@ export const AssetPortfolio = () => {
       symbol: "KTA", 
       name: "KEETA", 
       balance: balance, 
-      valueUsd: priceUsd ? balance * priceUsd : null, 
+      valueFiat: convertToFiat(balance), 
       change: priceChange24h 
     },
   ] : [];
 
-  const totalValueUsd = assets.reduce((acc, asset) => acc + (asset.valueUsd || 0), 0);
-
-  const formatUsd = (amount: number | null) => {
-    if (amount === null) return "---";
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  };
+  const totalValueFiat = assets.reduce((acc, asset) => acc + (asset.valueFiat || 0), 0);
 
   if (!isConnected) {
     return (
@@ -99,7 +91,7 @@ export const AssetPortfolio = () => {
 
                   <div className="text-right">
                     <p className="font-mono text-lg font-bold text-sw-yellow">
-                      {formatUsd(asset.valueUsd)}
+                      {asset.valueFiat !== null ? formatFiat(asset.valueFiat) : "---"}
                     </p>
                     {asset.change !== null && (
                       <p className={cn(
@@ -139,7 +131,7 @@ export const AssetPortfolio = () => {
       <div className="mt-4 pt-4 border-t border-sw-blue/30 flex justify-between items-center">
         <span className="font-mono text-xs text-sw-blue/60 tracking-widest">TOTAL VALUE</span>
         <span className="font-display text-2xl font-bold text-sw-yellow [text-shadow:0_0_15px_hsl(var(--sw-yellow)/0.5)]">
-          {formatUsd(totalValueUsd > 0 ? totalValueUsd : null)}
+          {totalValueFiat > 0 ? formatFiat(totalValueFiat) : "---"}
         </span>
       </div>
     </StarWarsPanel>
