@@ -10,6 +10,7 @@ interface KeetaUserClient {
   account: () => Promise<any>;
   allBalances: () => Promise<Record<string, any>>;
   baseToken: { publicKeyString: { toString: () => string } };
+  send: (to: string, amount: bigint) => Promise<any>;
 }
 
 interface KeetaWalletState {
