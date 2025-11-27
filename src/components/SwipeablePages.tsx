@@ -1,5 +1,5 @@
-import { ReactNode, useState, useEffect } from "react";
-import { motion, useMotionValue, useTransform, AnimatePresence, PanInfo } from "framer-motion";
+import { ReactNode, useState, useRef } from "react";
+import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 
@@ -7,7 +7,6 @@ interface SwipeablePagesProps {
   children: ReactNode;
 }
 
-// Define the order of main pages for swipe navigation
 const MAIN_PAGES = ["/", "/pay", "/account"];
 const PAGE_LABELS = ["HOME", "PAY", "ACCOUNT"];
 
@@ -16,17 +15,16 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
   const location = useLocation();
   const { play } = useSoundEffects();
   const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const currentIndex = MAIN_PAGES.indexOf(location.pathname);
   const isSwipeEnabled = currentIndex !== -1;
 
-  // Motion values for drag
   const x = useMotionValue(0);
   
-  // Transform for visual feedback
-  const scale = useTransform(x, [-200, 0, 200], [0.95, 1, 0.95]);
-  const rotate = useTransform(x, [-200, 0, 200], [-3, 0, 3]);
-  const opacity = useTransform(x, [-200, 0, 200], [0.8, 1, 0.8]);
+  // Simpler transforms - just opacity hints at edges
+  const leftOpacity = useTransform(x, [0, 100], [0, 0.8]);
+  const rightOpacity = useTransform(x, [-100, 0], [0.8, 0]);
 
   const handleDragStart = () => {
     setIsDragging(true);
@@ -34,26 +32,23 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     setIsDragging(false);
-    const threshold = 100;
-    const velocity = info.velocity.x;
+    const threshold = 80;
+    const velocity = Math.abs(info.velocity.x);
     const offset = info.offset.x;
 
-    // Swipe left (next page)
-    if ((offset < -threshold || velocity < -500) && currentIndex < MAIN_PAGES.length - 1) {
-      play('navigate');
-      navigate(MAIN_PAGES[currentIndex + 1]);
-    }
-    // Swipe right (previous page)
-    else if ((offset > threshold || velocity > 500) && currentIndex > 0) {
-      play('navigate');
-      navigate(MAIN_PAGES[currentIndex - 1]);
+    // Fast swipe or far enough drag
+    if (offset < -threshold || (velocity > 300 && info.velocity.x < 0)) {
+      if (currentIndex < MAIN_PAGES.length - 1) {
+        play('navigate');
+        navigate(MAIN_PAGES[currentIndex + 1]);
+      }
+    } else if (offset > threshold || (velocity > 300 && info.velocity.x > 0)) {
+      if (currentIndex > 0) {
+        play('navigate');
+        navigate(MAIN_PAGES[currentIndex - 1]);
+      }
     }
   };
-
-  // Reset x position on route change
-  useEffect(() => {
-    x.set(0);
-  }, [location.pathname, x]);
 
   if (!isSwipeEnabled) {
     return <>{children}</>;
@@ -63,81 +58,50 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
   const hasNext = currentIndex < MAIN_PAGES.length - 1;
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div ref={containerRef} className="relative min-h-screen overflow-x-hidden">
+      {/* Left edge indicator */}
+      {hasPrev && (
+        <motion.div
+          className="fixed left-0 top-0 bottom-0 w-16 flex items-center justify-center pointer-events-none z-40"
+          style={{ opacity: leftOpacity }}
+        >
+          <div className="flex flex-col items-center gap-1 text-sw-blue">
+            <span className="text-2xl">‹</span>
+            <span className="font-mono text-[10px] tracking-wider -rotate-90 whitespace-nowrap">
+              {PAGE_LABELS[currentIndex - 1]}
+            </span>
+          </div>
+        </motion.div>
+      )}
 
-      {/* Edge indicators when dragging */}
-      <AnimatePresence>
-        {isDragging && hasPrev && (
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            className="fixed left-4 top-1/2 -translate-y-1/2 z-40"
-          >
-            <div className="flex items-center gap-2 text-sw-blue/60">
-              <div className="w-8 h-8 rounded-full border border-sw-blue/40 flex items-center justify-center">
-                <span className="text-lg">←</span>
-              </div>
-              <span className="font-mono text-xs tracking-wider">{PAGE_LABELS[currentIndex - 1]}</span>
-            </div>
-          </motion.div>
-        )}
-        {isDragging && hasNext && (
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 50 }}
-            className="fixed right-4 top-1/2 -translate-y-1/2 z-40"
-          >
-            <div className="flex items-center gap-2 text-sw-blue/60">
-              <span className="font-mono text-xs tracking-wider">{PAGE_LABELS[currentIndex + 1]}</span>
-              <div className="w-8 h-8 rounded-full border border-sw-blue/40 flex items-center justify-center">
-                <span className="text-lg">→</span>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Right edge indicator */}
+      {hasNext && (
+        <motion.div
+          className="fixed right-0 top-0 bottom-0 w-16 flex items-center justify-center pointer-events-none z-40"
+          style={{ opacity: rightOpacity }}
+        >
+          <div className="flex flex-col items-center gap-1 text-sw-blue">
+            <span className="text-2xl">›</span>
+            <span className="font-mono text-[10px] tracking-wider rotate-90 whitespace-nowrap">
+              {PAGE_LABELS[currentIndex + 1]}
+            </span>
+          </div>
+        </motion.div>
+      )}
 
-      {/* Main draggable page */}
+      {/* Main content - simple horizontal drag */}
       <motion.div
         drag="x"
+        dragDirectionLock
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.2}
+        dragElastic={0.15}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        style={{ x, scale, rotate, opacity }}
-        className="min-h-screen touch-pan-y"
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        style={{ x }}
+        className="min-h-screen will-change-transform"
       >
         {children}
       </motion.div>
-
-      {/* Subtle glow effect on edges when dragging */}
-      <AnimatePresence>
-        {isDragging && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.5 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-y-0 left-0 w-20 pointer-events-none z-30"
-              style={{
-                background: 'linear-gradient(to right, hsl(var(--sw-blue) / 0.1), transparent)',
-              }}
-            />
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.5 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-y-0 right-0 w-20 pointer-events-none z-30"
-              style={{
-                background: 'linear-gradient(to left, hsl(var(--sw-blue) / 0.1), transparent)',
-              }}
-            />
-          </>
-        )}
-      </AnimatePresence>
     </div>
   );
 };
