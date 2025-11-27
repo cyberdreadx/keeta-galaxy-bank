@@ -22,54 +22,49 @@ export const StarField = () => {
       x: number;
       y: number;
       size: number;
-      speed: number;
       opacity: number;
       twinkleSpeed: number;
+      twinkleOffset: number;
     }
 
     const stars: Star[] = [];
-    const numStars = 200;
+    const numStars = 300;
 
     for (let i = 0; i < numStars; i++) {
       stars.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        size: Math.random() * 2,
-        speed: Math.random() * 0.5 + 0.1,
-        opacity: Math.random(),
-        twinkleSpeed: Math.random() * 0.02 + 0.01,
+        size: Math.random() * 1.5 + 0.5,
+        opacity: Math.random() * 0.5 + 0.5,
+        twinkleSpeed: Math.random() * 0.02 + 0.005,
+        twinkleOffset: Math.random() * Math.PI * 2,
       });
     }
 
     let animationId: number;
+    let time = 0;
 
     const animate = () => {
-      ctx.fillStyle = 'rgba(8, 12, 21, 0.1)';
+      ctx.fillStyle = 'rgb(5, 8, 15)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      stars.forEach((star) => {
-        star.opacity += star.twinkleSpeed;
-        if (star.opacity > 1 || star.opacity < 0.3) {
-          star.twinkleSpeed *= -1;
-        }
+      time += 0.016;
 
-        const gradient = ctx.createRadialGradient(
-          star.x, star.y, 0,
-          star.x, star.y, star.size * 2
-        );
-        gradient.addColorStop(0, `rgba(0, 212, 255, ${star.opacity})`);
-        gradient.addColorStop(0.5, `rgba(255, 255, 255, ${star.opacity * 0.5})`);
-        gradient.addColorStop(1, 'transparent');
+      stars.forEach((star) => {
+        const twinkle = Math.sin(time * star.twinkleSpeed * 60 + star.twinkleOffset) * 0.3 + 0.7;
+        const finalOpacity = star.opacity * twinkle;
 
         ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size * 2, 0, Math.PI * 2);
-        ctx.fillStyle = gradient;
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200, 220, 255, ${finalOpacity})`;
         ctx.fill();
 
-        star.y += star.speed;
-        if (star.y > canvas.height) {
-          star.y = 0;
-          star.x = Math.random() * canvas.width;
+        // Add subtle glow to brighter stars
+        if (star.size > 1) {
+          ctx.beginPath();
+          ctx.arc(star.x, star.y, star.size * 2, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(100, 150, 255, ${finalOpacity * 0.2})`;
+          ctx.fill();
         }
       });
 
@@ -88,7 +83,6 @@ export const StarField = () => {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-0"
-      style={{ background: 'linear-gradient(180deg, hsl(220 30% 3%), hsl(220 40% 8%))' }}
     />
   );
 };

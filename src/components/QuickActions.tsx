@@ -1,58 +1,70 @@
-import { Send, Download, RefreshCw, QrCode, ArrowUpRight, ArrowDownLeft } from "lucide-react";
-import { Button } from "./ui/button";
-import { HologramCard } from "./HologramCard";
+import { Send, Download, RefreshCw, Scan, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { StarWarsPanel } from "./StarWarsPanel";
+import { cn } from "@/lib/utils";
 
 const actions = [
   {
     icon: ArrowUpRight,
-    label: "Send",
-    description: "Transfer credits",
-    variant: "hologram" as const,
+    label: "SEND",
+    code: "TX-001",
   },
   {
     icon: ArrowDownLeft,
-    label: "Receive",
-    description: "Get credits",
-    variant: "hologram" as const,
+    label: "RECEIVE",
+    code: "RX-002",
   },
   {
     icon: RefreshCw,
-    label: "Swap",
-    description: "Exchange assets",
-    variant: "hologram" as const,
+    label: "SWAP",
+    code: "SW-003",
   },
   {
-    icon: QrCode,
-    label: "Scan",
-    description: "QR payment",
-    variant: "hologram" as const,
+    icon: Scan,
+    label: "SCAN",
+    code: "SC-004",
   },
 ];
 
 export const QuickActions = () => {
   return (
-    <HologramCard className="p-6">
-      <h3 className="text-lg font-display font-semibold mb-4 text-foreground uppercase tracking-wider">
-        Quick Actions
-      </h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {actions.map((action) => (
+    <StarWarsPanel title="// COMMAND INTERFACE" className="h-full">
+      <div className="grid grid-cols-2 gap-3">
+        {actions.map((action, index) => (
           <button
             key={action.label}
-            className="group flex flex-col items-center gap-2 p-4 rounded-xl bg-muted/50 border border-border hover:border-hologram/40 hover:bg-hologram/5 transition-all duration-300"
+            className={cn(
+              "group relative p-4 border border-sw-blue/30 bg-sw-blue/5",
+              "hover:bg-sw-blue/10 hover:border-sw-blue/60",
+              "transition-all duration-300",
+              "sw-target"
+            )}
           >
-            <div className="p-3 rounded-lg bg-hologram/10 border border-hologram/20 group-hover:bg-hologram/20 group-hover:border-hologram/40 group-hover:shadow-hologram transition-all duration-300">
-              <action.icon className="w-5 h-5 text-hologram" />
+            {/* Icon */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="relative">
+                <action.icon className="w-8 h-8 text-sw-blue group-hover:text-sw-blue-glow transition-colors [filter:drop-shadow(0_0_8px_hsl(var(--sw-blue)/0.5))]" />
+                {/* Animated ring on hover */}
+                <div className="absolute inset-0 -m-2 border border-sw-blue/0 group-hover:border-sw-blue/40 rounded-full transition-all duration-300 group-hover:animate-ping" />
+              </div>
+              
+              <div className="text-center">
+                <p className="font-display font-bold text-sm text-sw-white tracking-wider">
+                  {action.label}
+                </p>
+                <p className="font-mono text-[10px] text-sw-blue/60">
+                  {action.code}
+                </p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="font-display font-semibold text-sm text-foreground uppercase tracking-wide">
-                {action.label}
-              </p>
-              <p className="text-xs text-muted-foreground">{action.description}</p>
-            </div>
+
+            {/* Corner indicators */}
+            <div className="absolute top-1 left-1 w-2 h-2 border-l border-t border-sw-blue/40" />
+            <div className="absolute top-1 right-1 w-2 h-2 border-r border-t border-sw-blue/40" />
+            <div className="absolute bottom-1 left-1 w-2 h-2 border-l border-b border-sw-blue/40" />
+            <div className="absolute bottom-1 right-1 w-2 h-2 border-r border-b border-sw-blue/40" />
           </button>
         ))}
       </div>
-    </HologramCard>
+    </StarWarsPanel>
   );
 };

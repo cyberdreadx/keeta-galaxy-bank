@@ -1,7 +1,7 @@
-import { HologramCard } from "./HologramCard";
-import { Wallet, TrendingUp, Eye, EyeOff } from "lucide-react";
+import { StarWarsPanel } from "./StarWarsPanel";
+import { HologramDisplay } from "./HologramDisplay";
+import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
 
 interface BalanceDisplayProps {
   balance: number;
@@ -24,60 +24,61 @@ export const BalanceDisplay = ({
   };
 
   return (
-    <HologramCard className="p-6 md:p-8" glowIntensity="high">
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-lg bg-hologram/10 border border-hologram/30">
-            <Wallet className="w-6 h-6 text-hologram" />
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">
-              Total Balance
-            </p>
-            <p className="text-xs text-muted-foreground/60">Galactic Credits</p>
-          </div>
-        </div>
+    <StarWarsPanel title="// GALACTIC CREDIT BALANCE" className="h-full">
+      <div className="flex justify-end mb-4">
         <button
           onClick={() => setIsHidden(!isHidden)}
-          className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          className="p-2 border border-sw-blue/30 bg-sw-blue/5 hover:bg-sw-blue/10 transition-colors text-sw-blue"
         >
-          {isHidden ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex items-baseline gap-2">
-          <span className={cn(
-            "text-4xl md:text-5xl lg:text-6xl font-display font-bold text-glow-gold transition-all duration-300",
-            isHidden ? "blur-lg select-none" : ""
-          )}>
-            {isHidden ? "••••••" : formatBalance(balance)}
-          </span>
-          <span className="text-2xl md:text-3xl font-display text-credits font-semibold">
-            {currency}
-          </span>
+      <div className="space-y-6">
+        {/* Main Balance */}
+        <div className="text-center py-4">
+          <p className="font-mono text-xs text-sw-blue/60 tracking-[0.3em] uppercase mb-2">
+            TOTAL ASSETS
+          </p>
+          <div className={`flex items-baseline justify-center gap-3 transition-all duration-300 ${isHidden ? 'blur-lg select-none' : ''}`}>
+            <span className="text-5xl md:text-6xl font-display font-bold text-sw-yellow [text-shadow:0_0_30px_hsl(var(--sw-yellow)/0.6),2px_2px_0_hsl(var(--sw-yellow-dim))]">
+              {isHidden ? "••••••" : formatBalance(balance)}
+            </span>
+            <span className="text-2xl font-mono text-sw-yellow/80">
+              {currency}
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 pt-2">
-          <div className={cn(
-            "flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold",
-            change24h >= 0 
-              ? "bg-success/10 text-success" 
-              : "bg-destructive/10 text-destructive"
-          )}>
-            <TrendingUp className={cn(
-              "w-4 h-4",
-              change24h < 0 && "rotate-180"
-            )} />
-            <span>{change24h >= 0 ? '+' : ''}{change24h}%</span>
-          </div>
-          <span className="text-sm text-muted-foreground">past 24 hours</span>
+        {/* Stats Row */}
+        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-sw-blue/20">
+          <HologramDisplay
+            label="24H CHANGE"
+            value={`${change24h >= 0 ? '+' : ''}${change24h}%`}
+            variant={change24h >= 0 ? 'green' : 'red'}
+            size="sm"
+          />
+          <HologramDisplay
+            label="RANK"
+            value="ELITE"
+            variant="yellow"
+            size="sm"
+          />
+          <HologramDisplay
+            label="STATUS"
+            value="ACTIVE"
+            variant="green"
+            size="sm"
+          />
         </div>
       </div>
 
-      {/* Decorative elements */}
-      <div className="absolute top-4 right-4 w-24 h-24 bg-credits/5 rounded-full blur-2xl pointer-events-none" />
-      <div className="absolute bottom-4 left-4 w-16 h-16 bg-hologram/5 rounded-full blur-xl pointer-events-none" />
-    </HologramCard>
+      {/* Decorative circuit lines */}
+      <svg className="absolute bottom-4 left-4 w-16 h-16 text-sw-blue/20" viewBox="0 0 64 64">
+        <path d="M0 32 H20 L24 28 H40 L44 32 H64" fill="none" stroke="currentColor" strokeWidth="1"/>
+        <path d="M32 0 V20 L28 24 V40 L32 44 V64" fill="none" stroke="currentColor" strokeWidth="1"/>
+        <circle cx="32" cy="32" r="4" fill="none" stroke="currentColor" strokeWidth="1"/>
+      </svg>
+    </StarWarsPanel>
   );
 };
