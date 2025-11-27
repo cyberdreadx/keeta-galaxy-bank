@@ -90,9 +90,11 @@ const Account = () => {
               <StarWarsPanel title="PRIMARY ACCOUNTS" className="animate-slide-up">
                 <div className="space-y-3">
                   {/* Checking Account */}
-                  <button
+                  <div
                     onClick={() => handleSwitchAccount('checking')}
-                    className={`w-full flex items-center gap-4 p-4 border rounded transition-all ${
+                    role="button"
+                    tabIndex={0}
+                    className={`w-full flex items-center gap-4 p-4 border rounded transition-all cursor-pointer ${
                       activeAccountType === 'checking'
                         ? 'bg-sw-blue/20 border-sw-blue'
                         : 'bg-sw-blue/5 border-sw-blue/20 hover:bg-sw-blue/10'
@@ -133,13 +135,15 @@ const Account = () => {
                         <Copy className="w-4 h-4 text-sw-blue/60 hover:text-sw-yellow" />
                       </button>
                     )}
-                  </button>
+                  </div>
 
                   {/* Savings Account */}
                   {savingsAccount ? (
-                    <button
+                    <div
                       onClick={() => handleSwitchAccount('savings')}
-                      className={`w-full flex items-center gap-4 p-4 border rounded transition-all ${
+                      role="button"
+                      tabIndex={0}
+                      className={`w-full flex items-center gap-4 p-4 border rounded transition-all cursor-pointer ${
                         activeAccountType === 'savings'
                           ? 'bg-sw-yellow/20 border-sw-yellow'
                           : 'bg-sw-yellow/5 border-sw-yellow/20 hover:bg-sw-yellow/10'
@@ -176,7 +180,7 @@ const Account = () => {
                       >
                         <Copy className="w-4 h-4 text-sw-yellow/60 hover:text-sw-blue" />
                       </button>
-                    </button>
+                    </div>
                   ) : (
                     <button
                       onClick={handleCreateSavings}
@@ -226,10 +230,12 @@ const Account = () => {
                   )}
 
                   {customAccounts.map((account) => (
-                    <button
+                    <div
                       key={account.publicKey}
                       onClick={() => handleSwitchAccount(account.name)}
-                      className={`w-full flex items-center gap-4 p-4 border rounded transition-all ${
+                      role="button"
+                      tabIndex={0}
+                      className={`w-full flex items-center gap-4 p-4 border rounded transition-all cursor-pointer ${
                         activeAccountType === account.name
                           ? 'bg-sw-green/20 border-sw-green'
                           : 'bg-sw-green/5 border-sw-green/20 hover:bg-sw-green/10'
@@ -266,7 +272,7 @@ const Account = () => {
                       >
                         <Copy className="w-4 h-4 text-sw-green/60 hover:text-sw-yellow" />
                       </button>
-                    </button>
+                    </div>
                   ))}
 
                   {/* Create Custom Account */}
