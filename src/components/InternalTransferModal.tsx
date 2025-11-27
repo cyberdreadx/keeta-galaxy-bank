@@ -1,38 +1,109 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useKeetaWallet, AccountType } from "@/contexts/KeetaWalletContext";
-import { ArrowRightLeft, Wallet, PiggyBank, Loader2, Tag, ChevronDown } from "lucide-react";
+import { ArrowRightLeft, Loader2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { useKtaPrice } from "@/hooks/useKtaPrice";
 
 interface InternalTransferModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+// Helper to fetch balance for a specific client
+const fetchAccountBalance = async (client: any, network: 'test' | 'main'): Promise<number> => {
+  try {
+    const allBalances = await client.allBalances();
+    if (!allBalances || Object.keys(allBalances).length === 0) return 0;
+
+    const baseTokenAddr = client.baseToken.publicKeyString.toString();
+    let ktaBalance = BigInt(0);
+
+    for (const [, balanceData] of Object.entries(allBalances)) {
+      const tokenInfo = JSON.parse(
+        JSON.stringify(balanceData, (k: string, v: any) => 
+          typeof v === 'bigint' ? v.toString() : v
+        )
+      );
+      const tokenAddr = String(tokenInfo.token || '');
+      if (tokenAddr === baseTokenAddr) {
+        ktaBalance = BigInt(String(tokenInfo.balance || '0'));
+        break;
+      }
+    }
+
+    const decimals = network === 'main' ? 18 : 9;
+    return Number(ktaBalance) / Math.pow(10, decimals);
+  } catch {
+    return 0;
+  }
+};
+
 export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferModalProps) => {
   const { play } = useSoundEffects();
-  const { getAllAccounts, transferBetweenAccounts } = useKeetaWallet();
+  const { getAllAccounts, transferBetweenAccounts, network } = useKeetaWallet();
+  const { priceUsd } = useKtaPrice();
   const [amount, setAmount] = useState("");
   const [fromAccount, setFromAccount] = useState<AccountType>("checking");
   const [toAccount, setToAccount] = useState<AccountType>("savings");
   const [isTransferring, setIsTransferring] = useState(false);
+  const [fromBalance, setFromBalance] = useState<number | null>(null);
+  const [toBalance, setToBalance] = useState<number | null>(null);
+  const [loadingBalances, setLoadingBalances] = useState(false);
 
   const accounts = getAllAccounts();
 
+  const getAccountByType = useCallback((type: AccountType) => {
+    return accounts.find(a => {
+      const normalizedName = a.name === 'Checking' ? 'checking' : a.name === 'Savings' ? 'savings' : a.name;
+      return normalizedName === type;
+    });
+  }, [accounts]);
+
+  // Fetch balances when accounts change
+  useEffect(() => {
+    if (!open || accounts.length < 2) return;
+
+    const loadBalances = async () => {
+      setLoadingBalances(true);
+      
+      const fromAcc = getAccountByType(fromAccount);
+      const toAcc = getAccountByType(toAccount);
+
+      const [fromBal, toBal] = await Promise.all([
+        fromAcc ? fetchAccountBalance(fromAcc.client, network) : 0,
+        toAcc ? fetchAccountBalance(toAcc.client, network) : 0,
+      ]);
+
+      setFromBalance(fromBal);
+      setToBalance(toBal);
+      setLoadingBalances(false);
+    };
+
+    loadBalances();
+  }, [open, fromAccount, toAccount, accounts.length, network, getAccountByType]);
+
   useEffect(() => {
     if (open && accounts.length >= 2) {
-      setFromAccount(accounts[0].name === 'Checking' ? 'checking' : 
-                     accounts[0].name === 'Savings' ? 'savings' : accounts[0].name);
-      setToAccount(accounts[1].name === 'Checking' ? 'checking' : 
-                   accounts[1].name === 'Savings' ? 'savings' : accounts[1].name);
+      const firstType = accounts[0].name === 'Checking' ? 'checking' : 
+                       accounts[0].name === 'Savings' ? 'savings' : accounts[0].name;
+      const secondType = accounts[1].name === 'Checking' ? 'checking' : 
+                        accounts[1].name === 'Savings' ? 'savings' : accounts[1].name;
+      setFromAccount(firstType);
+      setToAccount(secondType);
     }
   }, [open, accounts.length]);
 
-  const getAccountIcon = (accountType: AccountType) => {
-    if (accountType === 'checking') return <Wallet className="w-5 h-5" />;
-    if (accountType === 'savings') return <PiggyBank className="w-5 h-5" />;
-    return <Tag className="w-5 h-5" />;
+  const formatBalance = (bal: number) => {
+    const truncated = Math.floor(bal * 100) / 100;
+    return truncated.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const formatUsd = (bal: number) => {
+    if (!priceUsd) return null;
+    const usd = bal * priceUsd;
+    return usd.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   };
 
   const getAccountDisplayName = (accountType: AccountType) => {
@@ -50,6 +121,11 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
 
     if (fromAccount === toAccount) {
       toast.error("Cannot transfer to the same account");
+      return;
+    }
+
+    if (fromBalance !== null && numAmount > fromBalance) {
+      toast.error("Insufficient balance");
       return;
     }
 
@@ -77,6 +153,12 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
     setToAccount(temp);
   };
 
+  const handleMaxClick = () => {
+    if (fromBalance !== null && fromBalance > 0) {
+      setAmount(fromBalance.toString());
+    }
+  };
+
   if (accounts.length < 2) return null;
 
   return (
@@ -88,7 +170,7 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-5 py-4">
           {/* From Account */}
           <div className="space-y-2">
             <label className="font-mono text-xs text-sw-blue/60 tracking-wider">FROM</label>
@@ -109,6 +191,29 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
                 })}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sw-blue/60 pointer-events-none" />
+            </div>
+            {/* From Balance Display */}
+            <div className="flex items-center justify-between px-1">
+              <div className="font-mono text-xs text-sw-blue/70">
+                {loadingBalances ? (
+                  <span className="text-sw-blue/50">Loading...</span>
+                ) : fromBalance !== null ? (
+                  <span>
+                    <span className="text-sw-yellow">{formatBalance(fromBalance)} KTA</span>
+                    {formatUsd(fromBalance) && (
+                      <span className="text-sw-blue/50 ml-2">≈ {formatUsd(fromBalance)}</span>
+                    )}
+                  </span>
+                ) : null}
+              </div>
+              {fromBalance !== null && fromBalance > 0 && (
+                <button
+                  onClick={handleMaxClick}
+                  className="font-mono text-[10px] text-sw-green hover:text-sw-yellow transition-colors"
+                >
+                  MAX
+                </button>
+              )}
             </div>
           </div>
 
@@ -143,6 +248,19 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sw-blue/60 pointer-events-none" />
             </div>
+            {/* To Balance Display */}
+            <div className="font-mono text-xs text-sw-blue/70 px-1">
+              {loadingBalances ? (
+                <span className="text-sw-blue/50">Loading...</span>
+              ) : toBalance !== null ? (
+                <span>
+                  <span className="text-sw-yellow">{formatBalance(toBalance)} KTA</span>
+                  {formatUsd(toBalance) && (
+                    <span className="text-sw-blue/50 ml-2">≈ {formatUsd(toBalance)}</span>
+                  )}
+                </span>
+              ) : null}
+            </div>
           </div>
 
           {/* Amount Input */}
@@ -159,6 +277,11 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
               step="0.01"
               min="0"
             />
+            {amount && priceUsd && (
+              <p className="font-mono text-xs text-center text-sw-blue/60">
+                ≈ {(parseFloat(amount) * priceUsd).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+              </p>
+            )}
           </div>
 
           {/* Transfer Button */}
