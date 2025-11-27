@@ -5,13 +5,15 @@ import { BottomNav } from "@/components/BottomNav";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
 import { useKeetaWallet, AccountType } from "@/contexts/KeetaWalletContext";
 import { InternalTransferModal } from "@/components/InternalTransferModal";
-import { Copy, LogOut, Settings, Shield, Plus, Wallet, PiggyBank, ArrowRightLeft } from "lucide-react";
+import { Copy, LogOut, Settings, Shield, Plus, Wallet, PiggyBank, ArrowRightLeft, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 const Account = () => {
   const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [showCreateCustom, setShowCreateCustom] = useState(false);
+  const [customAccountName, setCustomAccountName] = useState("");
   const navigate = useNavigate();
   const { play } = useSoundEffects();
   const { 
@@ -21,8 +23,11 @@ const Account = () => {
     activeAccountType,
     checkingAccount,
     savingsAccount,
+    customAccounts,
     createSavingsAccount,
+    createCustomAccount,
     switchAccount,
+    getAllAccounts,
   } = useKeetaWallet();
 
   const copyAddress = (address: string) => {
@@ -47,7 +52,20 @@ const Account = () => {
     if (type === activeAccountType) return;
     play('navigate');
     switchAccount(type);
-    toast.success(`Switched to ${type} account`);
+    const displayName = type === 'checking' ? 'Checking' : type === 'savings' ? 'Savings' : type;
+    toast.success(`Switched to ${displayName} account`);
+  };
+
+  const handleCreateCustomAccount = async () => {
+    if (!customAccountName.trim()) {
+      toast.error("Please enter an account name");
+      return;
+    }
+    play('click');
+    await createCustomAccount(customAccountName.trim());
+    toast.success(`${customAccountName} account created`);
+    setCustomAccountName("");
+    setShowCreateCustom(false);
   };
 
   return (
@@ -178,17 +196,113 @@ const Account = () => {
                     </button>
                   )}
 
-                  {/* Transfer Button - only show when savings exists */}
-                  {savingsAccount && (
+                  {/* Custom Accounts */}
+                  {customAccounts.map((account) => (
+                    <button
+                      key={account.publicKey}
+                      onClick={() => handleSwitchAccount(account.name)}
+                      className={`w-full flex items-center gap-4 p-4 border rounded transition-all ${
+                        activeAccountType === account.name
+                          ? 'bg-sw-green/20 border-sw-green'
+                          : 'bg-sw-green/5 border-sw-green/20 hover:bg-sw-green/10'
+                      }`}
+                    >
+                      <div className={`w-12 h-12 flex items-center justify-center border ${
+                        activeAccountType === account.name ? 'border-sw-green bg-sw-green/20' : 'border-sw-green/40 bg-sw-green/10'
+                      }`}>
+                        <Tag className={`w-6 h-6 ${activeAccountType === account.name ? 'text-sw-green' : 'text-sw-green/60'}`} />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <div className="flex items-center gap-2">
+                          <h3 className={`font-display text-sm tracking-wider ${
+                            activeAccountType === account.name ? 'text-sw-green' : 'text-sw-green/80'
+                          }`}>
+                            {account.name.toUpperCase()}
+                          </h3>
+                          {activeAccountType === account.name && (
+                            <span className="font-mono text-[10px] text-sw-green bg-sw-green/20 px-2 py-0.5 rounded">
+                              ACTIVE
+                            </span>
+                          )}
+                        </div>
+                        <p className="font-mono text-[10px] text-sw-green/50 truncate max-w-[200px] mt-1">
+                          {account.publicKey}
+                        </p>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyAddress(account.publicKey);
+                        }}
+                        className="p-2 hover:bg-sw-green/20 rounded transition-colors"
+                      >
+                        <Copy className="w-4 h-4 text-sw-green/60 hover:text-sw-yellow" />
+                      </button>
+                    </button>
+                  ))}
+
+                  {/* Create Custom Account */}
+                  {showCreateCustom ? (
+                    <div className="p-4 border border-sw-green/30 rounded bg-sw-green/5 space-y-3">
+                      <input
+                        type="text"
+                        value={customAccountName}
+                        onChange={(e) => setCustomAccountName(e.target.value)}
+                        placeholder="Account name (e.g., Rent, Groceries)"
+                        className="w-full p-3 bg-background border border-sw-green/30 rounded font-mono text-sm text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-sw-green"
+                        maxLength={20}
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleCreateCustomAccount}
+                          className="flex-1 py-2 bg-sw-green/20 border border-sw-green text-sw-green font-mono text-sm rounded hover:bg-sw-green/30 transition-colors"
+                        >
+                          CREATE
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowCreateCustom(false);
+                            setCustomAccountName("");
+                          }}
+                          className="flex-1 py-2 bg-sw-red/10 border border-sw-red/30 text-sw-red/70 font-mono text-sm rounded hover:bg-sw-red/20 transition-colors"
+                        >
+                          CANCEL
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        play('click');
+                        setShowCreateCustom(true);
+                      }}
+                      className="w-full flex items-center gap-4 p-4 border border-dashed border-sw-green/30 rounded hover:border-sw-green/60 hover:bg-sw-green/5 transition-all group"
+                    >
+                      <div className="w-12 h-12 flex items-center justify-center border border-dashed border-sw-green/30 group-hover:border-sw-green/60">
+                        <Plus className="w-6 h-6 text-sw-green/40 group-hover:text-sw-green" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <h3 className="font-display text-sm tracking-wider text-sw-green/60 group-hover:text-sw-green">
+                          CREATE CUSTOM ACCOUNT
+                        </h3>
+                        <p className="font-mono text-[10px] text-sw-green/40 mt-1">
+                          For rent, groceries, bills, etc.
+                        </p>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Transfer Button - only show when multiple accounts exist */}
+                  {getAllAccounts().length > 1 && (
                     <button
                       onClick={() => {
                         play('click');
                         setTransferModalOpen(true);
                       }}
-                      className="w-full flex items-center gap-3 p-3 bg-sw-green/10 border border-sw-green/30 rounded hover:bg-sw-green/20 transition-colors group mt-4"
+                      className="w-full flex items-center gap-3 p-3 bg-sw-orange/10 border border-sw-orange/30 rounded hover:bg-sw-orange/20 transition-colors group mt-4"
                     >
-                      <ArrowRightLeft className="w-5 h-5 text-sw-green/70 group-hover:text-sw-green" />
-                      <span className="font-mono text-sm text-sw-green/80 group-hover:text-sw-green">
+                      <ArrowRightLeft className="w-5 h-5 text-sw-orange/70 group-hover:text-sw-orange" />
+                      <span className="font-mono text-sm text-sw-orange/80 group-hover:text-sw-orange">
                         TRANSFER BETWEEN ACCOUNTS
                       </span>
                     </button>
