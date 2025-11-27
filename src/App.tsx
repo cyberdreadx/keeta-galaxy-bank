@@ -9,6 +9,7 @@ import Send from "./pages/Send";
 import Receive from "./pages/Receive";
 import Account from "./pages/Account";
 import Security from "./pages/Security";
+import Lock from "./pages/Lock";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/receive" element={<Receive />} />
             <Route path="/account" element={<Account />} />
             <Route path="/security" element={<Security />} />
+            <Route path="/lock" element={<Lock />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
