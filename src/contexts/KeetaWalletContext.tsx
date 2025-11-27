@@ -217,8 +217,14 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    // Check localStorage for previously saved account state
+    const savingsEnabled = localStorage.getItem(SAVINGS_KEY) === 'true';
+    const activeAccount = localStorage.getItem(ACTIVE_ACCOUNT_KEY) as AccountType || 'checking';
+    const customAccountsJson = localStorage.getItem(CUSTOM_ACCOUNTS_KEY);
+    const customAccountNames: string[] = customAccountsJson ? JSON.parse(customAccountsJson) : [];
+
     // Pass directly to connectWithSeed - it handles both mnemonic and hex via seedFromPassphrase
-    await connectWithSeed(seedInput.trim(), state.network, false, 'checking');
+    await connectWithSeed(seedInput.trim(), state.network, savingsEnabled, activeAccount, customAccountNames);
   }, [KeetaNet, state.network]);
 
   const createSavingsAccount = useCallback(async () => {
