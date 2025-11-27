@@ -85,9 +85,9 @@ const Account = () => {
           </div>
 
           <div className="max-w-md mx-auto space-y-6">
-            {/* Account Selector */}
+            {/* Primary Accounts (Checking & Savings) */}
             {isConnected && (
-              <StarWarsPanel title="ACCOUNTS" className="animate-slide-up">
+              <StarWarsPanel title="PRIMARY ACCOUNTS" className="animate-slide-up">
                 <div className="space-y-3">
                   {/* Checking Account */}
                   <button
@@ -196,7 +196,35 @@ const Account = () => {
                     </button>
                   )}
 
-                  {/* Custom Accounts */}
+                  {/* Transfer Button - only show when multiple accounts exist */}
+                  {getAllAccounts().length > 1 && (
+                    <button
+                      onClick={() => {
+                        play('click');
+                        setTransferModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-3 p-3 bg-sw-orange/10 border border-sw-orange/30 rounded hover:bg-sw-orange/20 transition-colors group mt-4"
+                    >
+                      <ArrowRightLeft className="w-5 h-5 text-sw-orange/70 group-hover:text-sw-orange" />
+                      <span className="font-mono text-sm text-sw-orange/80 group-hover:text-sw-orange">
+                        TRANSFER BETWEEN ACCOUNTS
+                      </span>
+                    </button>
+                  )}
+                </div>
+              </StarWarsPanel>
+            )}
+
+            {/* Custom Accounts */}
+            {isConnected && (
+              <StarWarsPanel title="CUSTOM ACCOUNTS" className="animate-slide-up [animation-delay:50ms]">
+                <div className="space-y-3">
+                  {customAccounts.length === 0 && !showCreateCustom && (
+                    <p className="font-mono text-xs text-sw-green/50 text-center py-2">
+                      Create accounts for specific purposes
+                    </p>
+                  )}
+
                   {customAccounts.map((account) => (
                     <button
                       key={account.publicKey}
@@ -289,22 +317,6 @@ const Account = () => {
                           For rent, groceries, bills, etc.
                         </p>
                       </div>
-                    </button>
-                  )}
-
-                  {/* Transfer Button - only show when multiple accounts exist */}
-                  {getAllAccounts().length > 1 && (
-                    <button
-                      onClick={() => {
-                        play('click');
-                        setTransferModalOpen(true);
-                      }}
-                      className="w-full flex items-center gap-3 p-3 bg-sw-orange/10 border border-sw-orange/30 rounded hover:bg-sw-orange/20 transition-colors group mt-4"
-                    >
-                      <ArrowRightLeft className="w-5 h-5 text-sw-orange/70 group-hover:text-sw-orange" />
-                      <span className="font-mono text-sm text-sw-orange/80 group-hover:text-sw-orange">
-                        TRANSFER BETWEEN ACCOUNTS
-                      </span>
                     </button>
                   )}
                 </div>
