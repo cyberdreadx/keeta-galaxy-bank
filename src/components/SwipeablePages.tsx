@@ -8,8 +8,8 @@ interface SwipeablePagesProps {
   children: ReactNode;
 }
 
-const MAIN_PAGES = ["/", "/pay", "/account"];
-const PAGE_LABELS = ["HOME", "PAY", "ACCOUNT"];
+const MAIN_PAGES = ["/", "/pay", "/bridge", "/account"];
+const PAGE_LABELS = ["HOME", "PAY", "BRIDGE", "ACCOUNT"];
 
 export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
   const navigate = useNavigate();
