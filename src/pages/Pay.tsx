@@ -2,7 +2,6 @@ import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
-import { BottomNav } from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 
@@ -89,8 +88,6 @@ const Pay = () => {
           </div>
         </div>
       </main>
-
-      <BottomNav />
     </div>
   );
 };
