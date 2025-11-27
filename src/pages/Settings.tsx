@@ -1,6 +1,5 @@
 import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
-import { BottomNav } from "@/components/BottomNav";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
 import { useSettings, SUPPORTED_CURRENCIES, FiatCurrency } from "@/contexts/SettingsContext";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
@@ -147,8 +146,6 @@ const Settings = () => {
           </div>
         </div>
       </main>
-
-      <BottomNav />
     </div>
   );
 };

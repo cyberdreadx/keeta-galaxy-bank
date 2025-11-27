@@ -3,7 +3,6 @@ import { Copy, Check, QrCode } from "lucide-react";
 import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
-import { BottomNav } from "@/components/BottomNav";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { toast } from "sonner";
 import QRCode from "qrcode";
@@ -54,7 +53,6 @@ const Receive = () => {
             <p className="text-sw-orange text-center">Please connect your wallet first</p>
           </StarWarsPanel>
         </main>
-        <BottomNav />
       </div>
     );
   }
@@ -127,8 +125,6 @@ const Receive = () => {
           </div>
         </StarWarsPanel>
       </main>
-      
-      <BottomNav />
     </div>
   );
 };

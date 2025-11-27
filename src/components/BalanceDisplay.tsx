@@ -5,19 +5,21 @@ import { useState } from "react";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useKeetaBalance } from "@/hooks/useKeetaBalance";
 import { useKtaPrice } from "@/hooks/useKtaPrice";
+import { useSettings } from "@/contexts/SettingsContext";
 
 export const BalanceDisplay = () => {
   const [isHidden, setIsHidden] = useState(false);
   const { isConnected, network, activeAccountType, getActiveAccountName } = useKeetaWallet();
   const { balance, isLoading, refetch } = useKeetaBalance();
-  const { priceUsd } = useKtaPrice();
+  const { convertToFiat } = useKtaPrice();
+  const { formatFiat } = useSettings();
   
   const accountName = getActiveAccountName();
   const isChecking = activeAccountType === 'checking';
   const isSavings = activeAccountType === 'savings';
   const isCustom = !isChecking && !isSavings;
 
-  const usdValue = priceUsd ? balance * priceUsd : null;
+  const fiatValue = convertToFiat(balance);
 
   const formatBalance = (amount: number) => {
     // Truncate to 2 decimals without rounding
@@ -26,15 +28,6 @@ export const BalanceDisplay = () => {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(truncated);
-  };
-
-  const formatUsd = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
   };
 
   return (
@@ -89,9 +82,9 @@ export const BalanceDisplay = () => {
               KTA
             </span>
           </div>
-          {isConnected && usdValue !== null && (
+          {isConnected && fiatValue !== null && (
             <p className={`font-mono text-lg text-sw-blue/80 mt-1 transition-all duration-300 ${isHidden ? 'blur-lg select-none' : ''}`}>
-              ≈ {isHidden ? "••••" : formatUsd(usdValue)}
+              ≈ {isHidden ? "••••" : formatFiat(fiatValue)}
             </p>
           )}
           {!isConnected && (

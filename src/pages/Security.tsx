@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
-import { BottomNav } from "@/components/BottomNav";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { Eye, EyeOff, Copy, Lock, ArrowLeft, AlertTriangle, Volume2, VolumeX } from "lucide-react";
@@ -236,8 +235,6 @@ const Security = () => {
           </div>
         </div>
       </main>
-
-      <BottomNav />
     </div>
   );
 };
