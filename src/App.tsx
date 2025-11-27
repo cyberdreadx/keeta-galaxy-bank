@@ -7,6 +7,7 @@ import { KeetaWalletProvider } from "./contexts/KeetaWalletContext";
 import Index from "./pages/Index";
 import Send from "./pages/Send";
 import Receive from "./pages/Receive";
+import KeetaPay from "./pages/KeetaPay";
 import Account from "./pages/Account";
 import Security from "./pages/Security";
 import Lock from "./pages/Lock";
@@ -23,6 +24,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/keetapay" element={<KeetaPay />} />
             <Route path="/send" element={<Send />} />
             <Route path="/receive" element={<Receive />} />
             <Route path="/account" element={<Account />} />
