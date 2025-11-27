@@ -1,4 +1,4 @@
-import { Home, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Home, ArrowUpRight, ArrowDownLeft, User } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,7 @@ const navItems = [
   { icon: Home, label: "HOME", path: "/" },
   { icon: ArrowUpRight, label: "SEND", path: "/send" },
   { icon: ArrowDownLeft, label: "RECEIVE", path: "/receive" },
+  { icon: User, label: "ACCOUNT", path: "/account" },
 ];
 
 export const BottomNav = () => {

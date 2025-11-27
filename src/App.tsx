@@ -7,6 +7,7 @@ import { KeetaWalletProvider } from "./contexts/KeetaWalletContext";
 import Index from "./pages/Index";
 import Send from "./pages/Send";
 import Receive from "./pages/Receive";
+import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/send" element={<Send />} />
             <Route path="/receive" element={<Receive />} />
+            <Route path="/account" element={<Account />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
