@@ -16,11 +16,28 @@ const Bridge = () => {
   const [fromNetwork, setFromNetwork] = useState<BridgeNetwork>(BRIDGE_NETWORKS[0]);
   const [toNetwork, setToNetwork] = useState<BridgeNetwork>(BRIDGE_NETWORKS[1]);
   const [amount, setAmount] = useState("");
+  const [destinationAddress, setDestinationAddress] = useState("");
+
+  const isToBase = toNetwork.id === 'base';
+  const addressPlaceholder = isToBase ? "0x..." : "keeta_...";
+  const addressLabel = isToBase ? "BASE DESTINATION ADDRESS" : "KEETA DESTINATION ADDRESS";
+
+  const validateAddress = (address: string): boolean => {
+    if (!address.trim()) return false;
+    if (isToBase) {
+      // EVM address validation (0x followed by 40 hex chars)
+      return /^0x[a-fA-F0-9]{40}$/.test(address);
+    } else {
+      // Keeta address validation (starts with keeta_)
+      return address.startsWith('keeta_') && address.length > 10;
+    }
+  };
 
   const handleSwapNetworks = () => {
     play('click');
     setFromNetwork(toNetwork);
     setToNetwork(fromNetwork);
+    setDestinationAddress(""); // Clear address when swapping
   };
 
   const handleBridge = async () => {
@@ -37,13 +54,22 @@ const Bridge = () => {
       return;
     }
 
+    if (!validateAddress(destinationAddress)) {
+      play('error');
+      toast.error(isToBase 
+        ? "Please enter a valid Base address (0x...)" 
+        : "Please enter a valid Keeta address (keeta_...)");
+      return;
+    }
+
     play('send');
-    const result = await initiateBridge(fromNetwork, toNetwork, amount);
+    const result = await initiateBridge(fromNetwork, toNetwork, amount, destinationAddress);
 
     if (result.success) {
       play('receive');
       toast.success(`Bridge initiated! Transfer ID: ${result.transferId}`);
       setAmount("");
+      setDestinationAddress("");
     } else {
       play('error');
       toast.info(result.error || "Bridge failed");
@@ -170,6 +196,25 @@ const Bridge = () => {
                 </div>
               </div>
 
+              {/* Destination Address Input */}
+              <div className="space-y-2">
+                <label className="font-mono text-xs text-sw-blue/80 tracking-widest uppercase">
+                  {addressLabel}
+                </label>
+                <input
+                  type="text"
+                  value={destinationAddress}
+                  onChange={(e) => setDestinationAddress(e.target.value)}
+                  placeholder={addressPlaceholder}
+                  className="w-full px-4 py-3 bg-sw-space/50 border border-sw-blue/30 text-sw-white font-mono text-sm placeholder:text-sw-blue/40 focus:border-sw-blue/60 focus:outline-none transition-colors"
+                />
+                <p className="font-mono text-xs text-sw-blue/50">
+                  {isToBase 
+                    ? "Enter your Base/EVM wallet address" 
+                    : "Enter a Keeta L1 address"}
+                </p>
+              </div>
+
               {/* Amount Input */}
               <div className="space-y-2">
                 <label className="font-mono text-xs text-sw-blue/80 tracking-widest uppercase">
@@ -189,7 +234,7 @@ const Bridge = () => {
               {/* Bridge Button */}
               <button
                 onClick={handleBridge}
-                disabled={isBridging || !amount}
+                disabled={isBridging || !amount || !destinationAddress}
                 className="w-full py-4 bg-sw-orange/20 border border-sw-orange/50 hover:bg-sw-orange/30 hover:border-sw-orange text-sw-orange font-display font-bold tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
               >
                 {isBridging ? (

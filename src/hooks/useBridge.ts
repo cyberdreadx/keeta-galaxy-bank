@@ -52,7 +52,8 @@ export function useBridge() {
   const initiateBridge = useCallback(async (
     fromNetwork: BridgeNetwork,
     toNetwork: BridgeNetwork,
-    amount: string
+    amount: string,
+    destinationAddress: string
   ): Promise<BridgeResult> => {
     if (!isConnected || !client || !publicKey) {
       return { success: false, error: 'Wallet not connected' };
@@ -61,6 +62,10 @@ export function useBridge() {
     const amountValue = parseFloat(amount);
     if (isNaN(amountValue) || amountValue <= 0) {
       return { success: false, error: 'Invalid amount' };
+    }
+
+    if (!destinationAddress.trim()) {
+      return { success: false, error: 'Destination address required' };
     }
 
     setState(prev => ({ ...prev, isBridging: true, status: 'pending', error: null }));
@@ -95,6 +100,7 @@ export function useBridge() {
       // Get the base token (KTA) from the client for proper asset format
       const baseToken = client.baseToken;
       console.log('[Bridge] Using baseToken:', baseToken);
+      console.log('[Bridge] Destination address:', destinationAddress);
 
       // Initialize the Asset Movement client
       const assetMovementClient = new AssetMovementClient(client);
@@ -118,14 +124,14 @@ export function useBridge() {
       // Convert amount to smallest units (9 decimals for KTA)
       const valueInSmallestUnits = BigInt(Math.floor(amountValue * 1e9));
 
-      // Initiate the transfer
+      // Initiate the transfer with user-provided destination address
       const transfer = await provider.initiateTransfer({
         value: valueInSmallestUnits,
         asset: baseToken,
         from: { location: fromNetwork.location },
         to: { 
           location: toNetwork.location,
-          recipient: publicKey
+          recipient: destinationAddress
         }
       });
 
