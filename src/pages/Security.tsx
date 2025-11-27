@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 
 const PIN_STORAGE_KEY = "keeta_account_pin";
 
-const Settings = () => {
+const Security = () => {
   const navigate = useNavigate();
   const { seed, isConnected } = useKeetaWallet();
   
@@ -66,7 +66,7 @@ const Settings = () => {
               <span className="font-mono text-xs tracking-wider">BACK</span>
             </button>
             <p className="font-mono text-xs text-sw-blue/60 tracking-[0.5em] mb-2">
-              // SETTINGS
+              // SECURITY
             </p>
             <h2 className="font-display text-3xl md:text-4xl font-bold tracking-wider sw-title">
               SECURITY
@@ -185,4 +185,4 @@ const Settings = () => {
   );
 };
 
-export default Settings;
+export default Security;
