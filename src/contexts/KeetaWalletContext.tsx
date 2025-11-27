@@ -71,30 +71,38 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [KeetaNet]);
 
-  const connectWithSeed = async (seed: string, network: 'test' | 'main') => {
+  const connectWithSeed = async (seedOrMnemonic: string, network: 'test' | 'main') => {
     if (!KeetaNet) return;
 
     setState(prev => ({ ...prev, isConnecting: true, error: null }));
 
     try {
-      const account = KeetaNet.lib.Account.fromSeed(seed, 0);
+      const { Account } = KeetaNet.lib;
+      const { AccountKeyAlgorithm } = Account;
+      
+      // Always convert through seedFromPassphrase for CLI compatibility
+      const seedHex = await Account.seedFromPassphrase(seedOrMnemonic, { asString: true });
+      
+      // Use secp256k1 algorithm at index 0 for CLI compatibility
+      const account = Account.fromSeed(seedHex, 0, AccountKeyAlgorithm.ECDSA_SECP256K1);
       const client = KeetaNet.UserClient.fromNetwork(network, account);
       const publicKey = account.publicKeyString.toString();
 
-      // Store seed securely (in production, use encryption)
-      localStorage.setItem(STORAGE_KEY, seed);
+      // Store original seed/mnemonic (in production, use encryption)
+      localStorage.setItem(STORAGE_KEY, seedOrMnemonic);
       localStorage.setItem(NETWORK_KEY, network);
 
       setState({
         isConnected: true,
         isConnecting: false,
         publicKey,
-        seed,
+        seed: seedOrMnemonic,
         network,
         client,
         error: null,
       });
     } catch (err: any) {
+      console.error('connectWithSeed error:', err);
       setState(prev => ({
         ...prev,
         isConnecting: false,
@@ -134,23 +142,8 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const trimmed = seedInput.trim();
-    let finalSeed = trimmed;
-
-    // Check if it's a passphrase/mnemonic (multiple words)
-    const words = trimmed.split(/\s+/);
-    if (words.length >= 12) {
-      // Use Keeta SDK's seedFromPassphrase for mnemonic conversion (async)
-      try {
-        finalSeed = await KeetaNet.lib.Account.seedFromPassphrase(trimmed, { asString: true });
-      } catch (err: any) {
-        console.error('seedFromPassphrase error:', err);
-        setState(prev => ({ ...prev, error: err.message || 'Invalid passphrase. Please check your words.' }));
-        return;
-      }
-    }
-
-    await connectWithSeed(finalSeed, state.network);
+    // Pass directly to connectWithSeed - it handles both mnemonic and hex via seedFromPassphrase
+    await connectWithSeed(seedInput.trim(), state.network);
   }, [KeetaNet, state.network]);
 
   const disconnect = useCallback(() => {
