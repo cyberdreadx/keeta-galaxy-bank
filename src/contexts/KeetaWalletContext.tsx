@@ -13,11 +13,13 @@ interface KeetaUserClient {
   send: (to: string, amount: bigint) => Promise<any>;
 }
 
-export type AccountType = 'checking' | 'savings';
+export type AccountType = 'checking' | 'savings' | string;
 
 interface AccountInfo {
   publicKey: string;
   client: KeetaUserClient;
+  name: string;
+  derivationIndex: number;
 }
 
 interface KeetaWalletState {
@@ -31,6 +33,7 @@ interface KeetaWalletState {
   activeAccountType: AccountType;
   checkingAccount: AccountInfo | null;
   savingsAccount: AccountInfo | null;
+  customAccounts: AccountInfo[];
 }
 
 interface KeetaWalletContextType extends KeetaWalletState {
@@ -39,8 +42,11 @@ interface KeetaWalletContextType extends KeetaWalletState {
   disconnect: () => void;
   switchNetwork: (network: 'test' | 'main') => Promise<void>;
   createSavingsAccount: () => Promise<void>;
+  createCustomAccount: (name: string) => Promise<void>;
   switchAccount: (accountType: AccountType) => void;
   transferBetweenAccounts: (from: AccountType, to: AccountType, amount: number) => Promise<void>;
+  getActiveAccountName: () => string;
+  getAllAccounts: () => AccountInfo[];
 }
 
 const KeetaWalletContext = createContext<KeetaWalletContextType | null>(null);
@@ -49,6 +55,7 @@ const STORAGE_KEY = 'keeta_wallet_seed';
 const NETWORK_KEY = 'keeta_network';
 const SAVINGS_KEY = 'keeta_savings_enabled';
 const ACTIVE_ACCOUNT_KEY = 'keeta_active_account';
+const CUSTOM_ACCOUNTS_KEY = 'keeta_custom_accounts';
 
 export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<KeetaWalletState>({
@@ -62,6 +69,7 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
     activeAccountType: 'checking',
     checkingAccount: null,
     savingsAccount: null,
+    customAccounts: [],
   });
 
   const [KeetaNet, setKeetaNet] = useState<any>(null);
@@ -88,13 +96,15 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
     const storedNetwork = localStorage.getItem(NETWORK_KEY) as 'test' | 'main' || 'test';
     const savingsEnabled = localStorage.getItem(SAVINGS_KEY) === 'true';
     const activeAccount = localStorage.getItem(ACTIVE_ACCOUNT_KEY) as AccountType || 'checking';
+    const customAccountsJson = localStorage.getItem(CUSTOM_ACCOUNTS_KEY);
+    const customAccountNames: string[] = customAccountsJson ? JSON.parse(customAccountsJson) : [];
     
     if (storedSeed) {
-      connectWithSeed(storedSeed, storedNetwork, savingsEnabled, activeAccount);
+      connectWithSeed(storedSeed, storedNetwork, savingsEnabled, activeAccount, customAccountNames);
     }
   }, [KeetaNet]);
 
-  const createAccountAtIndex = async (seedHex: string, index: number, network: 'test' | 'main'): Promise<AccountInfo> => {
+  const createAccountAtIndex = async (seedHex: string, index: number, network: 'test' | 'main', name: string): Promise<AccountInfo> => {
     const { Account } = KeetaNet.lib;
     const { AccountKeyAlgorithm } = Account;
     
@@ -102,14 +112,15 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
     const client = KeetaNet.UserClient.fromNetwork(network, account);
     const publicKey = account.publicKeyString.toString();
     
-    return { publicKey, client };
+    return { publicKey, client, name, derivationIndex: index };
   };
 
   const connectWithSeed = async (
     seedOrMnemonic: string, 
     network: 'test' | 'main', 
     includeSavings: boolean = false,
-    activeAccount: AccountType = 'checking'
+    activeAccount: AccountType = 'checking',
+    customAccountNames: string[] = []
   ) => {
     if (!KeetaNet) return;
 
@@ -122,18 +133,29 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
       const seedHex = await Account.seedFromPassphrase(seedOrMnemonic, { asString: true });
       
       // Create checking account at index 0
-      const checkingAccount = await createAccountAtIndex(seedHex, 0, network);
+      const checkingAccount = await createAccountAtIndex(seedHex, 0, network, 'Checking');
       
       // Create savings account at index 1 if enabled
       let savingsAccount: AccountInfo | null = null;
       if (includeSavings) {
-        savingsAccount = await createAccountAtIndex(seedHex, 1, network);
+        savingsAccount = await createAccountAtIndex(seedHex, 1, network, 'Savings');
+      }
+
+      // Create custom accounts starting at index 2
+      const customAccounts: AccountInfo[] = [];
+      for (let i = 0; i < customAccountNames.length; i++) {
+        const customAccount = await createAccountAtIndex(seedHex, 2 + i, network, customAccountNames[i]);
+        customAccounts.push(customAccount);
       }
 
       // Determine active account
-      const activeAccountInfo = activeAccount === 'savings' && savingsAccount 
-        ? savingsAccount 
-        : checkingAccount;
+      let activeAccountInfo = checkingAccount;
+      if (activeAccount === 'savings' && savingsAccount) {
+        activeAccountInfo = savingsAccount;
+      } else if (activeAccount !== 'checking' && activeAccount !== 'savings') {
+        const customAccount = customAccounts.find(a => a.name === activeAccount);
+        if (customAccount) activeAccountInfo = customAccount;
+      }
 
       // Store original seed/mnemonic (in production, use encryption)
       localStorage.setItem(STORAGE_KEY, seedOrMnemonic);
@@ -148,9 +170,11 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
         network,
         client: activeAccountInfo.client,
         error: null,
-        activeAccountType: savingsAccount && activeAccount === 'savings' ? 'savings' : 'checking',
+        activeAccountType: activeAccountInfo.name === 'Checking' ? 'checking' : 
+                          activeAccountInfo.name === 'Savings' ? 'savings' : activeAccountInfo.name,
         checkingAccount,
         savingsAccount,
+        customAccounts,
       });
     } catch (err: any) {
       console.error('connectWithSeed error:', err);
@@ -207,7 +231,7 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
       const { Account } = KeetaNet.lib;
       const seedHex = await Account.seedFromPassphrase(state.seed, { asString: true });
       
-      const savingsAccount = await createAccountAtIndex(seedHex, 1, state.network);
+      const savingsAccount = await createAccountAtIndex(seedHex, 1, state.network, 'Savings');
       
       localStorage.setItem(SAVINGS_KEY, 'true');
       
@@ -224,8 +248,57 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [KeetaNet, state.seed, state.network]);
 
+  const createCustomAccount = useCallback(async (name: string) => {
+    if (!KeetaNet || !state.seed) {
+      setState(prev => ({ ...prev, error: 'Wallet not connected' }));
+      return;
+    }
+
+    // Check for duplicate names
+    const allNames = [
+      'Checking', 'Savings',
+      ...state.customAccounts.map(a => a.name)
+    ];
+    if (allNames.includes(name)) {
+      setState(prev => ({ ...prev, error: 'Account name already exists' }));
+      return;
+    }
+
+    try {
+      const { Account } = KeetaNet.lib;
+      const seedHex = await Account.seedFromPassphrase(state.seed, { asString: true });
+      
+      // Next derivation index: 2 + number of existing custom accounts
+      const nextIndex = 2 + state.customAccounts.length;
+      const newAccount = await createAccountAtIndex(seedHex, nextIndex, state.network, name);
+      
+      // Update storage
+      const existingNames = state.customAccounts.map(a => a.name);
+      localStorage.setItem(CUSTOM_ACCOUNTS_KEY, JSON.stringify([...existingNames, name]));
+      
+      setState(prev => ({
+        ...prev,
+        customAccounts: [...prev.customAccounts, newAccount],
+      }));
+    } catch (err: any) {
+      console.error('createCustomAccount error:', err);
+      setState(prev => ({
+        ...prev,
+        error: err.message || 'Failed to create custom account',
+      }));
+    }
+  }, [KeetaNet, state.seed, state.network, state.customAccounts]);
+
   const switchAccount = useCallback((accountType: AccountType) => {
-    const targetAccount = accountType === 'savings' ? state.savingsAccount : state.checkingAccount;
+    let targetAccount: AccountInfo | null = null;
+    
+    if (accountType === 'checking') {
+      targetAccount = state.checkingAccount;
+    } else if (accountType === 'savings') {
+      targetAccount = state.savingsAccount;
+    } else {
+      targetAccount = state.customAccounts.find(a => a.name === accountType) || null;
+    }
     
     if (!targetAccount) {
       setState(prev => ({ ...prev, error: `${accountType} account not available` }));
@@ -237,14 +310,20 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
     setState(prev => ({
       ...prev,
       activeAccountType: accountType,
-      publicKey: targetAccount.publicKey,
-      client: targetAccount.client,
+      publicKey: targetAccount!.publicKey,
+      client: targetAccount!.client,
     }));
-  }, [state.checkingAccount, state.savingsAccount]);
+  }, [state.checkingAccount, state.savingsAccount, state.customAccounts]);
 
   const transferBetweenAccounts = useCallback(async (from: AccountType, to: AccountType, amount: number) => {
-    const fromAccount = from === 'checking' ? state.checkingAccount : state.savingsAccount;
-    const toAccount = to === 'checking' ? state.checkingAccount : state.savingsAccount;
+    const getAccount = (accountType: AccountType) => {
+      if (accountType === 'checking') return state.checkingAccount;
+      if (accountType === 'savings') return state.savingsAccount;
+      return state.customAccounts.find(a => a.name === accountType) || null;
+    };
+
+    const fromAccount = getAccount(from);
+    const toAccount = getAccount(to);
 
     if (!fromAccount || !toAccount) {
       throw new Error('Both accounts must exist for transfer');
@@ -259,12 +338,13 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
       console.error('Transfer error:', err);
       throw new Error(err.message || 'Transfer failed');
     }
-  }, [state.checkingAccount, state.savingsAccount]);
+  }, [state.checkingAccount, state.savingsAccount, state.customAccounts]);
 
   const disconnect = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(SAVINGS_KEY);
     localStorage.removeItem(ACTIVE_ACCOUNT_KEY);
+    localStorage.removeItem(CUSTOM_ACCOUNTS_KEY);
     setState({
       isConnected: false,
       isConnecting: false,
@@ -276,18 +356,34 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
       activeAccountType: 'checking',
       checkingAccount: null,
       savingsAccount: null,
+      customAccounts: [],
     });
   }, [state.network]);
 
   const switchNetwork = useCallback(async (network: 'test' | 'main') => {
     if (state.seed) {
       const savingsEnabled = state.savingsAccount !== null;
-      await connectWithSeed(state.seed, network, savingsEnabled, state.activeAccountType);
+      const customAccountNames = state.customAccounts.map(a => a.name);
+      await connectWithSeed(state.seed, network, savingsEnabled, state.activeAccountType, customAccountNames);
     } else {
       setState(prev => ({ ...prev, network }));
       localStorage.setItem(NETWORK_KEY, network);
     }
-  }, [state.seed, state.savingsAccount, state.activeAccountType, KeetaNet]);
+  }, [state.seed, state.savingsAccount, state.activeAccountType, state.customAccounts, KeetaNet]);
+
+  const getActiveAccountName = useCallback(() => {
+    if (state.activeAccountType === 'checking') return 'Checking';
+    if (state.activeAccountType === 'savings') return 'Savings';
+    return state.activeAccountType; // Custom account name
+  }, [state.activeAccountType]);
+
+  const getAllAccounts = useCallback((): AccountInfo[] => {
+    const accounts: AccountInfo[] = [];
+    if (state.checkingAccount) accounts.push(state.checkingAccount);
+    if (state.savingsAccount) accounts.push(state.savingsAccount);
+    accounts.push(...state.customAccounts);
+    return accounts;
+  }, [state.checkingAccount, state.savingsAccount, state.customAccounts]);
 
   return (
     <KeetaWalletContext.Provider
@@ -298,8 +394,11 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
         disconnect,
         switchNetwork,
         createSavingsAccount,
+        createCustomAccount,
         switchAccount,
         transferBetweenAccounts,
+        getActiveAccountName,
+        getAllAccounts,
       }}
     >
       {children}

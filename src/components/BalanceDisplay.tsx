@@ -1,6 +1,6 @@
 import { StarWarsPanel } from "./StarWarsPanel";
 import { HologramDisplay } from "./HologramDisplay";
-import { Eye, EyeOff, RefreshCw, Loader2 } from "lucide-react";
+import { Eye, EyeOff, RefreshCw, Loader2, Wallet, PiggyBank, Tag } from "lucide-react";
 import { useState } from "react";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useKeetaBalance } from "@/hooks/useKeetaBalance";
@@ -8,9 +8,14 @@ import { useKtaPrice } from "@/hooks/useKtaPrice";
 
 export const BalanceDisplay = () => {
   const [isHidden, setIsHidden] = useState(false);
-  const { isConnected, network } = useKeetaWallet();
+  const { isConnected, network, activeAccountType, getActiveAccountName } = useKeetaWallet();
   const { balance, isLoading, refetch } = useKeetaBalance();
   const { priceUsd } = useKtaPrice();
+  
+  const accountName = getActiveAccountName();
+  const isChecking = activeAccountType === 'checking';
+  const isSavings = activeAccountType === 'savings';
+  const isCustom = !isChecking && !isSavings;
 
   const usdValue = priceUsd ? balance * priceUsd : null;
 
@@ -34,6 +39,26 @@ export const BalanceDisplay = () => {
 
   return (
     <StarWarsPanel title="// GALACTIC CREDIT BALANCE" className="h-full">
+      {/* Active Account Indicator */}
+      {isConnected && (
+        <div className={`flex items-center justify-center gap-2 mb-4 py-2 px-4 rounded border ${
+          isChecking ? 'bg-sw-blue/10 border-sw-blue/40' :
+          isSavings ? 'bg-sw-yellow/10 border-sw-yellow/40' :
+          'bg-sw-green/10 border-sw-green/40'
+        }`}>
+          {isChecking && <Wallet className="w-4 h-4 text-sw-blue" />}
+          {isSavings && <PiggyBank className="w-4 h-4 text-sw-yellow" />}
+          {isCustom && <Tag className="w-4 h-4 text-sw-green" />}
+          <span className={`font-mono text-xs tracking-wider ${
+            isChecking ? 'text-sw-blue' :
+            isSavings ? 'text-sw-yellow' :
+            'text-sw-green'
+          }`}>
+            {accountName.toUpperCase()} ACCOUNT
+          </span>
+        </div>
+      )}
+
       <div className="flex justify-end mb-4 gap-2">
         <button
           onClick={refetch}

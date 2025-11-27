@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useKeetaWallet, AccountType } from "@/contexts/KeetaWalletContext";
-import { ArrowRightLeft, Wallet, PiggyBank, Loader2 } from "lucide-react";
+import { ArrowRightLeft, Wallet, PiggyBank, Loader2, Tag, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 
@@ -12,10 +12,34 @@ interface InternalTransferModalProps {
 
 export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferModalProps) => {
   const { play } = useSoundEffects();
-  const { checkingAccount, savingsAccount, transferBetweenAccounts } = useKeetaWallet();
+  const { getAllAccounts, transferBetweenAccounts } = useKeetaWallet();
   const [amount, setAmount] = useState("");
-  const [direction, setDirection] = useState<"checking-to-savings" | "savings-to-checking">("checking-to-savings");
+  const [fromAccount, setFromAccount] = useState<AccountType>("checking");
+  const [toAccount, setToAccount] = useState<AccountType>("savings");
   const [isTransferring, setIsTransferring] = useState(false);
+
+  const accounts = getAllAccounts();
+
+  useEffect(() => {
+    if (open && accounts.length >= 2) {
+      setFromAccount(accounts[0].name === 'Checking' ? 'checking' : 
+                     accounts[0].name === 'Savings' ? 'savings' : accounts[0].name);
+      setToAccount(accounts[1].name === 'Checking' ? 'checking' : 
+                   accounts[1].name === 'Savings' ? 'savings' : accounts[1].name);
+    }
+  }, [open, accounts.length]);
+
+  const getAccountIcon = (accountType: AccountType) => {
+    if (accountType === 'checking') return <Wallet className="w-5 h-5" />;
+    if (accountType === 'savings') return <PiggyBank className="w-5 h-5" />;
+    return <Tag className="w-5 h-5" />;
+  };
+
+  const getAccountDisplayName = (accountType: AccountType) => {
+    if (accountType === 'checking') return 'Checking';
+    if (accountType === 'savings') return 'Savings';
+    return accountType;
+  };
 
   const handleTransfer = async () => {
     const numAmount = parseFloat(amount);
@@ -24,17 +48,19 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
       return;
     }
 
+    if (fromAccount === toAccount) {
+      toast.error("Cannot transfer to the same account");
+      return;
+    }
+
     setIsTransferring(true);
     play('click');
 
     try {
-      const fromAccount: AccountType = direction === "checking-to-savings" ? "checking" : "savings";
-      const toAccount: AccountType = direction === "checking-to-savings" ? "savings" : "checking";
-      
       await transferBetweenAccounts(fromAccount, toAccount, numAmount);
       
       play('send');
-      toast.success(`Transferred ${numAmount} KTA to ${toAccount}`);
+      toast.success(`Transferred ${numAmount} KTA to ${getAccountDisplayName(toAccount)}`);
       setAmount("");
       onOpenChange(false);
     } catch (err: any) {
@@ -44,14 +70,14 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
     }
   };
 
-  const toggleDirection = () => {
+  const swapAccounts = () => {
     play('click');
-    setDirection(prev => 
-      prev === "checking-to-savings" ? "savings-to-checking" : "checking-to-savings"
-    );
+    const temp = fromAccount;
+    setFromAccount(toAccount);
+    setToAccount(temp);
   };
 
-  if (!checkingAccount || !savingsAccount) return null;
+  if (accounts.length < 2) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -63,43 +89,59 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Transfer Direction */}
-          <div className="flex items-center justify-center gap-4">
-            <div className={`flex flex-col items-center p-3 border rounded transition-all ${
-              direction === "checking-to-savings" 
-                ? "border-sw-blue bg-sw-blue/10" 
-                : "border-sw-yellow bg-sw-yellow/10"
-            }`}>
-              {direction === "checking-to-savings" ? (
-                <Wallet className="w-8 h-8 text-sw-blue" />
-              ) : (
-                <PiggyBank className="w-8 h-8 text-sw-yellow" />
-              )}
-              <span className="font-mono text-[10px] mt-1 text-foreground/70">
-                {direction === "checking-to-savings" ? "CHECKING" : "SAVINGS"}
-              </span>
+          {/* From Account */}
+          <div className="space-y-2">
+            <label className="font-mono text-xs text-sw-blue/60 tracking-wider">FROM</label>
+            <div className="relative">
+              <select
+                value={fromAccount}
+                onChange={(e) => setFromAccount(e.target.value as AccountType)}
+                className="w-full p-3 bg-sw-blue/5 border border-sw-blue/30 rounded font-mono text-sm text-foreground appearance-none cursor-pointer focus:outline-none focus:border-sw-blue"
+              >
+                {accounts.map((acc) => {
+                  const value = acc.name === 'Checking' ? 'checking' : 
+                               acc.name === 'Savings' ? 'savings' : acc.name;
+                  return (
+                    <option key={acc.publicKey} value={value}>
+                      {acc.name.toUpperCase()}
+                    </option>
+                  );
+                })}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sw-blue/60 pointer-events-none" />
             </div>
+          </div>
 
+          {/* Swap Button */}
+          <div className="flex justify-center">
             <button 
-              onClick={toggleDirection}
-              className="p-2 border border-sw-blue/30 rounded hover:bg-sw-blue/10 transition-colors group"
+              onClick={swapAccounts}
+              className="p-3 border border-sw-blue/30 rounded-full hover:bg-sw-blue/10 transition-colors group"
             >
-              <ArrowRightLeft className="w-5 h-5 text-sw-blue/60 group-hover:text-sw-yellow transition-colors" />
+              <ArrowRightLeft className="w-5 h-5 text-sw-blue/60 group-hover:text-sw-yellow transition-colors rotate-90" />
             </button>
+          </div>
 
-            <div className={`flex flex-col items-center p-3 border rounded transition-all ${
-              direction === "checking-to-savings" 
-                ? "border-sw-yellow bg-sw-yellow/10" 
-                : "border-sw-blue bg-sw-blue/10"
-            }`}>
-              {direction === "checking-to-savings" ? (
-                <PiggyBank className="w-8 h-8 text-sw-yellow" />
-              ) : (
-                <Wallet className="w-8 h-8 text-sw-blue" />
-              )}
-              <span className="font-mono text-[10px] mt-1 text-foreground/70">
-                {direction === "checking-to-savings" ? "SAVINGS" : "CHECKING"}
-              </span>
+          {/* To Account */}
+          <div className="space-y-2">
+            <label className="font-mono text-xs text-sw-blue/60 tracking-wider">TO</label>
+            <div className="relative">
+              <select
+                value={toAccount}
+                onChange={(e) => setToAccount(e.target.value as AccountType)}
+                className="w-full p-3 bg-sw-blue/5 border border-sw-blue/30 rounded font-mono text-sm text-foreground appearance-none cursor-pointer focus:outline-none focus:border-sw-blue"
+              >
+                {accounts.map((acc) => {
+                  const value = acc.name === 'Checking' ? 'checking' : 
+                               acc.name === 'Savings' ? 'savings' : acc.name;
+                  return (
+                    <option key={acc.publicKey} value={value}>
+                      {acc.name.toUpperCase()}
+                    </option>
+                  );
+                })}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sw-blue/60 pointer-events-none" />
             </div>
           </div>
 
@@ -122,7 +164,7 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
           {/* Transfer Button */}
           <button
             onClick={handleTransfer}
-            disabled={isTransferring || !amount}
+            disabled={isTransferring || !amount || fromAccount === toAccount}
             className="w-full py-4 bg-sw-blue/20 border border-sw-blue text-sw-blue font-display tracking-wider rounded hover:bg-sw-blue/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isTransferring ? (
