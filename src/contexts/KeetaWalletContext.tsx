@@ -329,16 +329,53 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
       throw new Error('Both accounts must exist for transfer');
     }
 
-    // Convert amount to raw value (9 decimals for KTA)
-    const rawAmount = BigInt(Math.floor(amount * 1_000_000_000));
+    if (amount <= 0) {
+      throw new Error('Amount must be greater than 0');
+    }
 
+    // Check balance before attempting transfer
     try {
-      await fromAccount.client.send(toAccount.publicKey, rawAmount);
+      const allBalances = await fromAccount.client.allBalances();
+      const baseTokenAddr = fromAccount.client.baseToken.publicKeyString.toString();
+      let ktaBalance = BigInt(0);
+
+      if (allBalances && Object.keys(allBalances).length > 0) {
+        for (const [, balanceData] of Object.entries(allBalances)) {
+          const tokenInfo = JSON.parse(
+            JSON.stringify(balanceData, (k: string, v: any) => 
+              typeof v === 'bigint' ? v.toString() : v
+            )
+          );
+          const tokenAddr = String(tokenInfo.token || '');
+          if (tokenAddr === baseTokenAddr) {
+            ktaBalance = BigInt(String(tokenInfo.balance || '0'));
+            break;
+          }
+        }
+      }
+
+      const decimals = state.network === 'main' ? 18 : 9;
+      const rawAmount = BigInt(Math.floor(amount * Math.pow(10, decimals)));
+
+      if (ktaBalance < rawAmount) {
+        throw new Error('Insufficient KTA balance for this transfer');
+      }
+
+      // Execute the transfer
+      const result = await fromAccount.client.send(toAccount.publicKey, rawAmount);
+      console.log('Transfer result:', result);
     } catch (err: any) {
       console.error('Transfer error:', err);
-      throw new Error(err.message || 'Transfer failed');
+      // Provide more specific error messages
+      if (err.message?.includes('Insufficient')) {
+        throw err;
+      }
+      if (err.message?.includes('undefined is not an object')) {
+        throw new Error('Transfer failed: Source account may have insufficient balance or is not initialized');
+      }
+      throw new Error(err.message || 'Transfer failed. Please ensure you have sufficient balance.');
     }
-  }, [state.checkingAccount, state.savingsAccount, state.customAccounts]);
+  }, [state.checkingAccount, state.savingsAccount, state.customAccounts, state.network]);
 
   const disconnect = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
