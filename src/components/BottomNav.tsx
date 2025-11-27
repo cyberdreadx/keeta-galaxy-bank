@@ -1,4 +1,4 @@
-import { Home, ArrowUpRight, ArrowDownLeft, User } from "lucide-react";
+import { Home, CreditCard, User } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -6,8 +6,7 @@ import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 const navItems = [
   { icon: Home, label: "HOME", path: "/" },
-  { icon: ArrowUpRight, label: "SEND", path: "/send" },
-  { icon: ArrowDownLeft, label: "RECEIVE", path: "/receive" },
+  { icon: CreditCard, label: "KEETAPAY", path: "/keetapay" },
   { icon: User, label: "ACCOUNT", path: "/account" },
 ];
 
@@ -37,7 +36,12 @@ export const BottomNav = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (path === '/keetapay') {
+      return ['/keetapay', '/send', '/receive'].includes(location.pathname);
+    }
+    return location.pathname === path;
+  };
 
   const handleNavigate = (path: string) => {
     if (!isActive(path)) {
