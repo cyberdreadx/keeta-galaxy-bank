@@ -325,6 +325,10 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
     const fromAccount = getAccount(from);
     const toAccount = getAccount(to);
 
+    console.log('[Transfer] From:', from, 'To:', to, 'Amount:', amount);
+    console.log('[Transfer] From account public key:', fromAccount?.publicKey);
+    console.log('[Transfer] To account public key:', toAccount?.publicKey);
+
     if (!fromAccount || !toAccount) {
       throw new Error('Both accounts must exist for transfer');
     }
@@ -333,47 +337,32 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
       throw new Error('Amount must be greater than 0');
     }
 
-    // Check balance before attempting transfer
+    const decimals = state.network === 'main' ? 18 : 9;
+    const rawAmount = BigInt(Math.floor(amount * Math.pow(10, decimals)));
+    
+    console.log('[Transfer] Raw amount (with decimals):', rawAmount.toString());
+    console.log('[Transfer] Network:', state.network, 'Decimals:', decimals);
+
     try {
-      const allBalances = await fromAccount.client.allBalances();
-      const baseTokenAddr = fromAccount.client.baseToken.publicKeyString.toString();
-      let ktaBalance = BigInt(0);
-
-      if (allBalances && Object.keys(allBalances).length > 0) {
-        for (const [, balanceData] of Object.entries(allBalances)) {
-          const tokenInfo = JSON.parse(
-            JSON.stringify(balanceData, (k: string, v: any) => 
-              typeof v === 'bigint' ? v.toString() : v
-            )
-          );
-          const tokenAddr = String(tokenInfo.token || '');
-          if (tokenAddr === baseTokenAddr) {
-            ktaBalance = BigInt(String(tokenInfo.balance || '0'));
-            break;
-          }
-        }
-      }
-
-      const decimals = state.network === 'main' ? 18 : 9;
-      const rawAmount = BigInt(Math.floor(amount * Math.pow(10, decimals)));
-
-      if (ktaBalance < rawAmount) {
+      // Execute the transfer directly - the SDK should handle balance checking
+      console.log('[Transfer] Calling send()...');
+      const result = await fromAccount.client.send(toAccount.publicKey, rawAmount);
+      console.log('[Transfer] Success! Result:', result);
+    } catch (err: any) {
+      console.error('[Transfer] Error:', err);
+      console.error('[Transfer] Error message:', err?.message);
+      console.error('[Transfer] Error stack:', err?.stack);
+      
+      // Try to extract meaningful error
+      const errStr = String(err?.message || err || '');
+      
+      if (errStr.includes('insufficient') || errStr.includes('Insufficient')) {
         throw new Error('Insufficient KTA balance for this transfer');
       }
-
-      // Execute the transfer
-      const result = await fromAccount.client.send(toAccount.publicKey, rawAmount);
-      console.log('Transfer result:', result);
-    } catch (err: any) {
-      console.error('Transfer error:', err);
-      // Provide more specific error messages
-      if (err.message?.includes('Insufficient')) {
-        throw err;
+      if (errStr.includes('undefined is not an object') || errStr.includes('Cannot read')) {
+        throw new Error('Transfer failed: The destination account may need to be initialized first. Try sending a small amount from an external wallet.');
       }
-      if (err.message?.includes('undefined is not an object')) {
-        throw new Error('Transfer failed: Source account may have insufficient balance or is not initialized');
-      }
-      throw new Error(err.message || 'Transfer failed. Please ensure you have sufficient balance.');
+      throw new Error(err?.message || 'Transfer failed. Please try again.');
     }
   }, [state.checkingAccount, state.savingsAccount, state.customAccounts, state.network]);
 
