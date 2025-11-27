@@ -44,7 +44,7 @@ export const Header = () => {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50">
+      <header className="fixed top-0 left-0 right-0 z-[100]">
         {/* Top accent line */}
         <div className="h-px bg-gradient-to-r from-transparent via-sw-blue to-transparent" />
         
