@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Send from "./pages/Send";
 import Receive from "./pages/Receive";
 import Account from "./pages/Account";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/send" element={<Send />} />
             <Route path="/receive" element={<Receive />} />
             <Route path="/account" element={<Account />} />
+            <Route path="/settings" element={<Settings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
