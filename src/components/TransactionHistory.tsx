@@ -1,6 +1,8 @@
 import { StarWarsPanel } from "./StarWarsPanel";
-import { ArrowUpRight, ArrowDownLeft, RefreshCw } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, RefreshCw, Loader2, WalletIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
+import { useState, useEffect, useCallback } from "react";
 
 interface Transaction {
   id: string;
@@ -11,14 +13,6 @@ interface Transaction {
   timestamp: Date;
   status: 'completed' | 'pending';
 }
-
-const mockTransactions: Transaction[] = [
-  { id: "TX-7A3F", type: "receive", amount: 5000, currency: "KTA", address: "0x7a3f...e82b", timestamp: new Date(Date.now() - 1000 * 60 * 30), status: "completed" },
-  { id: "TX-9B2D", type: "send", amount: 1250.5, currency: "KTA", address: "0x9b2d...f41c", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), status: "completed" },
-  { id: "TX-3C8E", type: "swap", amount: 10000, currency: "KTA → USDC", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5), status: "completed" },
-  { id: "TX-2D4F", type: "receive", amount: 25000, currency: "KTA", address: "REWARDS", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), status: "completed" },
-  { id: "TX-8E5G", type: "send", amount: 500, currency: "KTA", address: "0x3c8e...a92f", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48), status: "pending" },
-];
 
 const typeConfig = {
   send: { icon: ArrowUpRight, color: "text-sw-red", label: "OUTBOUND" },
@@ -36,6 +30,64 @@ const formatTime = (date: Date) => {
 };
 
 export const TransactionHistory = () => {
+  const { client, isConnected, publicKey } = useKeetaWallet();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchTransactions = useCallback(async () => {
+    if (!client || !isConnected) {
+      setTransactions([]);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Fetch account history from Keeta network
+      const accountData = await client.account();
+      const history = accountData?.history ?? [];
+      
+      // Transform Keeta transaction format to our format
+      const formattedTxs: Transaction[] = history.slice(0, 10).map((tx: any, index: number) => {
+        const isSend = tx.sender === publicKey;
+        return {
+          id: `TX-${tx.hash?.substring(0, 4).toUpperCase() || index}`,
+          type: isSend ? 'send' : 'receive',
+          amount: Number(tx.amount ?? 0) / 1e9,
+          currency: 'KTA',
+          address: isSend ? tx.recipient?.substring(0, 8) : tx.sender?.substring(0, 8),
+          timestamp: new Date(tx.timestamp ?? Date.now()),
+          status: tx.confirmed ? 'completed' : 'pending',
+        };
+      });
+
+      setTransactions(formattedTxs);
+    } catch (err: any) {
+      console.error('Failed to fetch transactions:', err);
+      setError(err.message || 'Failed to fetch transactions');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [client, isConnected, publicKey]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  if (!isConnected) {
+    return (
+      <StarWarsPanel title="// TRANSACTION LOG">
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <WalletIcon className="w-12 h-12 text-sw-blue/40 mb-4" />
+          <p className="font-mono text-sm text-sw-blue/60">WALLET DISCONNECTED</p>
+          <p className="font-mono text-xs text-sw-blue/40 mt-2">Connect wallet to view transactions</p>
+        </div>
+      </StarWarsPanel>
+    );
+  }
+
   return (
     <StarWarsPanel title="// TRANSACTION LOG">
       <div className="space-y-2">
@@ -47,58 +99,73 @@ export const TransactionHistory = () => {
           <span className="font-mono text-[10px] text-sw-blue/60 text-right">TIME</span>
         </div>
 
-        {mockTransactions.map((tx, index) => {
-          const config = typeConfig[tx.type];
-          const Icon = config.icon;
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 text-sw-blue animate-spin" />
+            <span className="font-mono text-xs text-sw-blue/60 ml-2">SCANNING NETWORK...</span>
+          </div>
+        ) : transactions.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="font-mono text-sm text-sw-blue/60">NO TRANSACTIONS FOUND</p>
+            <p className="font-mono text-xs text-sw-blue/40 mt-1">Your transaction history is empty</p>
+          </div>
+        ) : (
+          transactions.map((tx, index) => {
+            const config = typeConfig[tx.type];
+            const Icon = config.icon;
 
-          return (
-            <div
-              key={tx.id}
-              className={cn(
-                "grid grid-cols-4 gap-2 px-3 py-3 border border-sw-blue/10 bg-sw-blue/5",
-                "hover:bg-sw-blue/10 hover:border-sw-blue/30 transition-all cursor-pointer",
-                "animate-fade-in"
-              )}
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <div className="flex items-center gap-2">
-                <Icon className={cn("w-4 h-4", config.color)} />
-                <span className="font-mono text-xs text-sw-white">{tx.id}</span>
-              </div>
-              
-              <div>
-                <span className={cn("font-mono text-xs", config.color)}>
-                  {config.label}
-                </span>
-              </div>
+            return (
+              <div
+                key={tx.id + index}
+                className={cn(
+                  "grid grid-cols-4 gap-2 px-3 py-3 border border-sw-blue/10 bg-sw-blue/5",
+                  "hover:bg-sw-blue/10 hover:border-sw-blue/30 transition-all cursor-pointer",
+                  "animate-fade-in"
+                )}
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="flex items-center gap-2">
+                  <Icon className={cn("w-4 h-4", config.color)} />
+                  <span className="font-mono text-xs text-sw-white">{tx.id}</span>
+                </div>
+                
+                <div>
+                  <span className={cn("font-mono text-xs", config.color)}>
+                    {config.label}
+                  </span>
+                </div>
 
-              <div className="text-right">
-                <span className={cn(
-                  "font-mono text-sm font-bold",
-                  tx.type === 'receive' ? "text-sw-green" : tx.type === 'send' ? "text-sw-white" : "text-sw-blue"
-                )}>
-                  {tx.type === 'receive' ? '+' : tx.type === 'send' ? '-' : ''}
-                  {tx.amount.toLocaleString()}
-                </span>
-                <span className="font-mono text-[10px] text-sw-blue/60 ml-1">{tx.currency}</span>
-              </div>
+                <div className="text-right">
+                  <span className={cn(
+                    "font-mono text-sm font-bold",
+                    tx.type === 'receive' ? "text-sw-green" : tx.type === 'send' ? "text-sw-white" : "text-sw-blue"
+                  )}>
+                    {tx.type === 'receive' ? '+' : tx.type === 'send' ? '-' : ''}
+                    {tx.amount.toLocaleString()}
+                  </span>
+                  <span className="font-mono text-[10px] text-sw-blue/60 ml-1">{tx.currency}</span>
+                </div>
 
-              <div className="text-right flex items-center justify-end gap-2">
-                <span className="font-mono text-[10px] text-sw-blue/60">
-                  {formatTime(tx.timestamp)}
-                </span>
-                <div className={cn(
-                  "w-2 h-2 rounded-full",
-                  tx.status === 'completed' ? "bg-sw-green" : "bg-sw-orange animate-pulse"
-                )} />
+                <div className="text-right flex items-center justify-end gap-2">
+                  <span className="font-mono text-[10px] text-sw-blue/60">
+                    {formatTime(tx.timestamp)}
+                  </span>
+                  <div className={cn(
+                    "w-2 h-2 rounded-full",
+                    tx.status === 'completed' ? "bg-sw-green" : "bg-sw-orange animate-pulse"
+                  )} />
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
-      <button className="w-full mt-4 py-2 border border-sw-blue/30 bg-sw-blue/5 hover:bg-sw-blue/10 transition-colors font-mono text-xs text-sw-blue tracking-widest">
-        VIEW ALL TRANSACTIONS →
+      <button 
+        onClick={fetchTransactions}
+        className="w-full mt-4 py-2 border border-sw-blue/30 bg-sw-blue/5 hover:bg-sw-blue/10 transition-colors font-mono text-xs text-sw-blue tracking-widest"
+      >
+        {isLoading ? 'SCANNING...' : 'REFRESH TRANSACTIONS →'}
       </button>
     </StarWarsPanel>
   );

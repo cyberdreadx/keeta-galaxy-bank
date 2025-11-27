@@ -1,31 +1,32 @@
 import { StarWarsPanel } from "./StarWarsPanel";
 import { HologramDisplay } from "./HologramDisplay";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, RefreshCw, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
+import { useKeetaBalance } from "@/hooks/useKeetaBalance";
 
-interface BalanceDisplayProps {
-  balance: number;
-  currency?: string;
-  change24h?: number;
-}
-
-export const BalanceDisplay = ({ 
-  balance = 125847.32, 
-  currency = "KTA",
-  change24h = 12.5 
-}: BalanceDisplayProps) => {
+export const BalanceDisplay = () => {
   const [isHidden, setIsHidden] = useState(false);
+  const { isConnected, network } = useKeetaWallet();
+  const { balance, isLoading, refetch } = useKeetaBalance();
 
   const formatBalance = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      maximumFractionDigits: 6,
     }).format(amount);
   };
 
   return (
     <StarWarsPanel title="// GALACTIC CREDIT BALANCE" className="h-full">
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-end mb-4 gap-2">
+        <button
+          onClick={refetch}
+          disabled={isLoading || !isConnected}
+          className="p-2 border border-sw-blue/30 bg-sw-blue/5 hover:bg-sw-blue/10 transition-colors text-sw-blue disabled:opacity-50"
+        >
+          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+        </button>
         <button
           onClick={() => setIsHidden(!isHidden)}
           className="p-2 border border-sw-blue/30 bg-sw-blue/5 hover:bg-sw-blue/10 transition-colors text-sw-blue"
@@ -38,36 +39,41 @@ export const BalanceDisplay = ({
         {/* Main Balance */}
         <div className="text-center py-4">
           <p className="font-mono text-xs text-sw-blue/60 tracking-[0.3em] uppercase mb-2">
-            TOTAL ASSETS
+            {isConnected ? `${network.toUpperCase()}NET BALANCE` : 'CONNECT WALLET'}
           </p>
           <div className={`flex items-baseline justify-center gap-3 transition-all duration-300 ${isHidden ? 'blur-lg select-none' : ''}`}>
             <span className="text-5xl md:text-6xl font-display font-bold text-sw-yellow [text-shadow:0_0_30px_hsl(var(--sw-yellow)/0.6),2px_2px_0_hsl(var(--sw-yellow-dim))]">
-              {isHidden ? "••••••" : formatBalance(balance)}
+              {!isConnected ? "---" : isLoading ? "..." : isHidden ? "••••••" : formatBalance(balance)}
             </span>
             <span className="text-2xl font-mono text-sw-yellow/80">
-              {currency}
+              KTA
             </span>
           </div>
+          {!isConnected && (
+            <p className="font-mono text-xs text-sw-orange/80 mt-2 animate-pulse">
+              WALLET DISCONNECTED
+            </p>
+          )}
         </div>
 
         {/* Stats Row */}
         <div className="grid grid-cols-3 gap-4 pt-4 border-t border-sw-blue/20">
           <HologramDisplay
-            label="24H CHANGE"
-            value={`${change24h >= 0 ? '+' : ''}${change24h}%`}
-            variant={change24h >= 0 ? 'green' : 'red'}
-            size="sm"
-          />
-          <HologramDisplay
-            label="RANK"
-            value="ELITE"
-            variant="yellow"
+            label="NETWORK"
+            value={isConnected ? network.toUpperCase() : "---"}
+            variant={network === 'main' ? 'green' : 'yellow'}
             size="sm"
           />
           <HologramDisplay
             label="STATUS"
-            value="ACTIVE"
-            variant="green"
+            value={isConnected ? "ONLINE" : "OFFLINE"}
+            variant={isConnected ? 'green' : 'red'}
+            size="sm"
+          />
+          <HologramDisplay
+            label="SYNC"
+            value={isLoading ? "LOADING" : "READY"}
+            variant={isLoading ? 'yellow' : 'green'}
             size="sm"
           />
         </div>
