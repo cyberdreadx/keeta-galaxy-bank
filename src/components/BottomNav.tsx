@@ -6,7 +6,7 @@ import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 const navItems = [
   { icon: Home, label: "HOME", path: "/" },
-  { icon: CreditCard, label: "KEETAPAY", path: "/keetapay" },
+  { icon: CreditCard, label: "PAY", path: "/pay" },
   { icon: User, label: "ACCOUNT", path: "/account" },
 ];
 
@@ -37,8 +37,8 @@ export const BottomNav = () => {
   }, [lastScrollY]);
 
   const isActive = (path: string) => {
-    if (path === '/keetapay') {
-      return ['/keetapay', '/send', '/receive'].includes(location.pathname);
+    if (path === '/pay') {
+      return ['/pay', '/send', '/receive'].includes(location.pathname);
     }
     return location.pathname === path;
   };

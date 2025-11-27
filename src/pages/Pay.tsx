@@ -6,7 +6,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 
-const KeetaPay = () => {
+const Pay = () => {
   const navigate = useNavigate();
   const { play } = useSoundEffects();
 
@@ -27,7 +27,7 @@ const KeetaPay = () => {
               // TRANSACTIONS
             </p>
             <h2 className="font-display text-3xl md:text-4xl font-bold tracking-wider sw-title">
-              KEETA<span className="text-sw-yellow">PAY</span>
+              <span className="text-sw-yellow">PAY</span>
             </h2>
             <div className="flex items-center justify-center gap-4 mt-3">
               <div className="h-px w-16 bg-gradient-to-r from-transparent to-sw-blue/50" />
@@ -95,4 +95,4 @@ const KeetaPay = () => {
   );
 };
 
-export default KeetaPay;
+export default Pay;
