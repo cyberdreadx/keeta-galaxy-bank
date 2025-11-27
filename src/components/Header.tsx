@@ -1,5 +1,6 @@
 import { Bell, Settings, Wallet, Menu, X, Hexagon, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { WalletModal } from "./WalletModal";
@@ -8,8 +9,16 @@ export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const { isConnected, isConnecting, publicKey, network } = useKeetaWallet();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const navItems = ['DASHBOARD', 'TRANSFERS', 'ASSETS', 'STAKING'];
+  const navItems = [
+    { label: 'DASHBOARD', path: '/' },
+    { label: 'SEND', path: '/send' },
+    { label: 'RECEIVE', path: '/receive' },
+  ];
+
+  const isActive = (path: string) => location.pathname === path;
 
   const truncateAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -42,22 +51,22 @@ export const Header = () => {
 
             {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-1">
-              {navItems.map((item, index) => (
-                <a
-                  key={item}
-                  href="#"
+              {navItems.map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => navigate(item.path)}
                   className={cn(
                     "relative px-4 py-2 font-mono text-xs tracking-wider transition-all",
-                    index === 0
+                    isActive(item.path)
                       ? "text-sw-yellow bg-sw-yellow/10 border border-sw-yellow/30"
                       : "text-sw-blue/70 hover:text-sw-blue hover:bg-sw-blue/5 border border-transparent hover:border-sw-blue/20"
                   )}
                 >
-                  {item}
-                  {index === 0 && (
+                  {item.label}
+                  {isActive(item.path) && (
                     <div className="absolute -bottom-px left-1/2 -translate-x-1/2 w-8 h-px bg-sw-yellow" />
                   )}
-                </a>
+                </button>
               ))}
             </nav>
 
@@ -123,19 +132,22 @@ export const Header = () => {
           {isMenuOpen && (
             <div className="md:hidden py-4 border-t border-sw-blue/30 animate-fade-in">
               <nav className="flex flex-col gap-1">
-                {navItems.map((item, index) => (
-                  <a
-                    key={item}
-                    href="#"
+                {navItems.map((item) => (
+                  <button
+                    key={item.label}
+                    onClick={() => {
+                      navigate(item.path);
+                      setIsMenuOpen(false);
+                    }}
                     className={cn(
-                      "px-4 py-3 font-mono text-xs tracking-wider transition-all",
-                      index === 0
+                      "px-4 py-3 font-mono text-xs tracking-wider transition-all text-left",
+                      isActive(item.path)
                         ? "text-sw-yellow bg-sw-yellow/10 border-l-2 border-sw-yellow"
                         : "text-sw-blue/70 hover:text-sw-blue hover:bg-sw-blue/5"
                     )}
                   >
-                    {item}
-                  </a>
+                    {item.label}
+                  </button>
                 ))}
                 
                 {/* Mobile Wallet Button */}
