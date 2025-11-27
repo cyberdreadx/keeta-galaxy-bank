@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useKeetaWallet, AccountType } from "@/contexts/KeetaWalletContext";
-import { ArrowRightLeft, Loader2, ChevronDown } from "lucide-react";
+import { ArrowRightLeft, Loader2, ChevronDown, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { useKtaPrice } from "@/hooks/useKtaPrice";
@@ -51,6 +51,7 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
   const [fromBalance, setFromBalance] = useState<number | null>(null);
   const [toBalance, setToBalance] = useState<number | null>(null);
   const [loadingBalances, setLoadingBalances] = useState(false);
+  const [inputMode, setInputMode] = useState<'kta' | 'usd'>('kta');
 
   const accounts = getAllAccounts();
 
@@ -92,6 +93,8 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
                         accounts[1].name === 'Savings' ? 'savings' : accounts[1].name;
       setFromAccount(firstType);
       setToAccount(secondType);
+      setAmount("");
+      setInputMode('kta');
     }
   }, [open, accounts.length]);
 
@@ -112,9 +115,31 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
     return accountType;
   };
 
-  const handleTransfer = async () => {
+  // Calculate KTA amount based on input mode
+  const getKtaAmount = (): number => {
     const numAmount = parseFloat(amount);
-    if (isNaN(numAmount) || numAmount <= 0) {
+    if (isNaN(numAmount) || numAmount <= 0) return 0;
+    
+    if (inputMode === 'usd' && priceUsd) {
+      return numAmount / priceUsd;
+    }
+    return numAmount;
+  };
+
+  // Calculate USD amount based on input mode
+  const getUsdAmount = (): number | null => {
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0 || !priceUsd) return null;
+    
+    if (inputMode === 'kta') {
+      return numAmount * priceUsd;
+    }
+    return numAmount;
+  };
+
+  const handleTransfer = async () => {
+    const ktaAmount = getKtaAmount();
+    if (ktaAmount <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
@@ -124,7 +149,7 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
       return;
     }
 
-    if (fromBalance !== null && numAmount > fromBalance) {
+    if (fromBalance !== null && ktaAmount > fromBalance) {
       toast.error("Insufficient balance");
       return;
     }
@@ -133,10 +158,10 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
     play('click');
 
     try {
-      await transferBetweenAccounts(fromAccount, toAccount, numAmount);
+      await transferBetweenAccounts(fromAccount, toAccount, ktaAmount);
       
       play('send');
-      toast.success(`Transferred ${numAmount} KTA to ${getAccountDisplayName(toAccount)}`);
+      toast.success(`Transferred ${formatBalance(ktaAmount)} KTA to ${getAccountDisplayName(toAccount)}`);
       setAmount("");
       onOpenChange(false);
     } catch (err: any) {
@@ -155,11 +180,34 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
 
   const handleMaxClick = () => {
     if (fromBalance !== null && fromBalance > 0) {
-      setAmount(fromBalance.toString());
+      if (inputMode === 'kta') {
+        setAmount(fromBalance.toString());
+      } else if (priceUsd) {
+        setAmount((fromBalance * priceUsd).toFixed(2));
+      }
     }
   };
 
+  const toggleInputMode = () => {
+    play('click');
+    // Convert current amount to new mode
+    const numAmount = parseFloat(amount);
+    if (!isNaN(numAmount) && numAmount > 0 && priceUsd) {
+      if (inputMode === 'kta') {
+        // Converting KTA to USD
+        setAmount((numAmount * priceUsd).toFixed(2));
+      } else {
+        // Converting USD to KTA
+        setAmount((numAmount / priceUsd).toFixed(6));
+      }
+    }
+    setInputMode(prev => prev === 'kta' ? 'usd' : 'kta');
+  };
+
   if (accounts.length < 2) return null;
+
+  const ktaAmount = getKtaAmount();
+  const usdAmount = getUsdAmount();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -263,24 +311,54 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
             </div>
           </div>
 
-          {/* Amount Input */}
+          {/* Amount Input with Toggle */}
           <div className="space-y-2">
-            <label className="font-mono text-xs text-sw-blue/60 tracking-wider">
-              AMOUNT (KTA)
-            </label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              className="w-full p-4 bg-sw-blue/5 border border-sw-blue/30 rounded font-mono text-xl text-center text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-sw-blue"
-              step="0.01"
-              min="0"
-            />
-            {amount && priceUsd && (
-              <p className="font-mono text-xs text-center text-sw-blue/60">
-                ≈ {(parseFloat(amount) * priceUsd).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-              </p>
+            <div className="flex items-center justify-between">
+              <label className="font-mono text-xs text-sw-blue/60 tracking-wider">
+                AMOUNT ({inputMode === 'kta' ? 'KTA' : 'USD'})
+              </label>
+              {priceUsd && (
+                <button
+                  onClick={toggleInputMode}
+                  className={`flex items-center gap-1 px-2 py-1 rounded border text-[10px] font-mono transition-all ${
+                    inputMode === 'usd' 
+                      ? 'bg-sw-green/20 border-sw-green text-sw-green' 
+                      : 'bg-sw-blue/10 border-sw-blue/30 text-sw-blue/70 hover:border-sw-blue'
+                  }`}
+                >
+                  <DollarSign className="w-3 h-3" />
+                  {inputMode === 'kta' ? 'ENTER USD' : 'ENTER KTA'}
+                </button>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                className="w-full p-4 bg-sw-blue/5 border border-sw-blue/30 rounded font-mono text-xl text-center text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-sw-blue"
+                step={inputMode === 'kta' ? '0.01' : '0.01'}
+                min="0"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 font-mono text-sm text-sw-blue/50">
+                {inputMode === 'kta' ? 'KTA' : 'USD'}
+              </span>
+            </div>
+            {/* Show conversion */}
+            {amount && parseFloat(amount) > 0 && (
+              <div className="text-center space-y-1">
+                {inputMode === 'kta' && usdAmount !== null && (
+                  <p className="font-mono text-xs text-sw-blue/60">
+                    ≈ {usdAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                  </p>
+                )}
+                {inputMode === 'usd' && ktaAmount > 0 && (
+                  <p className="font-mono text-xs text-sw-yellow">
+                    ≈ {formatBalance(ktaAmount)} KTA
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
@@ -298,7 +376,7 @@ export const InternalTransferModal = ({ open, onOpenChange }: InternalTransferMo
             ) : (
               <>
                 <ArrowRightLeft className="w-5 h-5" />
-                TRANSFER
+                TRANSFER {ktaAmount > 0 ? `${formatBalance(ktaAmount)} KTA` : ''}
               </>
             )}
           </button>
