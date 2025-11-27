@@ -13,7 +13,7 @@ export const BalanceDisplay = () => {
   const formatBalance = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
-      maximumFractionDigits: 6,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 
