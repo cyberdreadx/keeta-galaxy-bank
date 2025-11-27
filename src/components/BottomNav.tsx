@@ -1,4 +1,4 @@
-import { Home, CreditCard, User } from "lucide-react";
+import { Home, CreditCard, User, ArrowLeftRight } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,7 @@ import { useSoundEffects } from "@/hooks/useSoundEffects";
 const navItems = [
   { icon: Home, label: "HOME", path: "/" },
   { icon: CreditCard, label: "PAY", path: "/pay" },
+  { icon: ArrowLeftRight, label: "BRIDGE", path: "/bridge" },
   { icon: User, label: "ACCOUNT", path: "/account" },
 ];
 

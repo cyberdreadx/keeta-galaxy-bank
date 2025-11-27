@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Send from "./pages/Send";
 import Receive from "./pages/Receive";
 import Pay from "./pages/Pay";
+import Bridge from "./pages/Bridge";
 import Account from "./pages/Account";
 import Security from "./pages/Security";
 import Lock from "./pages/Lock";
@@ -26,6 +27,7 @@ const AppRoutes = () => (
       <Route path="/pay" element={<Pay />} />
       <Route path="/send" element={<Send />} />
       <Route path="/receive" element={<Receive />} />
+      <Route path="/bridge" element={<Bridge />} />
       <Route path="/account" element={<Account />} />
       <Route path="/security" element={<Security />} />
       <Route path="/lock" element={<Lock />} />
