@@ -40,11 +40,7 @@ const Index = () => {
             {/* Top row - Balance and Quick Actions */}
             <div className="grid lg:grid-cols-2 gap-6">
               <div className="animate-slide-up" style={{ animationDelay: '100ms' }}>
-                <BalanceDisplay 
-                  balance={125847.32} 
-                  currency="KTA" 
-                  change24h={12.5}
-                />
+              <BalanceDisplay />
               </div>
               <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
                 <QuickActions />
