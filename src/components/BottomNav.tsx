@@ -1,5 +1,6 @@
 import { Home, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -11,11 +12,35 @@ const navItems = [
 export const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY < 50) {
+        setIsVisible(true);
+      } else if (currentScrollY > lastScrollY) {
+        setIsVisible(false);
+      } else {
+        setIsVisible(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
 
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-sw-blue/30 bg-[hsl(220,40%,4%)]/95 backdrop-blur-sm">
+    <nav className={cn(
+      "fixed bottom-0 left-0 right-0 z-50 border-t border-sw-blue/30 bg-[hsl(220,40%,4%)]/95 backdrop-blur-sm transition-transform duration-300",
+      isVisible ? "translate-y-0" : "translate-y-full"
+    )}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-around h-16">
           {navItems.map((item) => (
