@@ -66,24 +66,11 @@ export const BottomNav = () => {
                     : "text-sw-blue/60 hover:text-sw-blue"
                 )}
               >
-                {/* Active state hexagon background */}
-                {isActive(item.path) && (
-                  <div className="absolute inset-0 bg-sw-yellow/5 clip-hexagon" />
-                )}
-                
                 {/* Icon with glow */}
-                <div className={cn(
-                  "relative transition-all",
-                  isActive(item.path) && "animate-pulse"
-                )}>
-                  <item.icon className={cn(
-                    "w-5 h-5 transition-all",
-                    isActive(item.path) && "[filter:drop-shadow(0_0_8px_hsl(var(--sw-yellow)/0.8))]"
-                  )} />
-                  {isActive(item.path) && (
-                    <div className="absolute -inset-1 bg-sw-yellow/20 rounded-full blur-sm -z-10" />
-                  )}
-                </div>
+                <item.icon className={cn(
+                  "w-5 h-5 transition-all",
+                  isActive(item.path) && "[filter:drop-shadow(0_0_8px_hsl(var(--sw-yellow)/0.8))]"
+                )} />
                 
                 {/* Label */}
                 <span className={cn(
