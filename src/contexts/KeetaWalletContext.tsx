@@ -140,10 +140,9 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
     // Check if it's a passphrase/mnemonic (multiple words)
     const words = trimmed.split(/\s+/);
     if (words.length >= 12) {
-      // Use Keeta SDK's seedFromPassphrase for mnemonic conversion
+      // Use Keeta SDK's seedFromPassphrase for mnemonic conversion (async)
       try {
-        // Use asString option to get hex string directly from SDK
-        finalSeed = KeetaNet.lib.Account.seedFromPassphrase(trimmed, { asString: true });
+        finalSeed = await KeetaNet.lib.Account.seedFromPassphrase(trimmed, { asString: true });
       } catch (err: any) {
         console.error('seedFromPassphrase error:', err);
         setState(prev => ({ ...prev, error: err.message || 'Invalid passphrase. Please check your words.' }));
