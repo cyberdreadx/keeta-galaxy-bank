@@ -2,26 +2,44 @@ import { StarWarsPanel } from "./StarWarsPanel";
 import { cn } from "@/lib/utils";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useKeetaBalance } from "@/hooks/useKeetaBalance";
+import { useKtaPrice } from "@/hooks/useKtaPrice";
 import { WalletIcon, Loader2 } from "lucide-react";
 
 interface Asset {
   symbol: string;
   name: string;
   balance: number;
-  value: number;
-  change: number;
+  valueUsd: number | null;
+  change: number | null;
 }
 
 export const AssetPortfolio = () => {
   const { isConnected } = useKeetaWallet();
   const { balance, isLoading } = useKeetaBalance();
+  const { priceUsd, priceChange24h } = useKtaPrice();
 
   // Real asset from Keeta network - KTA is the native token
   const assets: Asset[] = isConnected ? [
-    { symbol: "KTA", name: "KEETA", balance: balance, value: balance, change: 0 },
+    { 
+      symbol: "KTA", 
+      name: "KEETA", 
+      balance: balance, 
+      valueUsd: priceUsd ? balance * priceUsd : null, 
+      change: priceChange24h 
+    },
   ] : [];
 
-  const totalValue = assets.reduce((acc, asset) => acc + asset.value, 0);
+  const totalValueUsd = assets.reduce((acc, asset) => acc + (asset.valueUsd || 0), 0);
+
+  const formatUsd = (amount: number | null) => {
+    if (amount === null) return "---";
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
 
   if (!isConnected) {
     return (
@@ -55,7 +73,7 @@ export const AssetPortfolio = () => {
           </div>
         ) : (
           assets.map((asset, index) => {
-            const percentage = totalValue > 0 ? (asset.value / totalValue) * 100 : 100;
+            const percentage = 100; // Single asset = 100%
 
             return (
               <div
@@ -74,21 +92,23 @@ export const AssetPortfolio = () => {
                     <div>
                       <p className="font-mono text-sm text-sw-white">{asset.name}</p>
                       <p className="font-mono text-xs text-sw-blue/60">
-                        {asset.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })} {asset.symbol}
+                        {asset.balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} {asset.symbol}
                       </p>
                     </div>
                   </div>
 
                   <div className="text-right">
                     <p className="font-mono text-lg font-bold text-sw-yellow">
-                      {asset.value.toLocaleString(undefined, { maximumFractionDigits: 2 })} KTA
+                      {formatUsd(asset.valueUsd)}
                     </p>
-                    <p className={cn(
-                      "font-mono text-xs",
-                      asset.change >= 0 ? "text-sw-green" : "text-sw-red"
-                    )}>
-                      {asset.change >= 0 ? '▲' : '▼'} {Math.abs(asset.change)}%
-                    </p>
+                    {asset.change !== null && (
+                      <p className={cn(
+                        "font-mono text-xs",
+                        asset.change >= 0 ? "text-sw-green" : "text-sw-red"
+                      )}>
+                        {asset.change >= 0 ? '▲' : '▼'} {Math.abs(asset.change).toFixed(2)}%
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -119,7 +139,7 @@ export const AssetPortfolio = () => {
       <div className="mt-4 pt-4 border-t border-sw-blue/30 flex justify-between items-center">
         <span className="font-mono text-xs text-sw-blue/60 tracking-widest">TOTAL VALUE</span>
         <span className="font-display text-2xl font-bold text-sw-yellow [text-shadow:0_0_15px_hsl(var(--sw-yellow)/0.5)]">
-          {totalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} KTA
+          {formatUsd(totalValueUsd > 0 ? totalValueUsd : null)}
         </span>
       </div>
     </StarWarsPanel>
