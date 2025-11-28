@@ -190,13 +190,36 @@ export function useBridge() {
           
           if (instruction?.type === 'KEETA_SEND' && instruction?.sendToAddress && instruction?.value) {
             try {
-              // Send KTA to the bridge address
               console.log('[Bridge] Sending to:', instruction.sendToAddress, 'amount:', instruction.value);
-              const sendResult = await client.send(
-                instruction.sendToAddress,
-                BigInt(instruction.value)
-              );
-              console.log('[Bridge] Send result:', sendResult);
+              
+              // Load SDK to create account from address
+              const KeetaNet = await import('@keetanetwork/keetanet-client');
+              
+              // Create recipient account from the bridge address
+              const recipientAccount = KeetaNet.lib.Account.fromPublicKeyString(instruction.sendToAddress);
+              console.log('[Bridge] Recipient account created');
+              
+              // Use the builder pattern for the transaction
+              const builder = client.initBuilder();
+              console.log('[Bridge] Builder initialized');
+              
+              // Add send operation with the external data for the bridge
+              // The external data tells the bridge where to send on the destination chain
+              const externalData = instruction.external ? 
+                Uint8Array.from(Buffer.from(instruction.external, 'hex')) : 
+                undefined;
+              
+              // Send using baseToken (KTA) with external data
+              builder.send(recipientAccount, BigInt(instruction.value), client.baseToken, externalData);
+              console.log('[Bridge] Send operation added with external data');
+              
+              // Compute transaction blocks
+              const computed = await client.computeBuilderBlocks(builder);
+              console.log('[Bridge] Blocks computed:', computed?.blocks?.length || 0);
+              
+              // Publish the transaction
+              const transaction = await client.publishBuilder(builder);
+              console.log('[Bridge] Transaction published:', transaction);
             } catch (sendError: any) {
               console.error('[Bridge] Send error:', sendError);
               throw new Error(`Failed to send to bridge: ${sendError.message || sendError}`);
