@@ -1,91 +1,13 @@
-import { useState } from "react";
-import { ArrowDown, Loader2, ExternalLink, Info } from "lucide-react";
+import { ArrowDown, ExternalLink, Info } from "lucide-react";
 import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
-import { useBridge, BRIDGE_NETWORKS, BridgeNetwork } from "@/hooks/useBridge";
-import { toast } from "sonner";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 const Bridge = () => {
-  const { isConnected, network } = useKeetaWallet();
-  const isTestnet = network === 'test';
+  const { isConnected } = useKeetaWallet();
   const { play } = useSoundEffects();
-  const { initiateBridge, isBridging, status, transferId, reset } = useBridge();
-  
-  const [fromNetwork, setFromNetwork] = useState<BridgeNetwork>(BRIDGE_NETWORKS[0]);
-  const [toNetwork, setToNetwork] = useState<BridgeNetwork>(BRIDGE_NETWORKS[1]);
-  const [amount, setAmount] = useState("");
-  const [destinationAddress, setDestinationAddress] = useState("");
-
-  const isToBase = toNetwork.id === 'base';
-  const addressPlaceholder = isToBase ? "0x..." : "keeta_...";
-  const addressLabel = isToBase ? "BASE DESTINATION ADDRESS" : "KEETA DESTINATION ADDRESS";
-
-  const validateAddress = (address: string): boolean => {
-    if (!address.trim()) return false;
-    if (isToBase) {
-      // EVM address validation (0x followed by 40 hex chars)
-      return /^0x[a-fA-F0-9]{40}$/.test(address);
-    } else {
-      // Keeta address validation (starts with keeta_)
-      return address.startsWith('keeta_') && address.length > 10;
-    }
-  };
-
-  const handleSwapNetworks = () => {
-    play('click');
-    setFromNetwork(toNetwork);
-    setToNetwork(fromNetwork);
-    setDestinationAddress(""); // Clear address when swapping
-  };
-
-  const handleBridge = async () => {
-    if (!isConnected) {
-      play('error');
-      toast.error("Please connect your wallet first");
-      return;
-    }
-
-    const bridgeAmount = parseFloat(amount);
-    if (isNaN(bridgeAmount) || bridgeAmount <= 0) {
-      play('error');
-      toast.error("Please enter a valid amount");
-      return;
-    }
-
-    if (!validateAddress(destinationAddress)) {
-      play('error');
-      toast.error(isToBase 
-        ? "Please enter a valid Base address (0x...)" 
-        : "Please enter a valid Keeta address (keeta_...)");
-      return;
-    }
-
-    play('send');
-    const result = await initiateBridge(fromNetwork, toNetwork, amount, destinationAddress);
-
-    if (result.success) {
-      play('receive');
-      toast.success(`Bridge initiated! Transfer ID: ${result.transferId}`);
-      setAmount("");
-      setDestinationAddress("");
-    } else {
-      play('error');
-      if (result.noProviders) {
-        toast.info(result.error, {
-          duration: 6000,
-          action: {
-            label: "Visit Keeta",
-            onClick: () => window.open("https://keeta.com", "_blank")
-          }
-        });
-      } else {
-        toast.error(result.error || "Bridge failed");
-      }
-    }
-  };
 
   if (!isConnected) {
     return (
@@ -134,154 +56,76 @@ const Bridge = () => {
 
           <StarWarsPanel title="// BRIDGE ASSETS" className="max-w-lg mx-auto animate-slide-up">
             <div className="space-y-6">
-              {/* Testnet Warning */}
-              {isTestnet && (
-                <div className="flex items-start gap-3 p-3 bg-sw-red/20 border border-sw-red/50 rounded">
-                  <Info className="w-5 h-5 text-sw-red flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-mono text-xs text-sw-red">
-                      Bridge is only available on Mainnet. Please switch to Mainnet in Settings to use this feature.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Info Banner */}
-              <div className="flex items-start gap-3 p-3 bg-sw-blue/10 border border-sw-blue/30 rounded">
-                <Info className="w-5 h-5 text-sw-blue flex-shrink-0 mt-0.5" />
+              {/* Bridge Unavailable Notice */}
+              <div className="flex items-start gap-3 p-4 bg-sw-orange/20 border border-sw-orange/50 rounded">
+                <Info className="w-5 h-5 text-sw-orange flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-mono text-xs text-sw-blue/80">
-                    Bridge KTA between Keeta L1 and Base network using the Keeta Anchor SDK. Cross-chain transfers typically take 5-15 minutes.
+                  <p className="font-display text-sm text-sw-orange mb-2">Bridge Integration In Progress</p>
+                  <p className="font-mono text-xs text-sw-orange/80">
+                    The in-app bridge is currently under development. To bridge KTA between Keeta L1 and Base, please use the official Keeta bridge.
                   </p>
                 </div>
               </div>
 
-              {/* Transfer ID Display */}
-              {transferId && (
-                <div className="p-3 bg-sw-green/10 border border-sw-green/30 rounded">
-                  <p className="font-mono text-xs text-sw-green/80">
-                    Transfer ID: {transferId}
-                  </p>
-                </div>
-              )}
-
-              {/* From Network */}
+              {/* From Network Display */}
               <div className="space-y-2">
                 <label className="font-mono text-xs text-sw-blue/80 tracking-widest uppercase">
                   FROM NETWORK
                 </label>
-                <div className="p-4 border border-sw-blue/40 bg-sw-blue/10 rounded">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 border border-sw-blue/60 bg-sw-blue/20 flex items-center justify-center">
-                        <span className="font-mono text-xs text-sw-blue">
-                          {fromNetwork.id === 'keeta' ? 'L1' : 'B'}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-display text-sm text-sw-blue">{fromNetwork.name}</p>
-                        <p className="font-mono text-xs text-sw-blue/50">{fromNetwork.symbol}</p>
-                      </div>
+                <div className="p-4 border border-sw-blue/40 bg-sw-blue/10 rounded opacity-60">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 border border-sw-blue/60 bg-sw-blue/20 flex items-center justify-center">
+                      <span className="font-mono text-xs text-sw-blue">L1</span>
+                    </div>
+                    <div>
+                      <p className="font-display text-sm text-sw-blue">Keeta L1</p>
+                      <p className="font-mono text-xs text-sw-blue/50">KTA</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Swap Button */}
-              <div className="flex justify-center -my-2">
-                <button
-                  onClick={handleSwapNetworks}
-                  className="p-3 border border-sw-orange/40 bg-sw-orange/10 hover:bg-sw-orange/20 transition-colors group"
-                >
-                  <ArrowDown className="w-5 h-5 text-sw-orange group-hover:animate-bounce" />
-                </button>
+              {/* Arrow */}
+              <div className="flex justify-center">
+                <div className="p-3 border border-sw-blue/20 bg-sw-blue/5 opacity-60">
+                  <ArrowDown className="w-5 h-5 text-sw-blue/50" />
+                </div>
               </div>
 
-              {/* To Network */}
+              {/* To Network Display */}
               <div className="space-y-2">
                 <label className="font-mono text-xs text-sw-blue/80 tracking-widest uppercase">
                   TO NETWORK
                 </label>
-                <div className="p-4 border border-sw-green/40 bg-sw-green/10 rounded">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 border border-sw-green/60 bg-sw-green/20 flex items-center justify-center">
-                        <span className="font-mono text-xs text-sw-green">
-                          {toNetwork.id === 'keeta' ? 'L1' : 'B'}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-display text-sm text-sw-green">{toNetwork.name}</p>
-                        <p className="font-mono text-xs text-sw-blue/50">{toNetwork.symbol}</p>
-                      </div>
+                <div className="p-4 border border-sw-green/40 bg-sw-green/10 rounded opacity-60">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 border border-sw-green/60 bg-sw-green/20 flex items-center justify-center">
+                      <span className="font-mono text-xs text-sw-green">B</span>
+                    </div>
+                    <div>
+                      <p className="font-display text-sm text-sw-green">Base</p>
+                      <p className="font-mono text-xs text-sw-blue/50">KTA</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Destination Address Input */}
-              <div className="space-y-2">
-                <label className="font-mono text-xs text-sw-blue/80 tracking-widest uppercase">
-                  {addressLabel}
-                </label>
-                <input
-                  type="text"
-                  value={destinationAddress}
-                  onChange={(e) => setDestinationAddress(e.target.value)}
-                  placeholder={addressPlaceholder}
-                  className="w-full px-4 py-3 bg-sw-space/50 border border-sw-blue/30 text-sw-white font-mono text-sm placeholder:text-sw-blue/40 focus:border-sw-blue/60 focus:outline-none transition-colors"
-                />
-                <p className="font-mono text-xs text-sw-blue/50">
-                  {isToBase 
-                    ? "Enter your Base/EVM wallet address" 
-                    : "Enter a Keeta L1 address"}
-                </p>
-              </div>
-
-              {/* Amount Input */}
-              <div className="space-y-2">
-                <label className="font-mono text-xs text-sw-blue/80 tracking-widest uppercase">
-                  AMOUNT (KTA)
-                </label>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  className="w-full px-4 py-3 bg-sw-space/50 border border-sw-blue/30 text-sw-white font-mono text-sm placeholder:text-sw-blue/40 focus:border-sw-blue/60 focus:outline-none transition-colors"
-                />
-              </div>
-
-              {/* Bridge Button */}
-              <button
-                onClick={handleBridge}
-                disabled={isBridging || !amount || !destinationAddress || isTestnet}
-                className="w-full py-4 bg-sw-orange/20 border border-sw-orange/50 hover:bg-sw-orange/30 hover:border-sw-orange text-sw-orange font-display font-bold tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-              >
-                {isBridging ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    BRIDGING...
-                  </>
-                ) : (
-                  <>
-                    BRIDGE ASSETS
-                  </>
-                )}
-              </button>
-
-              {/* External Link */}
+              {/* Official Bridge Button */}
               <a
-                href="https://keeta.com"
+                href="https://keeta.com/bridge"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 text-sw-blue/60 hover:text-sw-blue transition-colors"
+                onClick={() => play('click')}
+                className="w-full py-4 bg-sw-blue/20 border border-sw-blue/50 hover:bg-sw-blue/30 hover:border-sw-blue text-sw-blue font-display font-bold tracking-widest transition-all flex items-center justify-center gap-3"
               >
-                <span className="font-mono text-xs">Learn more about Keeta Bridge</span>
-                <ExternalLink className="w-3 h-3" />
+                <ExternalLink className="w-5 h-5" />
+                USE OFFICIAL KEETA BRIDGE
               </a>
+
+              {/* Info */}
+              <p className="font-mono text-xs text-sw-blue/50 text-center">
+                The official Keeta bridge at keeta.com supports secure cross-chain transfers between Keeta L1 and Base networks.
+              </p>
             </div>
           </StarWarsPanel>
         </div>
