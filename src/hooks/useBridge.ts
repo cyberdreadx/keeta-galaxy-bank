@@ -14,14 +14,14 @@ export const BRIDGE_NETWORKS: BridgeNetwork[] = [
     id: "keeta", 
     name: "Keeta L1", 
     symbol: "KTA", 
-    location: "keeta:l1",
+    location: "chain:keeta:21378",
     color: "sw-blue" 
   },
   { 
     id: "base", 
     name: "Base", 
     symbol: "KTA", 
-    location: "evm:8453",
+    location: "chain:evm:8453",
     color: "sw-green" 
   },
 ];
