@@ -148,15 +148,22 @@ export function useBridge() {
       const valueInSmallestUnits = BigInt(Math.floor(amountValue * 1e9));
 
       // Initiate the transfer with user-provided destination address
-      const transfer = await provider.initiateTransfer({
-        value: valueInSmallestUnits,
-        asset: baseToken,
-        from: { location: fromNetwork.location },
-        to: { 
-          location: toNetwork.location,
-          recipient: destinationAddress
-        }
-      });
+      console.log('[Bridge] Calling initiateTransfer...');
+      let transfer;
+      try {
+        transfer = await provider.initiateTransfer({
+          value: valueInSmallestUnits,
+          asset: baseToken,
+          from: { location: fromNetwork.location },
+          to: { 
+            location: toNetwork.location,
+            recipient: destinationAddress
+          }
+        });
+      } catch (initError: any) {
+        console.error('[Bridge] initiateTransfer error:', initError);
+        throw new Error(`Failed to initiate transfer: ${initError.message || initError}`);
+      }
 
       console.log('[Bridge] Transfer response:', transfer);
       console.log('[Bridge] Transfer keys:', Object.keys(transfer || {}));
@@ -173,17 +180,27 @@ export function useBridge() {
         console.log('[Bridge] Executing transfer instructions...');
         
         for (const instruction of instructions) {
-          console.log('[Bridge] Executing instruction:', instruction);
+          console.log('[Bridge] Instruction type:', instruction?.type);
+          console.log('[Bridge] Instruction sendToAddress:', instruction?.sendToAddress);
+          console.log('[Bridge] Instruction value:', instruction?.value);
           
-          if (instruction.type === 'KEETA_SEND') {
-            // Send KTA to the bridge address
-            const sendResult = await client.send(
-              instruction.sendToAddress,
-              BigInt(instruction.value)
-            );
-            console.log('[Bridge] Send result:', sendResult);
+          if (instruction?.type === 'KEETA_SEND' && instruction?.sendToAddress && instruction?.value) {
+            try {
+              // Send KTA to the bridge address
+              console.log('[Bridge] Sending to:', instruction.sendToAddress, 'amount:', instruction.value);
+              const sendResult = await client.send(
+                instruction.sendToAddress,
+                BigInt(instruction.value)
+              );
+              console.log('[Bridge] Send result:', sendResult);
+            } catch (sendError: any) {
+              console.error('[Bridge] Send error:', sendError);
+              throw new Error(`Failed to send to bridge: ${sendError.message || sendError}`);
+            }
           }
         }
+      } else {
+        console.log('[Bridge] No instructions to execute');
       }
 
       setState(prev => ({ 
