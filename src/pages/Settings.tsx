@@ -2,13 +2,20 @@ import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
 import { useSettings, SUPPORTED_CURRENCIES, FiatCurrency } from "@/contexts/SettingsContext";
+import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
-import { DollarSign, Volume2, VolumeX, ChevronRight, Check } from "lucide-react";
+import { Volume2, VolumeX, Check, Globe, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+
+const NETWORKS = [
+  { id: 'test' as const, name: 'Testnet', description: 'For testing and development' },
+  { id: 'main' as const, name: 'Mainnet', description: 'Live network with real assets' },
+];
 
 const Settings = () => {
   const { play } = useSoundEffects();
   const { fiatCurrency, setFiatCurrency, soundEnabled, setSoundEnabled } = useSettings();
+  const { network, switchNetwork, isConnected } = useKeetaWallet();
 
   const handleCurrencyChange = (currency: FiatCurrency) => {
     play('click');
@@ -20,6 +27,21 @@ const Settings = () => {
     play('click');
     setSoundEnabled(!soundEnabled);
     toast.success(soundEnabled ? "Sounds disabled" : "Sounds enabled");
+  };
+
+  const handleNetworkChange = async (networkId: 'test' | 'main') => {
+    if (networkId === network) return;
+    
+    play('click');
+    
+    if (networkId === 'main') {
+      toast.warning("Switching to Mainnet - real assets!", {
+        duration: 3000,
+      });
+    }
+    
+    await switchNetwork(networkId);
+    toast.success(`Switched to ${networkId === 'main' ? 'Mainnet' : 'Testnet'}`);
   };
 
   return (
@@ -39,6 +61,66 @@ const Settings = () => {
           </div>
 
           <div className="max-w-md mx-auto space-y-4">
+            {/* Network Settings */}
+            <StarWarsPanel title="NETWORK" className="sw-materialize">
+              <div className="space-y-2">
+                <p className="font-mono text-xs text-sw-blue/50 mb-4">
+                  Select the Keeta network to connect to
+                </p>
+                
+                {NETWORKS.map((net) => (
+                  <button
+                    key={net.id}
+                    onClick={() => handleNetworkChange(net.id)}
+                    className={`w-full flex items-center gap-3 p-3 border rounded transition-all ${
+                      network === net.id
+                        ? net.id === 'main' 
+                          ? 'bg-sw-orange/20 border-sw-orange'
+                          : 'bg-sw-green/20 border-sw-green'
+                        : 'bg-sw-blue/5 border-sw-blue/20 hover:bg-sw-blue/10 hover:border-sw-blue/40'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 flex items-center justify-center border rounded ${
+                      network === net.id
+                        ? net.id === 'main'
+                          ? 'border-sw-orange bg-sw-orange/20'
+                          : 'border-sw-green bg-sw-green/20'
+                        : 'border-sw-blue/30 bg-sw-blue/10'
+                    }`}>
+                      {net.id === 'main' ? (
+                        <AlertTriangle className={`w-5 h-5 ${network === net.id ? 'text-sw-orange' : 'text-sw-blue/70'}`} />
+                      ) : (
+                        <Globe className={`w-5 h-5 ${network === net.id ? 'text-sw-green' : 'text-sw-blue/70'}`} />
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 text-left">
+                      <h3 className={`font-display text-sm tracking-wider ${
+                        network === net.id 
+                          ? net.id === 'main' ? 'text-sw-orange' : 'text-sw-green'
+                          : 'text-foreground'
+                      }`}>
+                        {net.name.toUpperCase()}
+                      </h3>
+                      <p className="font-mono text-[10px] text-foreground/50">
+                        {net.description}
+                      </p>
+                    </div>
+
+                    {network === net.id && (
+                      <Check className={`w-5 h-5 ${net.id === 'main' ? 'text-sw-orange' : 'text-sw-green'}`} />
+                    )}
+                  </button>
+                ))}
+                
+                {!isConnected && (
+                  <p className="font-mono text-[10px] text-sw-yellow/70 mt-2">
+                    Connect wallet to switch networks
+                  </p>
+                )}
+              </div>
+            </StarWarsPanel>
+
             {/* Currency Settings */}
             <StarWarsPanel title="DISPLAY CURRENCY" className="sw-materialize">
               <div className="space-y-2">
@@ -135,7 +217,9 @@ const Settings = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sw-blue/60">NETWORK</span>
-                  <span className="text-sw-green">KEETA TESTNET</span>
+                  <span className={network === 'main' ? 'text-sw-orange' : 'text-sw-green'}>
+                    KEETA {network === 'main' ? 'MAINNET' : 'TESTNET'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sw-blue/60">BUILD</span>
