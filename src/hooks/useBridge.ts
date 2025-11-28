@@ -168,11 +168,15 @@ export function useBridge() {
       console.log('[Bridge] Transfer response:', transfer);
       console.log('[Bridge] Transfer keys:', Object.keys(transfer || {}));
 
-      // Get transfer ID - check both possible property names
-      const transferId = transfer?.transferId || transfer?.id;
+      // The SDK wraps the response - actual data is in transfer.transfer
+      const transferData = transfer?.transfer || transfer;
+      console.log('[Bridge] Transfer data:', transferData);
+
+      // Get transfer ID
+      const transferId = transferData?.id || transferData?.transferId;
       
-      // Get instructions - API returns instructionChoices, SDK might wrap as instructions
-      const instructions = transfer?.instructions || transfer?.instructionChoices || [];
+      // Get instructions from instructionChoices
+      const instructions = transferData?.instructionChoices || transferData?.instructions || [];
       console.log('[Bridge] Instructions:', instructions);
 
       // Execute the transfer instructions if available
