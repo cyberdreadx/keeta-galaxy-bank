@@ -228,31 +228,18 @@ export function useBridge() {
               // Use the builder pattern for the transaction
               const builder = client.initBuilder();
               console.log('[Bridge] Builder initialized');
-              console.log('[Bridge] Builder methods:', Object.keys(builder));
               
-              // Check if builder has a method to include external/memo data
-              if (typeof builder.sendWithExternal === 'function' && instruction?.external) {
-                console.log('[Bridge] Using builder.sendWithExternal()');
-                const hex = instruction.external;
-                const bytes = new Uint8Array(hex.length / 2);
-                for (let i = 0; i < hex.length; i += 2) {
-                  bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
-                }
-                builder.sendWithExternal(recipientAccount, BigInt(instruction.value), client.baseToken, bytes);
-              } else if (typeof builder.setExternalData === 'function' && instruction?.external) {
-                console.log('[Bridge] Using builder.setExternalData()');
-                const hex = instruction.external;
-                const bytes = new Uint8Array(hex.length / 2);
-                for (let i = 0; i < hex.length; i += 2) {
-                  bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
-                }
-                builder.setExternalData(bytes);
-                builder.send(recipientAccount, BigInt(instruction.value), client.baseToken);
-              } else {
-                // Standard send - external data not supported
-                console.log('[Bridge] Standard send (no external data support detected)');
-                builder.send(recipientAccount, BigInt(instruction.value), client.baseToken);
-              }
+              // builder.send() accepts optional 4th param: external?: string (hex string)
+              // Per SDK docs: send(recipient, amount, token, external?)
+              const externalHex = instruction?.external || undefined;
+              console.log('[Bridge] Sending with external data:', externalHex ? 'yes' : 'no');
+              
+              builder.send(
+                recipientAccount, 
+                BigInt(instruction.value), 
+                client.baseToken, 
+                externalHex // Pass hex string directly per SDK docs
+              );
               console.log('[Bridge] Send operation added');
               
               // Compute transaction blocks
