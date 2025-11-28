@@ -9,7 +9,8 @@ import { toast } from "sonner";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 const Bridge = () => {
-  const { isConnected } = useKeetaWallet();
+  const { isConnected, network } = useKeetaWallet();
+  const isTestnet = network === 'test';
   const { play } = useSoundEffects();
   const { initiateBridge, isBridging, status, transferId, reset } = useBridge();
   
@@ -133,6 +134,18 @@ const Bridge = () => {
 
           <StarWarsPanel title="// BRIDGE ASSETS" className="max-w-lg mx-auto animate-slide-up">
             <div className="space-y-6">
+              {/* Testnet Warning */}
+              {isTestnet && (
+                <div className="flex items-start gap-3 p-3 bg-sw-red/20 border border-sw-red/50 rounded">
+                  <Info className="w-5 h-5 text-sw-red flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-mono text-xs text-sw-red">
+                      Bridge is only available on Mainnet. Please switch to Mainnet in Settings to use this feature.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Info Banner */}
               <div className="flex items-start gap-3 p-3 bg-sw-blue/10 border border-sw-blue/30 rounded">
                 <Info className="w-5 h-5 text-sw-blue flex-shrink-0 mt-0.5" />
@@ -244,7 +257,7 @@ const Bridge = () => {
               {/* Bridge Button */}
               <button
                 onClick={handleBridge}
-                disabled={isBridging || !amount || !destinationAddress}
+                disabled={isBridging || !amount || !destinationAddress || isTestnet}
                 className="w-full py-4 bg-sw-orange/20 border border-sw-orange/50 hover:bg-sw-orange/30 hover:border-sw-orange text-sw-orange font-display font-bold tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
               >
                 {isBridging ? (
