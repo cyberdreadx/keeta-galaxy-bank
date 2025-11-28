@@ -205,9 +205,16 @@ export function useBridge() {
               
               // Add send operation with the external data for the bridge
               // The external data tells the bridge where to send on the destination chain
-              const externalData = instruction.external ? 
-                Uint8Array.from(Buffer.from(instruction.external, 'hex')) : 
-                undefined;
+              let externalData: Uint8Array | undefined;
+              if (instruction.external) {
+                // Convert hex string to Uint8Array without Buffer (browser-compatible)
+                const hex = instruction.external;
+                const bytes = new Uint8Array(hex.length / 2);
+                for (let i = 0; i < hex.length; i += 2) {
+                  bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+                }
+                externalData = bytes;
+              }
               
               // Send using baseToken (KTA) with external data
               builder.send(recipientAccount, BigInt(instruction.value), client.baseToken, externalData);
