@@ -158,6 +158,27 @@ export function useBridge() {
         }
       });
 
+      console.log('[Bridge] Transfer initiated:', transfer);
+      console.log('[Bridge] Instructions:', transfer.instructions);
+
+      // Execute the transfer instructions if available
+      if (transfer.instructions && transfer.instructions.length > 0) {
+        console.log('[Bridge] Executing transfer instructions...');
+        
+        for (const instruction of transfer.instructions) {
+          console.log('[Bridge] Executing instruction:', instruction);
+          
+          if (instruction.type === 'KEETA_SEND') {
+            // Send KTA to the bridge address
+            const sendResult = await client.send(
+              instruction.sendToAddress,
+              BigInt(instruction.value)
+            );
+            console.log('[Bridge] Send result:', sendResult);
+          }
+        }
+      }
+
       setState(prev => ({ 
         ...prev, 
         isBridging: false, 
