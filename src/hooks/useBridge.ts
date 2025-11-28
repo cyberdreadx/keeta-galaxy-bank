@@ -203,22 +203,9 @@ export function useBridge() {
               const builder = client.initBuilder();
               console.log('[Bridge] Builder initialized');
               
-              // Add send operation with the external data for the bridge
-              // The external data tells the bridge where to send on the destination chain
-              let externalData: Uint8Array | undefined;
-              if (instruction.external) {
-                // Convert hex string to Uint8Array without Buffer (browser-compatible)
-                const hex = instruction.external;
-                const bytes = new Uint8Array(hex.length / 2);
-                for (let i = 0; i < hex.length; i += 2) {
-                  bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
-                }
-                externalData = bytes;
-              }
-              
-              // Send using baseToken (KTA) with external data
-              builder.send(recipientAccount, BigInt(instruction.value), client.baseToken, externalData);
-              console.log('[Bridge] Send operation added with external data');
+              // Send using baseToken (KTA) - 3 params only as per SDK docs
+              builder.send(recipientAccount, BigInt(instruction.value), client.baseToken);
+              console.log('[Bridge] Send operation added');
               
               // Compute transaction blocks
               const computed = await client.computeBuilderBlocks(builder);
