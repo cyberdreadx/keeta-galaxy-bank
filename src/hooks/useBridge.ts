@@ -158,14 +158,21 @@ export function useBridge() {
         }
       });
 
-      console.log('[Bridge] Transfer initiated:', transfer);
-      console.log('[Bridge] Instructions:', transfer.instructions);
+      console.log('[Bridge] Transfer response:', transfer);
+      console.log('[Bridge] Transfer keys:', Object.keys(transfer || {}));
+
+      // Get transfer ID - check both possible property names
+      const transferId = transfer?.transferId || transfer?.id;
+      
+      // Get instructions - API returns instructionChoices, SDK might wrap as instructions
+      const instructions = transfer?.instructions || transfer?.instructionChoices || [];
+      console.log('[Bridge] Instructions:', instructions);
 
       // Execute the transfer instructions if available
-      if (transfer.instructions && transfer.instructions.length > 0) {
+      if (instructions && instructions.length > 0) {
         console.log('[Bridge] Executing transfer instructions...');
         
-        for (const instruction of transfer.instructions) {
+        for (const instruction of instructions) {
           console.log('[Bridge] Executing instruction:', instruction);
           
           if (instruction.type === 'KEETA_SEND') {
@@ -182,14 +189,14 @@ export function useBridge() {
       setState(prev => ({ 
         ...prev, 
         isBridging: false, 
-        transferId: transfer.transferId, 
+        transferId: transferId || null, 
         status: 'completed' 
       }));
 
       return { 
         success: true, 
-        transferId: transfer.transferId,
-        instructions: transfer.instructions
+        transferId: transferId,
+        instructions: instructions
       };
     } catch (err: any) {
       console.error('[Bridge] Error initiating transfer:', err);
