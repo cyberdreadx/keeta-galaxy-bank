@@ -182,15 +182,41 @@ export function useBridge() {
       // Execute the transfer instructions if available
       if (instructions && instructions.length > 0) {
         console.log('[Bridge] Executing transfer instructions...');
+        console.log('[Bridge] Full instruction data:', JSON.stringify(instructions, null, 2));
         
         for (const instruction of instructions) {
-          console.log('[Bridge] Instruction type:', instruction?.type);
-          console.log('[Bridge] Instruction sendToAddress:', instruction?.sendToAddress);
-          console.log('[Bridge] Instruction value:', instruction?.value);
+          console.log('[Bridge] Instruction:', instruction);
+          console.log('[Bridge] Instruction keys:', Object.keys(instruction || {}));
           
+          // Check if instruction has an execute method
+          if (typeof instruction?.execute === 'function') {
+            console.log('[Bridge] Using instruction.execute() method');
+            try {
+              const result = await instruction.execute();
+              console.log('[Bridge] Execute result:', result);
+              continue;
+            } catch (execErr: any) {
+              console.error('[Bridge] instruction.execute() failed:', execErr);
+            }
+          }
+          
+          // Check if provider has executeInstruction method
+          if (typeof provider?.executeInstruction === 'function') {
+            console.log('[Bridge] Using provider.executeInstruction() method');
+            try {
+              const result = await provider.executeInstruction(instruction);
+              console.log('[Bridge] Provider execute result:', result);
+              continue;
+            } catch (provExecErr: any) {
+              console.error('[Bridge] provider.executeInstruction() failed:', provExecErr);
+            }
+          }
+          
+          // Fallback: manual send for KEETA_SEND type
           if (instruction?.type === 'KEETA_SEND' && instruction?.sendToAddress && instruction?.value) {
             try {
-              console.log('[Bridge] Sending to:', instruction.sendToAddress, 'amount:', instruction.value);
+              console.log('[Bridge] Manual send to:', instruction.sendToAddress, 'amount:', instruction.value);
+              console.log('[Bridge] External data (hex):', instruction?.external);
               
               // Load SDK to create account from address
               const KeetaNet = await import('@keetanetwork/keetanet-client');
@@ -202,9 +228,31 @@ export function useBridge() {
               // Use the builder pattern for the transaction
               const builder = client.initBuilder();
               console.log('[Bridge] Builder initialized');
+              console.log('[Bridge] Builder methods:', Object.keys(builder));
               
-              // Send using baseToken (KTA) - 3 params only as per SDK docs
-              builder.send(recipientAccount, BigInt(instruction.value), client.baseToken);
+              // Check if builder has a method to include external/memo data
+              if (typeof builder.sendWithExternal === 'function' && instruction?.external) {
+                console.log('[Bridge] Using builder.sendWithExternal()');
+                const hex = instruction.external;
+                const bytes = new Uint8Array(hex.length / 2);
+                for (let i = 0; i < hex.length; i += 2) {
+                  bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+                }
+                builder.sendWithExternal(recipientAccount, BigInt(instruction.value), client.baseToken, bytes);
+              } else if (typeof builder.setExternalData === 'function' && instruction?.external) {
+                console.log('[Bridge] Using builder.setExternalData()');
+                const hex = instruction.external;
+                const bytes = new Uint8Array(hex.length / 2);
+                for (let i = 0; i < hex.length; i += 2) {
+                  bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+                }
+                builder.setExternalData(bytes);
+                builder.send(recipientAccount, BigInt(instruction.value), client.baseToken);
+              } else {
+                // Standard send - external data not supported
+                console.log('[Bridge] Standard send (no external data support detected)');
+                builder.send(recipientAccount, BigInt(instruction.value), client.baseToken);
+              }
               console.log('[Bridge] Send operation added');
               
               // Compute transaction blocks
