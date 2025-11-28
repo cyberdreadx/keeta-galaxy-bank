@@ -17,6 +17,7 @@ import Lock from "./pages/Lock";
 import AddressBook from "./pages/AddressBook";
 import Settings from "./pages/Settings";
 import Landing from "./pages/Landing";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const AppRoutes = () => (
       <Route path="/address-book" element={<AddressBook />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/landing" element={<Landing />} />
+      <Route path="/install" element={<Install />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
