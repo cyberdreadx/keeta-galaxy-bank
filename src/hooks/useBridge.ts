@@ -78,6 +78,9 @@ export function useBridge() {
       
       try {
         anchorModule = await import('@keetanetwork/anchor');
+        console.log('[Bridge] Anchor SDK loaded successfully');
+        console.log('[Bridge] All exports:', Object.keys(anchorModule || {}));
+        console.log('[Bridge] Full module:', anchorModule);
       } catch (importErr) {
         console.warn('[Bridge] Anchor SDK not available:', importErr);
       }
@@ -88,9 +91,11 @@ export function useBridge() {
         || anchorModule?.AssetMovementClient
         || null;
 
+      console.log('[Bridge] AssetMovementClient found:', !!AssetMovementClient);
+
       if (!AssetMovementClient) {
         // SDK structure not as expected - show info message
-        console.log('[Bridge] Available exports:', Object.keys(anchorModule || {}));
+        console.log('[Bridge] Could not find AssetMovementClient');
         setState(prev => ({ ...prev, isBridging: false, status: 'idle' }));
         return { 
           success: false, 
@@ -108,11 +113,24 @@ export function useBridge() {
 
       // Find providers that support this transfer route
       // Use baseToken directly as the asset (it has the proper SDK type)
+      console.log('[Bridge] Calling getProvidersForTransfer with:', {
+        from: fromNetwork.location,
+        to: toNetwork.location,
+        asset: baseToken
+      });
+      
       const providers = await assetMovementClient.getProvidersForTransfer({
         from: fromNetwork.location,
         to: toNetwork.location,
         asset: baseToken
       });
+
+      console.log('[Bridge] Providers returned:', providers);
+      console.log('[Bridge] Providers count:', providers?.length || 0);
+      if (providers && providers.length > 0) {
+        console.log('[Bridge] First provider:', providers[0]);
+        console.log('[Bridge] Provider keys:', Object.keys(providers[0] || {}));
+      }
 
       if (!providers || providers.length === 0) {
         setState(prev => ({ ...prev, isBridging: false, status: 'idle' }));
