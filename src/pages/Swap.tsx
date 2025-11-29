@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowDownUp, ChevronDown, Loader2, RefreshCw, AlertCircle } from "lucide-react";
+import { ArrowDownUp, ChevronDown, Loader2, RefreshCw, AlertCircle, Rocket } from "lucide-react";
 import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
@@ -35,6 +35,7 @@ export default function Swap() {
     isLoading: swapLoading, 
     error: swapError, 
     fxServiceAvailable,
+    comingSoon,
     getEstimate,
     executeSwap 
   } = useKeetaSwap();
@@ -188,6 +189,68 @@ export default function Swap() {
             <div className="text-center py-12">
               <p className="text-sw-blue font-mono">CONNECT WALLET TO SWAP</p>
             </div>
+          </StarWarsPanel>
+        </main>
+      </div>
+    );
+  }
+
+  // Show Coming Soon state when FX service isn't available
+  if (comingSoon || !fxServiceAvailable) {
+    return (
+      <div className="min-h-screen bg-sw-space relative overflow-hidden">
+        <StarField />
+        <Header />
+        <main className="relative z-10 pt-20 pb-24 px-4 max-w-md mx-auto">
+          <StarWarsPanel title="// TOKEN SWAP" className="mt-8">
+            <motion.div 
+              className="text-center py-12 space-y-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                  rotate: [0, 5, -5, 0]
+                }}
+                transition={{ 
+                  duration: 2,
+                  repeat: Infinity,
+                  repeatType: "reverse"
+                }}
+              >
+                <Rocket className="w-16 h-16 mx-auto text-sw-yellow" />
+              </motion.div>
+              
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-sw-yellow font-mono tracking-wider">
+                  COMING SOON
+                </h2>
+                <p className="text-sw-blue/80 font-mono text-sm">
+                  FX SWAP SERVICE IN DEVELOPMENT
+                </p>
+              </div>
+              
+              <div className="bg-sw-space/50 border border-sw-blue/20 rounded-lg p-4 max-w-xs mx-auto">
+                <p className="text-sw-blue/60 font-mono text-xs leading-relaxed">
+                  Token swaps on Keeta L1 will be available once the FX Resolver is deployed. 
+                  Stay tuned for updates!
+                </p>
+              </div>
+
+              <div className="flex justify-center gap-4 pt-4">
+                <div className="text-center">
+                  <div className="text-sw-green font-mono text-lg">KTA</div>
+                  <div className="text-sw-blue/40 font-mono text-xs">↔</div>
+                  <div className="text-sw-green font-mono text-lg">USDC</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-sw-green font-mono text-lg">KTA</div>
+                  <div className="text-sw-blue/40 font-mono text-xs">↔</div>
+                  <div className="text-sw-green font-mono text-lg">WETH</div>
+                </div>
+              </div>
+            </motion.div>
           </StarWarsPanel>
         </main>
       </div>
