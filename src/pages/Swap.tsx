@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ArrowDownUp, ChevronDown, Loader2, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowDownUp, ChevronDown, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useKeetaBalance } from "@/hooks/useKeetaBalance";
 import { useKtaPrice } from "@/hooks/useKtaPrice";
+import { useKeetaSwap } from "@/hooks/useKeetaSwap";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -18,7 +19,7 @@ interface Token {
   icon: string;
 }
 
-// Mock tokens for demonstration - in production these would come from the network
+// Available tokens - will be expanded when resolver provides more pairs
 const AVAILABLE_TOKENS: Token[] = [
   { symbol: "KTA", name: "Keeta", balance: 0, icon: "⚡" },
   { symbol: "USDC", name: "USD Coin", balance: 0, icon: "💵" },
@@ -29,6 +30,14 @@ export default function Swap() {
   const { isConnected, network } = useKeetaWallet();
   const { balance: ktaBalance } = useKeetaBalance();
   const { priceUsd } = useKtaPrice();
+  const { 
+    isInitialized, 
+    isLoading: swapLoading, 
+    error: swapError, 
+    fxServiceAvailable,
+    getEstimate,
+    executeSwap 
+  } = useKeetaSwap();
   
   const [fromToken, setFromToken] = useState<Token>({ ...AVAILABLE_TOKENS[0], balance: ktaBalance });
   const [toToken, setToToken] = useState<Token>(AVAILABLE_TOKENS[1]);
@@ -38,14 +47,15 @@ export default function Swap() {
   const [showFromTokens, setShowFromTokens] = useState(false);
   const [showToTokens, setShowToTokens] = useState(false);
   const [slippage, setSlippage] = useState(0.5);
+  const [estimateLoading, setEstimateLoading] = useState(false);
 
   // Update KTA balance when it changes
   const tokens = AVAILABLE_TOKENS.map(t => 
     t.symbol === "KTA" ? { ...t, balance: ktaBalance } : t
   );
 
-  // Mock exchange rate calculation
-  const getExchangeRate = (from: string, to: string): number => {
+  // Fallback exchange rate calculation when FX service unavailable
+  const getFallbackRate = (from: string, to: string): number => {
     const ktaUsdPrice = priceUsd || 0.05;
     const rates: Record<string, Record<string, number>> = {
       KTA: { USDC: ktaUsdPrice, WETH: ktaUsdPrice / 3000 },
@@ -56,24 +66,55 @@ export default function Swap() {
     return rates[from]?.[to] || 0;
   };
 
-  const handleFromAmountChange = (value: string) => {
+  // Get estimate from resolver or use fallback
+  const handleFromAmountChange = async (value: string) => {
     setFromAmount(value);
-    if (value && !isNaN(parseFloat(value))) {
-      const rate = getExchangeRate(fromToken.symbol, toToken.symbol);
-      setToAmount((parseFloat(value) * rate).toFixed(6));
-    } else {
+    
+    if (!value || isNaN(parseFloat(value))) {
       setToAmount("");
+      return;
     }
+
+    // Try to get estimate from FX service
+    if (fxServiceAvailable && isInitialized) {
+      setEstimateLoading(true);
+      const estimate = await getEstimate(fromToken.symbol, toToken.symbol, value);
+      setEstimateLoading(false);
+      
+      if (estimate) {
+        setToAmount(estimate.toAmount);
+        return;
+      }
+    }
+
+    // Fallback to calculated rate
+    const rate = getFallbackRate(fromToken.symbol, toToken.symbol);
+    setToAmount((parseFloat(value) * rate).toFixed(6));
   };
 
-  const handleToAmountChange = (value: string) => {
+  const handleToAmountChange = async (value: string) => {
     setToAmount(value);
-    if (value && !isNaN(parseFloat(value))) {
-      const rate = getExchangeRate(toToken.symbol, fromToken.symbol);
-      setFromAmount((parseFloat(value) * rate).toFixed(6));
-    } else {
+    
+    if (!value || isNaN(parseFloat(value))) {
       setFromAmount("");
+      return;
     }
+
+    // Try reverse estimate from FX service
+    if (fxServiceAvailable && isInitialized) {
+      setEstimateLoading(true);
+      const estimate = await getEstimate(toToken.symbol, fromToken.symbol, value);
+      setEstimateLoading(false);
+      
+      if (estimate) {
+        setFromAmount(estimate.toAmount);
+        return;
+      }
+    }
+
+    // Fallback
+    const rate = getFallbackRate(toToken.symbol, fromToken.symbol);
+    setFromAmount((parseFloat(value) * rate).toFixed(6));
   };
 
   const handleSwapTokens = () => {
@@ -103,13 +144,30 @@ export default function Swap() {
     }
 
     setIsSwapping(true);
-    
-    // Simulate swap - in production this would call the DEX contract
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    toast.info("Swap feature coming soon!", {
-      description: "DEX integration is under development",
-    });
+
+    if (fxServiceAvailable) {
+      // Use resolver FX service for swap
+      const minReceived = (parseFloat(toAmount) * (1 - slippage / 100)).toFixed(6);
+      const result = await executeSwap(fromToken.symbol, toToken.symbol, fromAmount, minReceived);
+
+      if (result.success) {
+        toast.success("Swap executed!", {
+          description: `Swapped ${fromAmount} ${fromToken.symbol} for ${toAmount} ${toToken.symbol}`,
+        });
+        setFromAmount("");
+        setToAmount("");
+      } else {
+        toast.error("Swap failed", {
+          description: result.error,
+        });
+      }
+    } else {
+      // No FX service - show coming soon
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.info("Swap service not available", {
+        description: `No FX resolver found on ${network === 'main' ? 'Mainnet' : 'Testnet'}`,
+      });
+    }
     
     setIsSwapping(false);
   };
@@ -117,6 +175,8 @@ export default function Swap() {
   const formatBalance = (amt: number): string => {
     return Math.floor(amt * 100) / 100 + "";
   };
+
+  const currentRate = getFallbackRate(fromToken.symbol, toToken.symbol);
 
   if (!isConnected) {
     return (
@@ -141,11 +201,18 @@ export default function Swap() {
       
       <main className="relative z-10 pt-20 pb-24 px-4 max-w-md mx-auto">
         <StarWarsPanel title="// TOKEN SWAP" className="mt-4">
-          {/* Network indicator */}
+          {/* Status indicator */}
           <div className="flex justify-between items-center mb-4">
-            <span className="font-mono text-xs text-sw-blue/60">
-              NETWORK: {network === 'main' ? 'MAINNET' : 'TESTNET'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs text-sw-blue/60">
+                NETWORK: {network === 'main' ? 'MAINNET' : 'TESTNET'}
+              </span>
+              {isInitialized && (
+                <span className={`font-mono text-xs ${fxServiceAvailable ? 'text-sw-green' : 'text-sw-yellow'}`}>
+                  {fxServiceAvailable ? '● FX ACTIVE' : '○ FX OFFLINE'}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs text-sw-blue/60">SLIPPAGE:</span>
               <select 
@@ -160,6 +227,16 @@ export default function Swap() {
               </select>
             </div>
           </div>
+
+          {/* FX Service warning */}
+          {isInitialized && !fxServiceAvailable && (
+            <div className="mb-4 p-3 border border-sw-yellow/30 bg-sw-yellow/5 rounded flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-sw-yellow mt-0.5 flex-shrink-0" />
+              <p className="font-mono text-xs text-sw-yellow/80">
+                FX resolver not available on {network === 'main' ? 'Mainnet' : 'Testnet'}. Showing estimated rates.
+              </p>
+            </div>
+          )}
 
           {/* From Token */}
           <div className="relative">
@@ -209,7 +286,7 @@ export default function Swap() {
                   </AnimatePresence>
                 </div>
                 
-                <div className="flex-1">
+                <div className="flex-1 relative">
                   <Input
                     type="number"
                     placeholder="0.00"
@@ -217,6 +294,9 @@ export default function Swap() {
                     onChange={(e) => handleFromAmountChange(e.target.value)}
                     className="bg-transparent border-none text-right text-2xl font-display text-sw-white placeholder:text-sw-blue/30 focus-visible:ring-0"
                   />
+                  {estimateLoading && (
+                    <Loader2 className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-sw-blue animate-spin" />
+                  )}
                 </div>
               </div>
               
@@ -287,7 +367,7 @@ export default function Swap() {
                   </AnimatePresence>
                 </div>
                 
-                <div className="flex-1">
+                <div className="flex-1 relative">
                   <Input
                     type="number"
                     placeholder="0.00"
@@ -295,6 +375,9 @@ export default function Swap() {
                     onChange={(e) => handleToAmountChange(e.target.value)}
                     className="bg-transparent border-none text-right text-2xl font-display text-sw-white placeholder:text-sw-blue/30 focus-visible:ring-0"
                   />
+                  {estimateLoading && (
+                    <Loader2 className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-sw-blue animate-spin" />
+                  )}
                 </div>
               </div>
             </div>
@@ -311,7 +394,7 @@ export default function Swap() {
                 <span className="font-mono text-xs text-sw-blue/60">RATE</span>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-sm text-sw-white">
-                    1 {fromToken.symbol} = {getExchangeRate(fromToken.symbol, toToken.symbol).toFixed(6)} {toToken.symbol}
+                    1 {fromToken.symbol} = {currentRate.toFixed(6)} {toToken.symbol}
                   </span>
                   <RefreshCw className="w-3 h-3 text-sw-blue/60" />
                 </div>
@@ -322,29 +405,40 @@ export default function Swap() {
                   {(parseFloat(toAmount) * (1 - slippage / 100)).toFixed(6)} {toToken.symbol}
                 </span>
               </div>
+              {!fxServiceAvailable && (
+                <div className="flex justify-between items-center mt-2">
+                  <span className="font-mono text-xs text-sw-yellow/60">SOURCE</span>
+                  <span className="font-mono text-xs text-sw-yellow/80">ESTIMATED (NO FX)</span>
+                </div>
+              )}
             </motion.div>
           )}
 
           {/* Swap button */}
           <Button
             onClick={handleSwap}
-            disabled={isSwapping || !fromAmount || parseFloat(fromAmount) <= 0}
+            disabled={isSwapping || swapLoading || !fromAmount || parseFloat(fromAmount) <= 0}
             variant="credits"
             className="w-full mt-6 h-14 text-lg font-display tracking-wider"
           >
-            {isSwapping ? (
+            {isSwapping || swapLoading ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                SWAPPING...
+                {fxServiceAvailable ? 'SWAPPING...' : 'PROCESSING...'}
               </>
-            ) : (
+            ) : fxServiceAvailable ? (
               "SWAP TOKENS"
+            ) : (
+              "SWAP (ESTIMATED)"
             )}
           </Button>
 
           {/* Info notice */}
           <p className="text-center font-mono text-xs text-sw-blue/40 mt-4">
-            DEX INTEGRATION COMING SOON
+            {fxServiceAvailable 
+              ? 'POWERED BY KEETA FX RESOLVER'
+              : 'FX RESOLVER INTEGRATION PENDING'
+            }
           </p>
         </StarWarsPanel>
       </main>
