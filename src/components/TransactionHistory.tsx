@@ -45,72 +45,82 @@ export const TransactionHistory = () => {
     setError(null);
 
     try {
-      // Fetch account blocks/history from Keeta network
       console.log('[TransactionHistory] Fetching transactions for:', publicKey);
       
-      // Try to get account blocks which contain transaction history
-      const accountData = await client.account();
-      console.log('[TransactionHistory] Account data:', accountData);
+      // Fetch representatives to get API endpoint
+      const repsResponse = await fetch('https://rep1.main.network.api.keeta.com/api/node/ledger/representatives');
+      const repsData = await repsResponse.json();
+      const representatives = repsData.representatives || [];
+      const rep = representatives.find((r: any) => r.weight !== "0x0") || representatives[0];
       
-      // Get the account's blocks (transactions)
-      let blocks: any[] = [];
-      
-      // Try different methods to get transaction history
-      if (accountData?.blocks) {
-        blocks = Array.isArray(accountData.blocks) ? accountData.blocks : [];
-      } else if (accountData?.history) {
-        blocks = Array.isArray(accountData.history) ? accountData.history : [];
+      if (!rep?.endpoints?.api) {
+        throw new Error('No API endpoint available');
       }
-      
-      // If no blocks in account data, try fetching blocks directly
-      if (blocks.length === 0) {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const clientAny = client as any;
-          if (typeof clientAny.getAccountBlocks === 'function') {
-            const blocksResult = await clientAny.getAccountBlocks({ limit: 10 });
-            blocks = blocksResult?.blocks || blocksResult || [];
-            console.log('[TransactionHistory] Blocks from getAccountBlocks:', blocks);
+
+      // Fetch transaction history from the Keeta API
+      const historyResponse = await fetch(
+        `${rep.endpoints.api}/node/ledger/account/${publicKey}/history?limit=20`
+      );
+      const historyData = await historyResponse.json();
+      console.log('[TransactionHistory] History data:', historyData);
+
+      // Extract blocks from voteStaple structure
+      const allBlocks: any[] = [];
+      if (historyData.history) {
+        historyData.history.forEach((item: any) => {
+          if (item.voteStaple?.blocks) {
+            allBlocks.push(...item.voteStaple.blocks);
           }
-        } catch (e) {
-          console.log('[TransactionHistory] getAccountBlocks not available');
-        }
+        });
       }
-      
-      console.log('[TransactionHistory] Found blocks:', blocks.length);
-      
-      // Transform Keeta transaction format to our format
-      const formattedTxs: Transaction[] = blocks.slice(0, 10).map((tx: any, index: number) => {
-        // Determine if this is a send or receive based on block type or sender
-        const blockType = tx.type || tx.blockType || '';
-        const isSend = blockType.toLowerCase().includes('send') || tx.sender === publicKey;
-        
-        // Parse amount - KTA uses 18 decimals
-        let amount = 0;
-        if (tx.amount) {
-          const amountBigInt = typeof tx.amount === 'bigint' ? tx.amount : BigInt(tx.amount || 0);
-          amount = Number(amountBigInt) / 1e18;
-        } else if (tx.value) {
-          const valueBigInt = typeof tx.value === 'bigint' ? tx.value : BigInt(tx.value || 0);
-          amount = Number(valueBigInt) / 1e18;
-        }
-        
-        // Get hash for ID
-        const hash = tx.hash || tx.blockHash || tx.id || String(index);
-        const shortHash = typeof hash === 'string' ? hash.substring(0, 6).toUpperCase() : String(index);
-        
-        return {
-          id: `TX-${shortHash}`,
-          type: isSend ? 'send' as const : 'receive' as const,
-          amount: amount,
-          currency: 'KTA',
-          address: isSend 
-            ? (tx.recipient || tx.to || tx.destination || '').substring(0, 12) 
-            : (tx.sender || tx.from || tx.source || '').substring(0, 12),
-          timestamp: new Date(tx.timestamp || tx.time || Date.now()),
-          status: (tx.confirmed !== false) ? 'completed' as const : 'pending' as const,
-        };
-      });
+
+      console.log('[TransactionHistory] Found blocks:', allBlocks.length);
+
+      // Filter and transform blocks to transactions
+      const formattedTxs: Transaction[] = allBlocks
+        .filter(block => 
+          block.account === publicKey ||
+          block.operations?.some((op: any) => op.to === publicKey)
+        )
+        .slice(0, 10)
+        .map((block: any, index: number) => {
+          // Determine transaction type based on operations
+          const sendOp = block.operations?.find((op: any) => op.type === 1 || op.send);
+          const isSend = block.account === publicKey && sendOp;
+          
+          // Parse amount from operations (KTA uses 18 decimals)
+          let amount = 0;
+          let recipient = '';
+          
+          if (sendOp) {
+            const rawAmount = sendOp.amount || sendOp.value || '0';
+            try {
+              const amountBigInt = typeof rawAmount === 'string' && rawAmount.startsWith('0x')
+                ? BigInt(rawAmount)
+                : BigInt(rawAmount);
+              amount = Number(amountBigInt) / 1e18;
+            } catch {
+              amount = 0;
+            }
+            recipient = sendOp.to || sendOp.recipient || '';
+          }
+          
+          // Get hash for ID
+          const hash = block.hash || block.$hash || block.blockHash || String(index);
+          const shortHash = typeof hash === 'string' ? hash.substring(0, 6).toUpperCase() : String(index);
+          
+          return {
+            id: `TX-${shortHash}`,
+            type: isSend ? 'send' as const : 'receive' as const,
+            amount: amount,
+            currency: 'KTA',
+            address: isSend 
+              ? (recipient).substring(0, 12) 
+              : (block.account || '').substring(0, 12),
+            timestamp: new Date(block.date || Date.now()),
+            status: 'completed' as const,
+          };
+        });
 
       setTransactions(formattedTxs);
     } catch (err: any) {
