@@ -481,8 +481,7 @@ export default function Swap() {
           <Button
             onClick={handleSwap}
             disabled={isSwapping || swapLoading || !fromAmount || parseFloat(fromAmount) <= 0}
-            variant="credits"
-            className="w-full mt-6 h-14 text-lg font-display tracking-wider"
+            className="w-full mt-6 h-14 text-lg font-display tracking-wider bg-sw-yellow text-sw-space hover:bg-sw-yellow/90 border-2 border-sw-yellow"
           >
             {isSwapping || swapLoading ? (
               <>
