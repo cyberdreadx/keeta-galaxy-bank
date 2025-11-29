@@ -51,7 +51,7 @@ export default function DAppBrowser() {
   const [showBookmarks, setShowBookmarks] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Detect iframe load errors via timeout
+  // Detect iframe load errors via timeout (shorter for better UX)
   useEffect(() => {
     if (!currentUrl || !isLoading) return;
     
@@ -60,7 +60,7 @@ export default function DAppBrowser() {
         setLoadError(true);
         setIsLoading(false);
       }
-    }, 8000); // 8 second timeout
+    }, 4000); // 4 second timeout - most sites load faster
     
     return () => clearTimeout(timeout);
   }, [currentUrl, isLoading]);
@@ -329,20 +329,35 @@ export default function DAppBrowser() {
                   <div className="absolute inset-0 bg-sw-space flex items-center justify-center z-10">
                     <div className="text-center p-6 max-w-sm">
                       <AlertTriangle className="w-12 h-12 text-sw-yellow mx-auto mb-4" />
-                      <p className="text-sw-yellow font-mono text-sm mb-2">CONNECTION BLOCKED</p>
+                      <p className="text-sw-yellow font-mono text-sm mb-2">CONNECTION ISSUE</p>
                       <p className="text-sw-blue/70 font-mono text-xs mb-4">
-                        This site has blocked embedding. Many sites like Google, Facebook, and banks block iframe access for security.
+                        This site may be blocking embedding or the URL is invalid. Try opening in a new tab instead.
                       </p>
-                      <a
-                        href={currentUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-sw-blue/20 border border-sw-blue text-sw-blue font-mono text-xs hover:bg-sw-blue/30 transition-colors"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        OPEN IN NEW TAB
-                      </a>
+                      <div className="flex flex-col gap-2">
+                        <a
+                          href={currentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-sw-blue/20 border border-sw-blue text-sw-blue font-mono text-xs hover:bg-sw-blue/30 transition-colors"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          OPEN IN NEW TAB
+                        </a>
+                        <button
+                          onClick={goHome}
+                          className="px-4 py-2 border border-sw-blue/30 text-sw-blue/70 font-mono text-xs hover:bg-sw-blue/10 transition-colors"
+                        >
+                          GO BACK HOME
+                        </button>
+                      </div>
                     </div>
+                  </div>
+                )}
+                {!isLoading && !loadError && (
+                  <div className="absolute bottom-2 left-2 right-2 bg-sw-space/80 border border-sw-blue/30 p-2 z-10">
+                    <p className="text-sw-blue/50 font-mono text-[10px] text-center">
+                      Page blank? Site may block embedding. Use "Open in New Tab" below.
+                    </p>
                   </div>
                 )}
                 <iframe
@@ -351,7 +366,6 @@ export default function DAppBrowser() {
                   className="w-full h-full border-0"
                   onLoad={() => {
                     setIsLoading(false);
-                    setLoadError(false);
                   }}
                   onError={() => {
                     setIsLoading(false);
