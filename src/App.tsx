@@ -18,6 +18,8 @@ import AddressBook from "./pages/AddressBook";
 import Settings from "./pages/Settings";
 import Landing from "./pages/Landing";
 import Install from "./pages/Install";
+import NFTGallery from "./pages/NFTGallery";
+import DAppBrowser from "./pages/DAppBrowser";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +39,8 @@ const AppRoutes = () => (
       <Route path="/settings" element={<Settings />} />
       <Route path="/landing" element={<Landing />} />
       <Route path="/install" element={<Install />} />
+      <Route path="/nfts" element={<NFTGallery />} />
+      <Route path="/browser" element={<DAppBrowser />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -1,4 +1,4 @@
-import { RefreshCw, Scan, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Globe, Image, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { StarWarsPanel } from "./StarWarsPanel";
 import { cn } from "@/lib/utils";
@@ -17,16 +17,16 @@ const actions = [
     path: "/receive",
   },
   {
-    icon: RefreshCw,
-    label: "SWAP",
-    code: "SW-003",
-    path: null,
+    icon: Image,
+    label: "NFTs",
+    code: "NF-003",
+    path: "/nfts",
   },
   {
-    icon: Scan,
-    label: "SCAN",
-    code: "SC-004",
-    path: null,
+    icon: Globe,
+    label: "BROWSER",
+    code: "BR-004",
+    path: "/browser",
   },
 ];
 
