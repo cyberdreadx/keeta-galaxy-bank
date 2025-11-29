@@ -143,6 +143,14 @@ export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR)
     init();
   }, [isConnected, client, network, anchorId]);
 
+  // Convert decimal amount to base units (18 decimals for KTA)
+  const toBaseUnits = (amount: string, decimals: number = 18): string => {
+    const num = parseFloat(amount);
+    if (isNaN(num)) return '0';
+    const baseUnits = BigInt(Math.floor(num * Math.pow(10, decimals)));
+    return baseUnits.toString();
+  };
+
   const getEstimate = useCallback(async (
     fromToken: string,
     toToken: string,
@@ -163,11 +171,14 @@ export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR)
         ? toToken 
         : `$${toToken}`;
       
-      console.log('[KeetaSwap] Getting estimate for:', fromCode, '->', toCode, 'amount:', amount);
+      // Convert to base units (integer string)
+      const amountInBaseUnits = toBaseUnits(amount);
+      
+      console.log('[KeetaSwap] Getting estimate for:', fromCode, '->', toCode, 'amount:', amountInBaseUnits);
       
       const estimates = await fxClient.getEstimates({
         affinity: 'from',
-        amount,
+        amount: amountInBaseUnits,
         from: fromCode,
         to: toCode,
       });
@@ -215,11 +226,14 @@ export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR)
         ? toToken 
         : `$${toToken}`;
 
+      // Convert to base units
+      const amountInBaseUnits = toBaseUnits(amount);
+
       // Get quotes from FX providers
-      console.log('[KeetaSwap] Getting quotes for:', fromCode, '->', toCode);
+      console.log('[KeetaSwap] Getting quotes for:', fromCode, '->', toCode, 'amount:', amountInBaseUnits);
       const quotes = await fxClient.getQuotes({
         affinity: 'from',
-        amount,
+        amount: amountInBaseUnits,
         from: fromCode,
         to: toCode,
       });
