@@ -136,7 +136,7 @@ export default function DAppBrowser() {
       <StarField />
       <Header />
       
-      <main className="flex-1 container mx-auto px-4 py-6 pb-24 flex flex-col">
+      <main className="flex-1 container mx-auto px-4 pt-20 pb-24 flex flex-col">
         <StarWarsPanel title="DAPP BROWSER" className="flex-1 flex flex-col">
           {/* URL Bar */}
           <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
