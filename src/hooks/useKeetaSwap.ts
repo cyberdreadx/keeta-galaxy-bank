@@ -155,11 +155,21 @@ export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR)
     try {
       setIsLoading(true);
       
+      // Convert symbol to currency code format (e.g., KTA -> $KTA)
+      const fromCode = fromToken.startsWith('$') || fromToken.startsWith('keeta_') 
+        ? fromToken 
+        : `$${fromToken}`;
+      const toCode = toToken.startsWith('$') || toToken.startsWith('keeta_') 
+        ? toToken 
+        : `$${toToken}`;
+      
+      console.log('[KeetaSwap] Getting estimate for:', fromCode, '->', toCode, 'amount:', amount);
+      
       const estimates = await fxClient.getEstimates({
         affinity: 'from',
         amount,
-        from: fromToken,
-        to: toToken,
+        from: fromCode,
+        to: toCode,
       });
 
       console.log('[KeetaSwap] Estimates:', estimates);
@@ -197,13 +207,21 @@ export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR)
     try {
       setIsLoading(true);
 
+      // Convert symbol to currency code format
+      const fromCode = fromToken.startsWith('$') || fromToken.startsWith('keeta_') 
+        ? fromToken 
+        : `$${fromToken}`;
+      const toCode = toToken.startsWith('$') || toToken.startsWith('keeta_') 
+        ? toToken 
+        : `$${toToken}`;
+
       // Get quotes from FX providers
-      console.log('[KeetaSwap] Getting quotes...');
+      console.log('[KeetaSwap] Getting quotes for:', fromCode, '->', toCode);
       const quotes = await fxClient.getQuotes({
         affinity: 'from',
         amount,
-        from: fromToken,
-        to: toToken,
+        from: fromCode,
+        to: toCode,
       });
       
       console.log('[KeetaSwap] Quotes:', quotes);
@@ -216,27 +234,25 @@ export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR)
       console.log('[KeetaSwap] Best quote:', bestQuote);
 
       // The quote should contain execution instructions
-      // Check for execute method on the quote
       if (bestQuote.execute && typeof bestQuote.execute === 'function') {
         const result = await bestQuote.execute();
         console.log('[KeetaSwap] Execute result:', result);
         return { success: true, txId: result?.id || result?.txId };
       }
 
-      // Check for accept method
       if (bestQuote.accept && typeof bestQuote.accept === 'function') {
         const result = await bestQuote.accept();
         console.log('[KeetaSwap] Accept result:', result);
         return { success: true, txId: result?.id || result?.txId };
       }
 
-      // Log quote structure to understand what's available
+      // Log quote structure
       console.log('[KeetaSwap] Quote keys:', Object.keys(bestQuote));
       console.log('[KeetaSwap] Quote prototype:', Object.getOwnPropertyNames(Object.getPrototypeOf(bestQuote) || {}));
 
       return { 
         success: false, 
-        error: 'Quote received but execution method not available. Check console for quote structure.' 
+        error: 'Quote received but execution method not available' 
       };
     } catch (err: any) {
       console.error('[KeetaSwap] Swap error:', err);
