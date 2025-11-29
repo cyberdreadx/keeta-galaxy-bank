@@ -177,8 +177,11 @@ export default function Swap() {
         setFromAmount("");
         setToAmount("");
       } else {
+        const errorMessage = result.error?.includes('No quotes available')
+          ? `No liquidity providers found for ${fromToken.symbol}/${toToken.symbol} on the default resolver. Try again later as liquidity is still being added.`
+          : result.error;
         toast.error("Swap failed", {
-          description: result.error,
+          description: errorMessage,
         });
       }
     } else {
