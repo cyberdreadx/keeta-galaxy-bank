@@ -340,7 +340,12 @@ export default function Swap() {
                     className="flex items-center gap-2 bg-sw-blue/10 border border-sw-blue/40 px-3 py-2 rounded hover:bg-sw-blue/20 transition-colors"
                   >
                     <span className="text-lg">{fromToken?.icon || '🪙'}</span>
-                    <span className="font-display font-bold text-sw-white">{fromToken?.symbol || 'Select'}</span>
+                    <div className="text-left">
+                      <span className="font-display font-bold text-sw-white block">{fromToken?.symbol || 'Select'}</span>
+                      {fromToken?.name && fromToken.name !== fromToken.symbol && (
+                        <span className="font-mono text-xs text-sw-blue/60">{fromToken.name}</span>
+                      )}
+                    </div>
                     <ChevronDown className="w-4 h-4 text-sw-blue" />
                   </button>
                   
@@ -350,7 +355,7 @@ export default function Swap() {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-full left-0 mt-1 z-[100] bg-[#0a1628] border border-sw-blue/40 rounded min-w-[150px] max-h-[200px] overflow-y-auto shadow-lg"
+                        className="absolute top-full left-0 mt-1 z-[100] bg-[#0a1628] border border-sw-blue/40 rounded min-w-[200px] max-h-[250px] overflow-y-auto shadow-lg"
                       >
                         {tokens.filter(t => t.symbol !== toToken?.symbol).map(token => (
                           <button
@@ -360,10 +365,15 @@ export default function Swap() {
                               setShowFromTokens(false);
                               handleFromAmountChange(fromAmount);
                             }}
-                            className="flex items-center gap-2 w-full px-3 py-2 hover:bg-sw-blue/20 transition-colors bg-[#0a1628]"
+                            className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-sw-blue/20 transition-colors bg-[#0a1628] border-b border-sw-blue/10 last:border-b-0"
                           >
-                            <span>{token.icon}</span>
-                            <span className="font-mono text-sw-white">{token.symbol}</span>
+                            <span className="text-xl">{token.icon}</span>
+                            <div className="text-left">
+                              <span className="font-mono text-sw-white font-bold block">{token.symbol}</span>
+                              {token.name && token.name !== token.symbol && (
+                                <span className="font-mono text-xs text-sw-blue/50">{token.name}</span>
+                              )}
+                            </div>
                           </button>
                         ))}
                       </motion.div>
@@ -421,7 +431,12 @@ export default function Swap() {
                     className="flex items-center gap-2 bg-sw-blue/10 border border-sw-blue/40 px-3 py-2 rounded hover:bg-sw-blue/20 transition-colors"
                   >
                     <span className="text-lg">{toToken?.icon || '🪙'}</span>
-                    <span className="font-display font-bold text-sw-white">{toToken?.symbol || 'Select'}</span>
+                    <div className="text-left">
+                      <span className="font-display font-bold text-sw-white block">{toToken?.symbol || 'Select'}</span>
+                      {toToken?.name && toToken.name !== toToken.symbol && (
+                        <span className="font-mono text-xs text-sw-blue/60">{toToken.name}</span>
+                      )}
+                    </div>
                     <ChevronDown className="w-4 h-4 text-sw-blue" />
                   </button>
                   
@@ -431,7 +446,7 @@ export default function Swap() {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-full left-0 mt-1 z-[100] bg-[#0a1628] border border-sw-blue/40 rounded min-w-[150px] max-h-[200px] overflow-y-auto shadow-lg"
+                        className="absolute top-full left-0 mt-1 z-[100] bg-[#0a1628] border border-sw-blue/40 rounded min-w-[200px] max-h-[250px] overflow-y-auto shadow-lg"
                       >
                         {tokens.filter(t => t.symbol !== fromToken?.symbol).map(token => (
                           <button
@@ -441,10 +456,15 @@ export default function Swap() {
                               setShowToTokens(false);
                               handleFromAmountChange(fromAmount);
                             }}
-                            className="flex items-center gap-2 w-full px-3 py-2 hover:bg-sw-blue/20 transition-colors bg-[#0a1628]"
+                            className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-sw-blue/20 transition-colors bg-[#0a1628] border-b border-sw-blue/10 last:border-b-0"
                           >
-                            <span>{token.icon}</span>
-                            <span className="font-mono text-sw-white">{token.symbol}</span>
+                            <span className="text-xl">{token.icon}</span>
+                            <div className="text-left">
+                              <span className="font-mono text-sw-white font-bold block">{token.symbol}</span>
+                              {token.name && token.name !== token.symbol && (
+                                <span className="font-mono text-xs text-sw-blue/50">{token.name}</span>
+                              )}
+                            </div>
                           </button>
                         ))}
                       </motion.div>
