@@ -350,7 +350,7 @@ export default function Swap() {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-full left-0 mt-1 z-50 bg-sw-space border border-sw-blue/40 rounded min-w-[150px]"
+                        className="absolute top-full left-0 mt-1 z-[100] bg-[#0a1628] border border-sw-blue/40 rounded min-w-[150px] max-h-[200px] overflow-y-auto shadow-lg"
                       >
                         {tokens.filter(t => t.symbol !== toToken?.symbol).map(token => (
                           <button
@@ -360,7 +360,7 @@ export default function Swap() {
                               setShowFromTokens(false);
                               handleFromAmountChange(fromAmount);
                             }}
-                            className="flex items-center gap-2 w-full px-3 py-2 hover:bg-sw-blue/20 transition-colors"
+                            className="flex items-center gap-2 w-full px-3 py-2 hover:bg-sw-blue/20 transition-colors bg-[#0a1628]"
                           >
                             <span>{token.icon}</span>
                             <span className="font-mono text-sw-white">{token.symbol}</span>
@@ -431,7 +431,7 @@ export default function Swap() {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-full left-0 mt-1 z-50 bg-sw-space border border-sw-blue/40 rounded min-w-[150px]"
+                        className="absolute top-full left-0 mt-1 z-[100] bg-[#0a1628] border border-sw-blue/40 rounded min-w-[150px] max-h-[200px] overflow-y-auto shadow-lg"
                       >
                         {tokens.filter(t => t.symbol !== fromToken?.symbol).map(token => (
                           <button
@@ -441,7 +441,7 @@ export default function Swap() {
                               setShowToTokens(false);
                               handleFromAmountChange(fromAmount);
                             }}
-                            className="flex items-center gap-2 w-full px-3 py-2 hover:bg-sw-blue/20 transition-colors"
+                            className="flex items-center gap-2 w-full px-3 py-2 hover:bg-sw-blue/20 transition-colors bg-[#0a1628]"
                           >
                             <span>{token.icon}</span>
                             <span className="font-mono text-sw-white">{token.symbol}</span>
