@@ -35,84 +35,60 @@ export function useKeetaSwap() {
 
         // Load Anchor SDK
         const Anchor = await import('@keetanetwork/anchor');
+        const KeetaNet = Anchor.KeetaNet;
         console.log('[KeetaSwap] Anchor SDK loaded');
 
-        // Use getDefaultResolver which uses network account as root
-        if (typeof (Anchor as any).getDefaultResolver === 'function') {
-          console.log('[KeetaSwap] Using getDefaultResolver');
-          const resolver = (Anchor as any).getDefaultResolver(client, { network });
-          console.log('[KeetaSwap] Default resolver created');
+        // Generate network account to use as resolver root
+        // Network IDs: main = 1n, test = 2n
+        const networkID = network === 'main' ? 1n : 2n;
+        const networkAccount = KeetaNet.lib.Account.generateNetworkAddress(networkID);
+        console.log('[KeetaSwap] Network account:', networkAccount.publicKeyString?.get?.() || networkAccount.publicKeyString);
 
-          // Check for FX services
-          if (typeof resolver.lookupFXServices === 'function') {
-            const fxServices = await resolver.lookupFXServices().catch((e: any) => {
-              console.log('[KeetaSwap] lookupFXServices error:', e?.message);
-              return [];
+        // Create FX Client with network account as root
+        if ((Anchor as any).FX?.Client) {
+          try {
+            const fxClientInstance = new (Anchor as any).FX.Client(client, { 
+              root: networkAccount 
             });
-            console.log('[KeetaSwap] FX Services:', fxServices);
+            console.log('[KeetaSwap] FX Client created with network root');
+            
+            // Check for available conversions
+            const conversions = await fxClientInstance.listPossibleConversions?.({ from: '$KTA' }).catch((e: any) => {
+              console.log('[KeetaSwap] listPossibleConversions error:', e?.message);
+              return null;
+            });
+            console.log('[KeetaSwap] Conversions:', conversions);
+            
+            // Try to get token list
+            const tokenList = await fxClientInstance.resolver?.listTokens?.().catch(() => []) || [];
+            console.log('[KeetaSwap] Token list:', tokenList);
 
-            if (fxServices && fxServices.length > 0) {
-              // FX services available - try to create FX client
-              if ((Anchor as any).FX?.Client) {
-                const fxClientInstance = new (Anchor as any).FX.Client(client, { 
-                  resolver 
-                });
-                setFxClient(fxClientInstance);
-                
-                // Get available tokens
-                const tokenList = await fxClientInstance.resolver?.listTokens?.().catch(() => []) || [];
-                console.log('[KeetaSwap] Token list:', tokenList);
-                
-                if (tokenList.length > 0) {
-                  setAvailableTokens(tokenList.map((t: any) => ({
-                    symbol: t.symbol || t.currencyCode || String(t),
-                    name: t.name || t.symbol || String(t),
-                    address: t.address || t.publicKey,
-                  })));
-                } else {
-                  setAvailableTokens([
-                    { symbol: 'KTA', name: 'Keeta' },
-                    { symbol: 'USDC', name: 'USD Coin' },
-                  ]);
-                }
-              }
-            } else {
-              console.log('[KeetaSwap] No FX services on network');
-              setComingSoon(true);
-              setError('No FX services available on this network');
-            }
-          } else {
-            setComingSoon(true);
-          }
-        } else {
-          // Fallback: Try FX.Client directly with network config
-          console.log('[KeetaSwap] getDefaultResolver not found, trying FX.Client');
-          
-          if ((Anchor as any).FX?.Client) {
-            try {
-              const fxClientInstance = new (Anchor as any).FX.Client(client);
-              console.log('[KeetaSwap] FX Client created');
+            if ((conversions && conversions.length > 0) || (tokenList && tokenList.length > 0)) {
+              setFxClient(fxClientInstance);
               
-              const conversions = await fxClientInstance.listPossibleConversions?.({ from: '$KTA' }).catch(() => []);
-              console.log('[KeetaSwap] Conversions:', conversions);
-              
-              if (conversions && conversions.length > 0) {
-                setFxClient(fxClientInstance);
+              if (tokenList.length > 0) {
+                setAvailableTokens(tokenList.map((t: any) => ({
+                  symbol: t.symbol || t.currencyCode || String(t),
+                  name: t.name || t.symbol || String(t),
+                  address: t.address || t.publicKey,
+                })));
+              } else {
                 setAvailableTokens([
                   { symbol: 'KTA', name: 'Keeta' },
                   { symbol: 'USDC', name: 'USD Coin' },
                 ]);
-              } else {
-                setComingSoon(true);
               }
-            } catch (e: any) {
-              console.log('[KeetaSwap] FX Client error:', e?.message);
+            } else {
+              console.log('[KeetaSwap] No FX services on network');
               setComingSoon(true);
             }
-          } else {
-            console.log('[KeetaSwap] FX.Client not found');
+          } catch (e: any) {
+            console.log('[KeetaSwap] FX Client error:', e?.message);
             setComingSoon(true);
           }
+        } else {
+          console.log('[KeetaSwap] FX.Client not found in SDK');
+          setComingSoon(true);
         }
 
         setIsInitialized(true);
