@@ -1,11 +1,17 @@
 import { useState } from "react";
 import { useTokenMetadata } from "@/hooks/useTokenMetadata";
+import ktaLogo from "@/assets/kta-logo.jpg";
 
 // Fallback emoji icons
 const TOKEN_ICONS: Record<string, string> = {
-  KTA: "⚡", PACA: "🦙", NDA: "📜", AKTA: "💎", KTARD: "🃏",
+  PACA: "🦙", NDA: "📜", AKTA: "💎", KTARD: "🃏",
   DRINK: "🍺", SPIT: "💦", ERIC: "👤", KCHAD: "💪", SOON: "🔜", KWIF: "🎩",
   USDC: "💵", EURC: "💶", cbBTC: "₿", KRT: "🎫", MURF: "🐕"
+};
+
+// Static logo URLs for known tokens
+const STATIC_LOGOS: Record<string, string> = {
+  KTA: ktaLogo,
 };
 
 interface TokenIconProps {
@@ -26,7 +32,9 @@ export const TokenIcon = ({ tokenAddress, symbol, size = "md", className = "" }:
   };
 
   const fallbackIcon = TOKEN_ICONS[symbol] || "🪙";
-  const logoURI = metadata?.logoURI;
+  
+  // Check for static logo first, then metadata logoURI
+  const logoURI = STATIC_LOGOS[symbol] || metadata?.logoURI;
 
   // Show image if we have a valid logoURI and no error
   if (logoURI && !imgError) {
