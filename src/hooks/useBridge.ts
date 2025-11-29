@@ -45,7 +45,7 @@ interface BridgeResult {
 }
 
 export function useBridge() {
-  const { client, isConnected, publicKey, checkingAccount } = useKeetaWallet();
+  const { client, isConnected, publicKey } = useKeetaWallet();
   const [state, setState] = useState<BridgeState>({
     isBridging: false,
     transferId: null,
@@ -54,95 +54,106 @@ export function useBridge() {
     persistentAddress: null,
   });
 
-  // Get the persistent address (EVM deposit address) for reverse bridging
+  // Get the persistent forwarding address (EVM deposit address) for reverse bridging (Base → Keeta L1)
   const getPersistentAddress = useCallback(async (evmChainId: number): Promise<string | null> => {
-    if (!isConnected || !client) {
+    if (!isConnected || !client || !publicKey) {
       console.log('[Bridge] Cannot get persistent address - wallet not connected');
       return null;
     }
 
+    setState(prev => ({ ...prev, status: 'pending' }));
+
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const anchorModule: any = await import('@keetanetwork/anchor');
-      console.log('[Bridge] Looking for persistent address method...');
+      console.log('[Bridge] Looking for persistent address...');
       
-      // Log all exports to find the persistent address method
-      const moduleKeys = Object.keys(anchorModule || {});
-      console.log('[Bridge] Anchor module exports:', moduleKeys);
-      
-      // Check for AssetMovement client
-      const AssetMovementClient = 
-        anchorModule?.AssetMovement?.Client 
-        || anchorModule?.KeetaAssetMovementAnchorClient
-        || anchorModule?.AssetMovementClient
-        || anchorModule?.default?.AssetMovement?.Client
-        || anchorModule?.default;
+      // Get AssetMovement.Client from the namespace export
+      const AssetMovementClient = anchorModule?.AssetMovement?.Client;
 
-      if (AssetMovementClient) {
-        const assetClient = new AssetMovementClient(client);
-        console.log('[Bridge] AssetMovement client methods:', Object.keys(assetClient));
-        console.log('[Bridge] AssetMovement client prototype:', Object.getOwnPropertyNames(Object.getPrototypeOf(assetClient)));
+      if (!AssetMovementClient) {
+        console.log('[Bridge] AssetMovement.Client not found in anchor SDK');
+        setState(prev => ({ ...prev, status: 'idle' }));
+        return null;
+      }
+
+      const assetClient = new AssetMovementClient(client);
+      console.log('[Bridge] AssetMovement client created');
+      
+      // Find providers that support Base → Keeta L1 transfer
+      const sourceLocation = `chain:evm:${evmChainId}`; // e.g., chain:evm:8453 for Base
+      const destLocation = 'chain:keeta:21378'; // Keeta L1
+      const baseToken = client.baseToken;
+
+      console.log('[Bridge] Looking for providers:', { sourceLocation, destLocation, asset: baseToken });
+      
+      const providers = await assetClient.getProvidersForTransfer({
+        from: sourceLocation,
+        to: destLocation,
+        asset: baseToken
+      });
+
+      console.log('[Bridge] Providers found:', providers?.length || 0);
+
+      if (!providers || providers.length === 0) {
+        console.log('[Bridge] No providers available for Base → Keeta L1');
+        setState(prev => ({ ...prev, status: 'idle' }));
+        return null;
+      }
+
+      const provider = providers[0];
+      console.log('[Bridge] Using provider:', provider);
+      console.log('[Bridge] Provider methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(provider)));
+
+      // Create persistent forwarding address
+      // This creates an EVM address on Base that forwards deposits to the user's Keeta address
+      try {
+        const result = await provider.createPersistentForwardingAddress({
+          sourceLocation: sourceLocation,
+          asset: baseToken,
+          destinationLocation: destLocation,
+          destinationAddress: publicKey
+        });
+
+        console.log('[Bridge] Persistent forwarding address result:', result);
         
-        // Try various method names for getting persistent address
-        const methodNames = [
-          'getPersistentAddress',
-          'persistentAddress', 
-          'getDepositAddress',
-          'depositAddress',
-          'getEvmAddress',
-          'evmAddress',
-          'getExternalAddress',
-          'externalAddress'
-        ];
+        if (result?.address) {
+          setState(prev => ({ ...prev, persistentAddress: result.address, status: 'idle' }));
+          return result.address;
+        }
+      } catch (createErr: any) {
+        console.error('[Bridge] createPersistentForwardingAddress failed:', createErr);
         
-        for (const methodName of methodNames) {
-          if (typeof assetClient[methodName] === 'function') {
-            console.log(`[Bridge] Found method: ${methodName}`);
+        // Try alternative method names
+        const altMethods = ['createPersistentForwarding', 'getPersistentAddress', 'getDepositAddress'];
+        for (const methodName of altMethods) {
+          if (typeof provider[methodName] === 'function') {
+            console.log(`[Bridge] Trying alternate method: ${methodName}`);
             try {
-              // Method signature: (account/publicKey, chainId) based on user info
-              // Try with publicKey string first
-              const address = await assetClient[methodName](publicKey, evmChainId);
-              console.log(`[Bridge] ${methodName} returned:`, address);
-              if (address) {
-                setState(prev => ({ ...prev, persistentAddress: address }));
-                return address;
+              const altResult = await provider[methodName]({
+                sourceLocation,
+                asset: baseToken,
+                destinationLocation: destLocation,
+                destinationAddress: publicKey
+              });
+              console.log(`[Bridge] ${methodName} result:`, altResult);
+              if (altResult?.address) {
+                setState(prev => ({ ...prev, persistentAddress: altResult.address, status: 'idle' }));
+                return altResult.address;
               }
-            } catch (methodErr) {
-              console.log(`[Bridge] ${methodName} failed:`, methodErr);
+            } catch (altErr) {
+              console.log(`[Bridge] ${methodName} failed:`, altErr);
             }
-          }
-        }
-
-        // Also check if it's a property getter
-        for (const methodName of methodNames) {
-          if (assetClient[methodName] && typeof assetClient[methodName] !== 'function') {
-            console.log(`[Bridge] Found property: ${methodName} =`, assetClient[methodName]);
           }
         }
       }
 
-      // Also check if there's a static method on the module
-      const staticMethods = ['getPersistentAddress', 'persistentAddress', 'getDepositAddress'];
-      for (const methodName of staticMethods) {
-        if (typeof anchorModule[methodName] === 'function') {
-          console.log(`[Bridge] Found static method: ${methodName}`);
-          try {
-            const address = await anchorModule[methodName](publicKey, evmChainId);
-            console.log(`[Bridge] Static ${methodName} returned:`, address);
-            if (address) {
-              setState(prev => ({ ...prev, persistentAddress: address }));
-              return address;
-            }
-          } catch (staticErr) {
-            console.log(`[Bridge] Static ${methodName} failed:`, staticErr);
-          }
-        }
-      }
-
-      console.log('[Bridge] Could not find persistent address method');
+      console.log('[Bridge] Could not create persistent forwarding address');
+      setState(prev => ({ ...prev, status: 'idle' }));
       return null;
     } catch (err) {
       console.error('[Bridge] Error getting persistent address:', err);
+      setState(prev => ({ ...prev, status: 'idle' }));
       return null;
     }
   }, [isConnected, client, publicKey]);
