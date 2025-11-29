@@ -26,6 +26,7 @@ interface SavedDApp {
 }
 
 const FEATURED_DAPPS: SavedDApp[] = [
+  { name: 'Rougee', url: 'https://rougee.app', icon: '🎮' },
   { name: 'KeetaScan', url: 'https://keetascan.com', icon: '🔍' },
   { name: 'Keeta Network', url: 'https://keeta.com', icon: '🌐' },
 ];
