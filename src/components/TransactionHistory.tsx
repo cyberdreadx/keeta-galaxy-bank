@@ -32,26 +32,23 @@ const formatTime = (date: Date) => {
 export const TransactionHistory = () => {
   const { client, isConnected, publicKey } = useKeetaWallet();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(0);
+  const [displayCount, setDisplayCount] = useState(6);
   const ITEMS_PER_PAGE = 6;
 
-  const fetchTransactions = useCallback(async (loadMore = false) => {
+  const fetchTransactions = useCallback(async () => {
     if (!client || !isConnected) {
       setTransactions([]);
+      setAllTransactions([]);
       return;
     }
 
-    if (loadMore) {
-      setIsLoadingMore(true);
-    } else {
-      setIsLoading(true);
-      setPage(0);
-    }
+    setIsLoading(true);
     setError(null);
+    setDisplayCount(ITEMS_PER_PAGE);
 
     try {
       const repsResponse = await fetch('https://rep1.main.network.api.keeta.com/api/node/ledger/representatives');
@@ -63,10 +60,8 @@ export const TransactionHistory = () => {
         throw new Error('No API endpoint available');
       }
 
-      // Fetch more transactions for pagination
-      const limit = (loadMore ? page + 2 : 1) * 50;
       const historyResponse = await fetch(
-        `${rep.endpoints.api}/node/ledger/account/${publicKey}/history?limit=${limit}`
+        `${rep.endpoints.api}/node/ledger/account/${publicKey}/history?limit=100`
       );
       const historyData = await historyResponse.json();
 
@@ -141,24 +136,28 @@ export const TransactionHistory = () => {
           };
         });
 
-      const currentPage = loadMore ? page + 1 : 0;
-      const displayCount = (currentPage + 1) * ITEMS_PER_PAGE;
-      const displayedTxs = allFormattedTxs.slice(0, displayCount);
-      
-      setTransactions(displayedTxs);
-      setHasMore(allFormattedTxs.length > displayCount);
-      if (loadMore) setPage(currentPage);
+      setAllTransactions(allFormattedTxs);
+      setTransactions(allFormattedTxs.slice(0, ITEMS_PER_PAGE));
     } catch (err: any) {
       console.error('Failed to fetch transactions:', err);
       setError(err.message || 'Failed to fetch transactions');
     } finally {
       setIsLoading(false);
-      setIsLoadingMore(false);
     }
-  }, [client, isConnected, publicKey, page]);
+  }, [client, isConnected, publicKey]);
+
+  const loadMore = useCallback(() => {
+    setIsLoadingMore(true);
+    const newCount = displayCount + ITEMS_PER_PAGE;
+    setDisplayCount(newCount);
+    setTransactions(allTransactions.slice(0, newCount));
+    setIsLoadingMore(false);
+  }, [allTransactions, displayCount]);
+
+  const hasMore = displayCount < allTransactions.length;
 
   useEffect(() => {
-    fetchTransactions(false);
+    fetchTransactions();
   }, [fetchTransactions]);
 
   if (!isConnected) {
@@ -247,7 +246,7 @@ export const TransactionHistory = () => {
       </div>
 
       <button 
-        onClick={() => fetchTransactions(false)}
+        onClick={() => fetchTransactions()}
         className="w-full mt-4 py-2 border border-sw-blue/30 bg-sw-blue/5 hover:bg-sw-blue/10 transition-colors font-mono text-xs text-sw-blue tracking-widest"
       >
         {isLoading ? 'SCANNING...' : 'REFRESH TRANSACTIONS →'}
@@ -255,7 +254,7 @@ export const TransactionHistory = () => {
 
       {hasMore && transactions.length > 0 && (
         <button 
-          onClick={() => fetchTransactions(true)}
+          onClick={loadMore}
           disabled={isLoadingMore}
           className="w-full mt-2 py-2 border border-sw-blue/20 bg-transparent hover:bg-sw-blue/5 transition-colors font-mono text-xs text-sw-blue/60 tracking-widest disabled:opacity-50"
         >
