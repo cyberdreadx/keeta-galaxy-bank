@@ -36,69 +36,52 @@ export function useKeetaSwap() {
         console.log('[KeetaSwap] Anchor SDK loaded');
         console.log('[KeetaSwap] Available in anchor.lib:', anchor.lib ? Object.keys(anchor.lib) : 'none');
 
-        // Check if Resolver exists and explore its API
+        // Check if Resolver exists and use lookup methods
         if (anchor.lib?.Resolver) {
           console.log('[KeetaSwap] Resolver class found');
           
           try {
-            // Use 'any' to bypass strict typing while exploring
             const Resolver = anchor.lib.Resolver as any;
             
-            // Log what we have
-            console.log('[KeetaSwap] Resolver:', Resolver);
-            console.log('[KeetaSwap] Resolver.prototype:', Object.getOwnPropertyNames(Resolver.prototype || {}));
-
-            // Based on the example, resolver config takes root accounts and services config
-            // The FX services are configured in resolver.services.fx
-            // Let's try different instantiation patterns
-            
+            // Create resolver instance - try with client
             let resolverInstance: any = null;
             
-            // Pattern 1: Try with client directly
             try {
               resolverInstance = new Resolver(client);
-              console.log('[KeetaSwap] Pattern 1 worked - client direct');
+              console.log('[KeetaSwap] Resolver created with client');
             } catch (e) {
-              console.log('[KeetaSwap] Pattern 1 failed');
-            }
-
-            // Pattern 2: Try static method if available
-            if (!resolverInstance && Resolver.fromNetwork) {
-              try {
-                resolverInstance = Resolver.fromNetwork(network, client);
-                console.log('[KeetaSwap] Pattern 2 worked - fromNetwork');
-              } catch (e) {
-                console.log('[KeetaSwap] Pattern 2 failed');
-              }
-            }
-
-            // Pattern 3: Try with empty config
-            if (!resolverInstance) {
+              console.log('[KeetaSwap] Resolver(client) failed, trying empty config');
               try {
                 resolverInstance = new Resolver({});
-                console.log('[KeetaSwap] Pattern 3 worked - empty config');
-              } catch (e) {
-                console.log('[KeetaSwap] Pattern 3 failed');
+                console.log('[KeetaSwap] Resolver created with empty config');
+              } catch (e2) {
+                console.log('[KeetaSwap] Resolver({}) also failed');
               }
             }
 
             if (resolverInstance) {
               console.log('[KeetaSwap] Resolver instance created');
-              console.log('[KeetaSwap] Instance keys:', Object.keys(resolverInstance));
-              console.log('[KeetaSwap] Instance services:', resolverInstance.services);
-
-              // Check for services.fx
-              const services = resolverInstance.services;
-              if (services?.fx) {
-                setFxConfig(services.fx);
-                console.log('[KeetaSwap] FX services found:', Object.keys(services.fx));
-                setAvailableTokens([
-                  { symbol: 'KTA', name: 'Keeta' },
-                  { symbol: 'USDC', name: 'USD Coin' },
-                ]);
+              
+              // Use lookupFXServices method
+              if (typeof resolverInstance.lookupFXServices === 'function') {
+                console.log('[KeetaSwap] Calling lookupFXServices...');
+                const fxServices = await resolverInstance.lookupFXServices();
+                console.log('[KeetaSwap] FX Services result:', fxServices);
+                
+                if (fxServices && (Array.isArray(fxServices) ? fxServices.length > 0 : true)) {
+                  setFxConfig(fxServices);
+                  setAvailableTokens([
+                    { symbol: 'KTA', name: 'Keeta' },
+                    { symbol: 'USDC', name: 'USD Coin' },
+                  ]);
+                  console.log('[KeetaSwap] FX services configured');
+                } else {
+                  console.log('[KeetaSwap] No FX services available on this network');
+                  setError('No FX services available on this network');
+                }
               } else {
-                console.log('[KeetaSwap] No FX services found');
-                setError('FX service not available on this network');
+                console.log('[KeetaSwap] lookupFXServices method not found');
+                setError('FX lookup not available');
               }
             } else {
               console.log('[KeetaSwap] Could not create resolver instance');
