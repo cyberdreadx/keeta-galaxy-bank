@@ -38,7 +38,7 @@ export default function NFTGallery() {
       <StarField />
       <Header />
       
-      <main className="flex-1 container mx-auto px-4 py-6 pb-24">
+      <main className="flex-1 container mx-auto px-4 pt-20 pb-24">
         <StarWarsPanel title="NFT VAULT" className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sw-blue/70 font-mono text-xs">
