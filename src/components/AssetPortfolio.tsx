@@ -1,19 +1,13 @@
 import { useState } from "react";
 import { StarWarsPanel } from "./StarWarsPanel";
 import { TokenDetailModal } from "./TokenDetailModal";
+import { TokenIcon } from "./TokenIcon";
 import { cn } from "@/lib/utils";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useKeetaBalance } from "@/hooks/useKeetaBalance";
 import { useKtaPrice } from "@/hooks/useKtaPrice";
 import { useSettings } from "@/contexts/SettingsContext";
 import { WalletIcon, Loader2, RefreshCw } from "lucide-react";
-
-// Token icons mapping
-const TOKEN_ICONS: Record<string, string> = {
-  KTA: "⚡", PACA: "🦙", NDA: "📜", AKTA: "💎", KTARD: "🃏",
-  DRINK: "🍺", SPIT: "💦", ERIC: "👤", KCHAD: "💪", SOON: "🔜", KWIF: "🎩",
-  USDC: "💵", EURC: "💶", cbBTC: "₿", KRT: "🎫", MURF: "🐕"
-};
 
 interface TokenDetail {
   symbol: string;
@@ -22,7 +16,6 @@ interface TokenDetail {
   address: string;
   valueFiat: number | null;
   change: number | null;
-  icon: string;
   decimals: number;
   rawBalance: string;
 }
@@ -46,7 +39,6 @@ export const AssetPortfolio = () => {
       address: token.address,
       valueFiat,
       change,
-      icon: TOKEN_ICONS[token.symbol] || '🪙',
       decimals: token.decimals,
       rawBalance: token.rawBalance,
     };
@@ -104,9 +96,7 @@ export const AssetPortfolio = () => {
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 border border-sw-blue/40 bg-sw-blue/10 flex items-center justify-center text-2xl">
-                        {asset.icon}
-                      </div>
+                      <TokenIcon tokenAddress={asset.address} symbol={asset.symbol} size="md" />
                       <div>
                         <p className="font-mono text-sm text-sw-white">{asset.name}</p>
                         <p className="font-mono text-xs text-sw-blue/60">

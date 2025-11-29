@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useTokenMetadata } from "@/hooks/useTokenMetadata";
+import { TokenIcon } from "./TokenIcon";
 
 interface TokenDetailModalProps {
   isOpen: boolean;
@@ -16,7 +17,6 @@ interface TokenDetailModalProps {
     address: string;
     valueFiat: number | null;
     change: number | null;
-    icon: string;
     decimals: number;
     rawBalance: string;
   } | null;
@@ -68,7 +68,7 @@ export const TokenDetailModal = ({ isOpen, onClose, token }: TokenDetailModalPro
       <DialogContent className="bg-sw-space border-sw-blue/40 max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-sw-blue font-mono tracking-wider flex items-center gap-3">
-            <span className="text-3xl">{token.icon}</span>
+            <TokenIcon tokenAddress={token.address} symbol={token.symbol} size="lg" />
             <div>
               <div className="text-sw-white text-xl">{displayName}</div>
               <div className="text-sw-blue/60 text-sm font-normal">{displaySymbol}</div>
