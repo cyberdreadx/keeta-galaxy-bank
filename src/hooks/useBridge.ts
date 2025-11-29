@@ -6,6 +6,7 @@ export interface BridgeNetwork {
   name: string;
   symbol: string;
   location: string;
+  chainId?: number; // EVM chain ID for persistent address lookup
   color: string;
 }
 
@@ -22,6 +23,7 @@ export const BRIDGE_NETWORKS: BridgeNetwork[] = [
     name: "Base", 
     symbol: "KTA", 
     location: "chain:evm:8453",
+    chainId: 8453,
     color: "sw-green" 
   },
 ];
@@ -31,6 +33,7 @@ interface BridgeState {
   transferId: string | null;
   status: 'idle' | 'pending' | 'completed' | 'failed';
   error: string | null;
+  persistentAddress: string | null;
 }
 
 interface BridgeResult {
@@ -42,13 +45,107 @@ interface BridgeResult {
 }
 
 export function useBridge() {
-  const { client, isConnected, publicKey } = useKeetaWallet();
+  const { client, isConnected, publicKey, checkingAccount } = useKeetaWallet();
   const [state, setState] = useState<BridgeState>({
     isBridging: false,
     transferId: null,
     status: 'idle',
     error: null,
+    persistentAddress: null,
   });
+
+  // Get the persistent address (EVM deposit address) for reverse bridging
+  const getPersistentAddress = useCallback(async (evmChainId: number): Promise<string | null> => {
+    if (!isConnected || !client) {
+      console.log('[Bridge] Cannot get persistent address - wallet not connected');
+      return null;
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const anchorModule: any = await import('@keetanetwork/anchor');
+      console.log('[Bridge] Looking for persistent address method...');
+      
+      // Log all exports to find the persistent address method
+      const moduleKeys = Object.keys(anchorModule || {});
+      console.log('[Bridge] Anchor module exports:', moduleKeys);
+      
+      // Check for AssetMovement client
+      const AssetMovementClient = 
+        anchorModule?.AssetMovement?.Client 
+        || anchorModule?.KeetaAssetMovementAnchorClient
+        || anchorModule?.AssetMovementClient
+        || anchorModule?.default?.AssetMovement?.Client
+        || anchorModule?.default;
+
+      if (AssetMovementClient) {
+        const assetClient = new AssetMovementClient(client);
+        console.log('[Bridge] AssetMovement client methods:', Object.keys(assetClient));
+        console.log('[Bridge] AssetMovement client prototype:', Object.getOwnPropertyNames(Object.getPrototypeOf(assetClient)));
+        
+        // Try various method names for getting persistent address
+        const methodNames = [
+          'getPersistentAddress',
+          'persistentAddress', 
+          'getDepositAddress',
+          'depositAddress',
+          'getEvmAddress',
+          'evmAddress',
+          'getExternalAddress',
+          'externalAddress'
+        ];
+        
+        for (const methodName of methodNames) {
+          if (typeof assetClient[methodName] === 'function') {
+            console.log(`[Bridge] Found method: ${methodName}`);
+            try {
+              // Method signature: (account/publicKey, chainId) based on user info
+              // Try with publicKey string first
+              const address = await assetClient[methodName](publicKey, evmChainId);
+              console.log(`[Bridge] ${methodName} returned:`, address);
+              if (address) {
+                setState(prev => ({ ...prev, persistentAddress: address }));
+                return address;
+              }
+            } catch (methodErr) {
+              console.log(`[Bridge] ${methodName} failed:`, methodErr);
+            }
+          }
+        }
+
+        // Also check if it's a property getter
+        for (const methodName of methodNames) {
+          if (assetClient[methodName] && typeof assetClient[methodName] !== 'function') {
+            console.log(`[Bridge] Found property: ${methodName} =`, assetClient[methodName]);
+          }
+        }
+      }
+
+      // Also check if there's a static method on the module
+      const staticMethods = ['getPersistentAddress', 'persistentAddress', 'getDepositAddress'];
+      for (const methodName of staticMethods) {
+        if (typeof anchorModule[methodName] === 'function') {
+          console.log(`[Bridge] Found static method: ${methodName}`);
+          try {
+            const address = await anchorModule[methodName](publicKey, evmChainId);
+            console.log(`[Bridge] Static ${methodName} returned:`, address);
+            if (address) {
+              setState(prev => ({ ...prev, persistentAddress: address }));
+              return address;
+            }
+          } catch (staticErr) {
+            console.log(`[Bridge] Static ${methodName} failed:`, staticErr);
+          }
+        }
+      }
+
+      console.log('[Bridge] Could not find persistent address method');
+      return null;
+    } catch (err) {
+      console.error('[Bridge] Error getting persistent address:', err);
+      return null;
+    }
+  }, [isConnected, client, publicKey]);
 
   const initiateBridge = useCallback(async (
     fromNetwork: BridgeNetwork,
@@ -319,12 +416,14 @@ export function useBridge() {
       transferId: null,
       status: 'idle',
       error: null,
+      persistentAddress: null,
     });
   }, []);
 
   return {
     ...state,
     initiateBridge,
+    getPersistentAddress,
     reset,
     networks: BRIDGE_NETWORKS,
   };
