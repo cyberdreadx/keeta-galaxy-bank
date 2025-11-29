@@ -79,46 +79,58 @@ export function useBridge() {
       try {
         anchorModule = await import('@keetanetwork/anchor');
         console.log('[Bridge] Anchor SDK loaded successfully');
-        console.log('[Bridge] All exports:', Object.keys(anchorModule || {}));
-        console.log('[Bridge] Full module:', anchorModule);
+        const moduleKeys = Object.keys(anchorModule || {});
+        console.log('[Bridge] All exports:', moduleKeys);
         
-        // Log all nested properties to find the client
-        for (const key of Object.keys(anchorModule || {})) {
-          console.log(`[Bridge] Export "${key}":`, anchorModule[key]);
-          if (typeof anchorModule[key] === 'object' && anchorModule[key]) {
-            console.log(`[Bridge] Export "${key}" keys:`, Object.keys(anchorModule[key]));
+        // Log all exports with their types
+        for (const key of moduleKeys) {
+          const exportValue = anchorModule[key];
+          console.log(`[Bridge] Export "${key}":`, typeof exportValue, exportValue);
+          if (typeof exportValue === 'object' && exportValue && !Array.isArray(exportValue)) {
+            const nestedKeys = Object.keys(exportValue);
+            console.log(`[Bridge] Export "${key}" nested keys:`, nestedKeys);
+            // Go one level deeper
+            for (const nestedKey of nestedKeys.slice(0, 5)) {
+              console.log(`[Bridge] Export "${key}.${nestedKey}":`, typeof exportValue[nestedKey]);
+            }
+          }
+          if (typeof exportValue === 'function') {
+            console.log(`[Bridge] Export "${key}" is a function/class, prototype:`, Object.keys(exportValue.prototype || {}));
           }
         }
-        
-        // Check default export
-        if (anchorModule.default) {
-          console.log('[Bridge] Default export:', anchorModule.default);
-          console.log('[Bridge] Default export keys:', Object.keys(anchorModule.default || {}));
-        }
       } catch (importErr) {
-        console.warn('[Bridge] Anchor SDK not available:', importErr);
-      }
-
-      // Check for AssetMovement client in various export patterns
-      const AssetMovementClient = anchorModule?.AssetMovement?.Client 
-        || anchorModule?.KeetaAssetMovementAnchorClient
-        || anchorModule?.AssetMovementClient
-        || anchorModule?.default?.AssetMovement?.Client
-        || anchorModule?.default?.AssetMovementClient
-        || anchorModule?.AssetMovementAnchorClient
-        || anchorModule?.Client
-        || null;
-
-      console.log('[Bridge] AssetMovementClient found:', !!AssetMovementClient);
-
-      if (!AssetMovementClient) {
-        // SDK structure not as expected - show info message
-        console.log('[Bridge] Could not find AssetMovementClient in any known pattern');
-        console.log('[Bridge] Available patterns checked: AssetMovement.Client, KeetaAssetMovementAnchorClient, AssetMovementClient, default.AssetMovement.Client, default.AssetMovementClient, AssetMovementAnchorClient, Client');
+        console.error('[Bridge] Anchor SDK import failed:', importErr);
         setState(prev => ({ ...prev, isBridging: false, status: 'idle' }));
         return { 
           success: false, 
-          error: 'Bridge SDK integration in progress. Please visit keeta.com for bridging.' 
+          error: 'Bridge SDK not available. Please use keeta.com/bridge for bridging.' 
+        };
+      }
+
+      // Check for AssetMovement client in many possible patterns
+      const AssetMovementClient = 
+        anchorModule?.AssetMovement?.Client 
+        || anchorModule?.KeetaAssetMovementAnchorClient
+        || anchorModule?.AssetMovementClient
+        || anchorModule?.AssetMovementAnchorClient
+        || anchorModule?.AnchorClient
+        || anchorModule?.BridgeClient
+        || anchorModule?.Client
+        || anchorModule?.default?.AssetMovement?.Client
+        || anchorModule?.default?.AssetMovementClient
+        || anchorModule?.default?.Client
+        || anchorModule?.default
+        || null;
+
+      console.log('[Bridge] AssetMovementClient found:', !!AssetMovementClient, AssetMovementClient);
+
+      // If we found something, try to use it
+      if (!AssetMovementClient) {
+        console.log('[Bridge] No matching client class found in SDK exports');
+        setState(prev => ({ ...prev, isBridging: false, status: 'idle' }));
+        return { 
+          success: false, 
+          error: 'Bridge SDK client not found. Please use keeta.com/bridge to bridge your KTA.' 
         };
       }
 
