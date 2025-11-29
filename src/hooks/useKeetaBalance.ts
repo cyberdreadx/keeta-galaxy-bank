@@ -25,7 +25,7 @@ const TOKEN_MAP: Record<string, { symbol: string; decimals: number; name?: strin
   'keeta_apyez4az5r6shtblf3qtzirmikq3tghb5svrmmrltdkxgnnzzhlstby3cuscc': { symbol: 'cbBTC', decimals: 8, name: 'Coinbase BTC' },
   // Tokens from user's wallet
   'keeta_anin2xcn2ijmhezrmrzyoabztxc5kq43n3ftr4bziw2unvg46dvncqkbbpc72': { symbol: 'KCHAD', decimals: 18, name: 'KeetaChad' },
-  'keeta_ap46alqluwcixrc4eoi7b5pfsyin27cjzzvimn3dnsmwy6tdt6musnpqjbz6q': { symbol: 'KRT', decimals: 9, name: 'Kreet' },
+  'keeta_ap46alqluwcixrc4eoi7b5pfsyin27cjzzvimn3dnsmwy6tdt6musnpqjbz6q': { symbol: 'KRT', decimals: 8, name: 'Kreet' },
   'keeta_ao7nitutebhm2pkrfbtniepivaw324hecyb43wsxts5rrhi2p5ckgof37racm': { symbol: 'MURF', decimals: 0, name: 'Murphy' },
   // Alpaca ecosystem tokens
   'keeta_ao55q4okjv4hrbo7z7zl3hivrf64og3fpokup5hvt2wfejim5mxzxcykboc3w': { symbol: 'NDA', decimals: 18 },
