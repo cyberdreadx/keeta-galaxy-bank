@@ -107,9 +107,9 @@ export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR)
               // Helper to extract string symbol from various formats
               const extractSymbol = (val: any): string | null => {
                 if (typeof val === 'string') return val.replace('$', '');
+                if (val?.currency && typeof val.currency === 'string') return val.currency.replace('$', '');
                 if (val?.symbol && typeof val.symbol === 'string') return val.symbol.replace('$', '');
                 if (val?.currencyCode && typeof val.currencyCode === 'string') return val.currencyCode.replace('$', '');
-                if (val?.toString && val.toString() !== '[object Object]') return val.toString().replace('$', '');
                 return null;
               };
               
@@ -121,7 +121,7 @@ export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR)
                     return {
                       symbol: sym,
                       name: t?.name || sym,
-                      address: t?.address || t?.publicKey,
+                      address: t?.token || t?.address || t?.publicKey,
                     };
                   })
                   .filter((t: any): t is NonNullable<typeof t> => t !== null);
