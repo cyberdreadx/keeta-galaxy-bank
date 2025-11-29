@@ -33,21 +33,27 @@ export const TransactionHistory = () => {
   const { client, isConnected, publicKey } = useKeetaWallet();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const ITEMS_PER_PAGE = 10;
 
-  const fetchTransactions = useCallback(async () => {
+  const fetchTransactions = useCallback(async (loadMore = false) => {
     if (!client || !isConnected) {
       setTransactions([]);
       return;
     }
 
-    setIsLoading(true);
+    if (loadMore) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+      setPage(0);
+    }
     setError(null);
 
     try {
-      console.log('[TransactionHistory] Fetching transactions for:', publicKey);
-      
-      // Fetch representatives to get API endpoint
       const repsResponse = await fetch('https://rep1.main.network.api.keeta.com/api/node/ledger/representatives');
       const repsData = await repsResponse.json();
       const representatives = repsData.representatives || [];
@@ -57,14 +63,13 @@ export const TransactionHistory = () => {
         throw new Error('No API endpoint available');
       }
 
-      // Fetch transaction history from the Keeta API
+      // Fetch more transactions for pagination
+      const limit = (loadMore ? page + 2 : 1) * 50;
       const historyResponse = await fetch(
-        `${rep.endpoints.api}/node/ledger/account/${publicKey}/history?limit=20`
+        `${rep.endpoints.api}/node/ledger/account/${publicKey}/history?limit=${limit}`
       );
       const historyData = await historyResponse.json();
-      console.log('[TransactionHistory] History data:', historyData);
 
-      // Extract blocks from voteStaple structure
       const allBlocks: any[] = [];
       if (historyData.history) {
         historyData.history.forEach((item: any) => {
@@ -74,25 +79,19 @@ export const TransactionHistory = () => {
         });
       }
 
-      console.log('[TransactionHistory] Found blocks:', allBlocks.length);
-
-      // KTA token address for filtering
       const KTA_TOKEN = 'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg';
 
-      // Filter and transform blocks to transactions
-      const formattedTxs: Transaction[] = allBlocks
+      const allFormattedTxs: Transaction[] = allBlocks
         .filter(block => 
           block.account === publicKey ||
           block.operations?.some((op: any) => op.to === publicKey)
         )
-        .slice(0, 10)
         .map((block: any, index: number) => {
           const operations = block.operations || [];
           const isSender = block.account === publicKey;
           
-          // Find KTA operations
           const ktaOps = operations.filter((op: any) => 
-            op.token === KTA_TOKEN || !op.token // Default to KTA if no token specified
+            op.token === KTA_TOKEN || !op.token
           );
           
           let amount = 0;
@@ -100,7 +99,6 @@ export const TransactionHistory = () => {
           let txType: 'send' | 'receive' = 'receive';
           
           if (isSender) {
-            // User sent - sum all KTA amounts in this block
             txType = 'send';
             for (const op of ktaOps) {
               if (op.amount) {
@@ -113,10 +111,8 @@ export const TransactionHistory = () => {
                 } catch {}
               }
             }
-            // Get first recipient as counterparty
             counterparty = ktaOps[0]?.to || '';
           } else {
-            // User received - find operation where we're the recipient
             txType = 'receive';
             const myOp = ktaOps.find((op: any) => op.to === publicKey);
             if (myOp?.amount) {
@@ -131,7 +127,6 @@ export const TransactionHistory = () => {
             counterparty = block.account || '';
           }
           
-          // Get hash for ID
           const hash = block.$hash || block.hash || block.blockHash || String(index);
           const shortHash = typeof hash === 'string' ? hash.substring(0, 6).toUpperCase() : String(index);
           
@@ -146,17 +141,24 @@ export const TransactionHistory = () => {
           };
         });
 
-      setTransactions(formattedTxs);
+      const currentPage = loadMore ? page + 1 : 0;
+      const displayCount = (currentPage + 1) * ITEMS_PER_PAGE;
+      const displayedTxs = allFormattedTxs.slice(0, displayCount);
+      
+      setTransactions(displayedTxs);
+      setHasMore(allFormattedTxs.length > displayCount);
+      if (loadMore) setPage(currentPage);
     } catch (err: any) {
       console.error('Failed to fetch transactions:', err);
       setError(err.message || 'Failed to fetch transactions');
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
-  }, [client, isConnected, publicKey]);
+  }, [client, isConnected, publicKey, page]);
 
   useEffect(() => {
-    fetchTransactions();
+    fetchTransactions(false);
   }, [fetchTransactions]);
 
   if (!isConnected) {
@@ -245,11 +247,21 @@ export const TransactionHistory = () => {
       </div>
 
       <button 
-        onClick={fetchTransactions}
+        onClick={() => fetchTransactions(false)}
         className="w-full mt-4 py-2 border border-sw-blue/30 bg-sw-blue/5 hover:bg-sw-blue/10 transition-colors font-mono text-xs text-sw-blue tracking-widest"
       >
         {isLoading ? 'SCANNING...' : 'REFRESH TRANSACTIONS →'}
       </button>
+
+      {hasMore && transactions.length > 0 && (
+        <button 
+          onClick={() => fetchTransactions(true)}
+          disabled={isLoadingMore}
+          className="w-full mt-2 py-2 border border-sw-blue/20 bg-transparent hover:bg-sw-blue/5 transition-colors font-mono text-xs text-sw-blue/60 tracking-widest disabled:opacity-50"
+        >
+          {isLoadingMore ? 'LOADING...' : 'LOAD MORE →'}
+        </button>
+      )}
     </StarWarsPanel>
   );
 };
