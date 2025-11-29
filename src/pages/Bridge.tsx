@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ArrowDown, Loader2, ExternalLink } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowDown, Loader2, ExternalLink, Copy, Check } from "lucide-react";
 import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
@@ -14,12 +14,29 @@ const Bridge = () => {
   const { play } = useSoundEffects();
   const { balance } = useKeetaBalance();
   const { toast } = useToast();
-  const { initiateBridge, isBridging, status } = useBridge();
+  const { initiateBridge, getPersistentAddress, isBridging, status, persistentAddress } = useBridge();
   
   const [fromNetwork, setFromNetwork] = useState(BRIDGE_NETWORKS[0]); // Keeta L1
   const [toNetwork, setToNetwork] = useState(BRIDGE_NETWORKS[1]); // Base
   const [amount, setAmount] = useState("");
   const [destinationAddress, setDestinationAddress] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [loadingAddress, setLoadingAddress] = useState(false);
+
+  // Fetch persistent address when bridging from Base to Keeta L1
+  useEffect(() => {
+    const fetchPersistentAddress = async () => {
+      if (fromNetwork.id === 'base' && toNetwork.id === 'keeta' && fromNetwork.chainId) {
+        setLoadingAddress(true);
+        await getPersistentAddress(fromNetwork.chainId);
+        setLoadingAddress(false);
+      }
+    };
+    
+    if (isConnected) {
+      fetchPersistentAddress();
+    }
+  }, [fromNetwork, toNetwork, isConnected, getPersistentAddress]);
 
   const handleSwapNetworks = () => {
     play('click');
@@ -74,6 +91,22 @@ const Bridge = () => {
       setAmount(balance.toString());
     }
   };
+
+  const handleCopyAddress = async () => {
+    if (persistentAddress) {
+      await navigator.clipboard.writeText(persistentAddress);
+      setCopied(true);
+      play('click');
+      toast({
+        title: "Address Copied",
+        description: "Deposit address copied to clipboard"
+      });
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  // Check if bridging FROM Base TO Keeta (reverse bridge)
+  const isReverseBridge = fromNetwork.id === 'base' && toNetwork.id === 'keeta';
 
   if (!isConnected) {
     return (
@@ -192,63 +225,111 @@ const Bridge = () => {
                 </div>
               </div>
 
-              {/* Destination Address */}
-              <div className="space-y-2">
-                <label className="font-mono text-xs text-sw-blue/80 tracking-widest uppercase">
-                  DESTINATION ADDRESS
-                </label>
-                <input
-                  type="text"
-                  value={destinationAddress}
-                  onChange={(e) => setDestinationAddress(e.target.value)}
-                  placeholder={toNetwork.id === 'base' ? '0x... (Base EVM Address)' : 'Keeta Address'}
-                  className="w-full p-4 bg-sw-space/80 border border-sw-blue/30 text-sw-blue placeholder:text-sw-blue/30 font-mono text-sm focus:outline-none focus:border-sw-blue/60"
-                  disabled={isBridging || isTestnet}
-                />
-              </div>
+              {/* Persistent Address for Reverse Bridge (Base → Keeta L1) */}
+              {isReverseBridge && (
+                <div className="space-y-2">
+                  <label className="font-mono text-xs text-sw-green/80 tracking-widest uppercase">
+                    YOUR BASE DEPOSIT ADDRESS
+                  </label>
+                  <p className="font-mono text-[10px] text-sw-blue/50">
+                    Send KTA on Base to this address to receive on Keeta L1
+                  </p>
+                  {loadingAddress ? (
+                    <div className="p-4 border border-sw-green/30 bg-sw-green/10 rounded flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-sw-green" />
+                      <span className="font-mono text-xs text-sw-green">Loading address...</span>
+                    </div>
+                  ) : persistentAddress ? (
+                    <div className="p-4 border border-sw-green/40 bg-sw-green/10 rounded">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs text-sw-green break-all">
+                          {persistentAddress}
+                        </span>
+                        <button
+                          onClick={handleCopyAddress}
+                          className="p-2 border border-sw-green/40 bg-sw-green/20 hover:bg-sw-green/30 transition-colors flex-shrink-0"
+                        >
+                          {copied ? (
+                            <Check className="w-4 h-4 text-sw-green" />
+                          ) : (
+                            <Copy className="w-4 h-4 text-sw-green" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 border border-sw-yellow/30 bg-sw-yellow/10 rounded">
+                      <p className="font-mono text-xs text-sw-yellow text-center">
+                        Persistent address not available. Check console for SDK method discovery.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
-              {/* Amount Input */}
-              <div className="space-y-2">
-                <label className="font-mono text-xs text-sw-blue/80 tracking-widest uppercase">
-                  AMOUNT
-                </label>
-                <div className="relative">
+              {/* Destination Address - Only show for Keeta → Base bridge */}
+              {!isReverseBridge && (
+                <div className="space-y-2">
+                  <label className="font-mono text-xs text-sw-blue/80 tracking-widest uppercase">
+                    DESTINATION ADDRESS
+                  </label>
                   <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full p-4 pr-20 bg-sw-space/80 border border-sw-blue/30 text-sw-blue placeholder:text-sw-blue/30 font-mono text-lg focus:outline-none focus:border-sw-blue/60"
+                    type="text"
+                    value={destinationAddress}
+                    onChange={(e) => setDestinationAddress(e.target.value)}
+                    placeholder={toNetwork.id === 'base' ? '0x... (Base EVM Address)' : 'Keeta Address'}
+                    className="w-full p-4 bg-sw-space/80 border border-sw-blue/30 text-sw-blue placeholder:text-sw-blue/30 font-mono text-sm focus:outline-none focus:border-sw-blue/60"
                     disabled={isBridging || isTestnet}
                   />
-                  <button
-                    onClick={handleMaxClick}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1 bg-sw-blue/20 border border-sw-blue/40 text-sw-blue font-mono text-xs hover:bg-sw-blue/30 transition-colors"
-                    disabled={isBridging || isTestnet}
-                  >
-                    MAX
-                  </button>
                 </div>
-              </div>
+              )}
 
-              {/* Bridge Button */}
-              <button
-                onClick={handleBridge}
-                disabled={isBridging || isTestnet || !amount || !destinationAddress}
-                className="w-full py-4 bg-sw-orange/20 border border-sw-orange/50 hover:bg-sw-orange/30 hover:border-sw-orange text-sw-orange font-display font-bold tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-              >
-                {isBridging ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    BRIDGING...
-                  </>
-                ) : (
-                  'INITIATE BRIDGE'
-                )}
-              </button>
+              {/* Amount Input - Only for Keeta → Base */}
+              {!isReverseBridge && (
+                <div className="space-y-2">
+                  <label className="font-mono text-xs text-sw-blue/80 tracking-widest uppercase">
+                    AMOUNT
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full p-4 pr-20 bg-sw-space/80 border border-sw-blue/30 text-sw-blue placeholder:text-sw-blue/30 font-mono text-lg focus:outline-none focus:border-sw-blue/60"
+                      disabled={isBridging || isTestnet}
+                    />
+                    <button
+                      onClick={handleMaxClick}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1 bg-sw-blue/20 border border-sw-blue/40 text-sw-blue font-mono text-xs hover:bg-sw-blue/30 transition-colors"
+                      disabled={isBridging || isTestnet}
+                    >
+                      MAX
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Bridge Button - Only for Keeta → Base */}
+              {!isReverseBridge && (
+                <button
+                  onClick={handleBridge}
+                  disabled={isBridging || isTestnet || !amount || !destinationAddress}
+                  className="w-full py-4 bg-sw-orange/20 border border-sw-orange/50 hover:bg-sw-orange/30 hover:border-sw-orange text-sw-orange font-display font-bold tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                >
+                  {isBridging ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      BRIDGING...
+                    </>
+                  ) : (
+                    'INITIATE BRIDGE'
+                  )}
+                </button>
+              )}
 
               {/* Status */}
-              {status !== 'idle' && (
+              {status !== 'idle' && !isReverseBridge && (
                 <p className={`font-mono text-xs text-center ${
                   status === 'completed' ? 'text-sw-green' : 
                   status === 'failed' ? 'text-sw-red' : 
