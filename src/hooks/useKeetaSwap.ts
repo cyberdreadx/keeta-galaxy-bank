@@ -16,18 +16,25 @@ interface SwapToken {
 
 // Known FX Anchors on Keeta Network
 const FX_ANCHORS = {
+  default: {
+    name: 'Keeta Network',
+    publicKey: null, // Uses Network account as default resolver
+    description: 'General token swaps',
+  },
   alpaca: {
     name: 'Alpaca DEX',
     publicKey: 'keeta_aabyuc4ce7n7n7gyjbcszpxlawujaacpu2wj72fljjjhhhyf25xmj66gand2ori',
+    description: 'Alpaca ecosystem tokens ($PACA, $NDA, $AKTA, etc.)',
   },
   murf: {
-    name: 'Murf (Murphy)',
+    name: 'Murf',
     publicKey: 'keeta_athqkb6yw6h2e436xxaakuy4bctrqkqfctvy5xsp3ugvb3avv56zruxjcxauq',
+    description: 'Murphy FX services',
   },
 };
 
-// Default to Alpaca DEX
-const DEFAULT_ANCHOR = 'alpaca';
+// Default to Network account resolver
+const DEFAULT_ANCHOR = 'default';
 
 export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR) {
   const { client, network, isConnected } = useKeetaWallet();
@@ -62,18 +69,25 @@ export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR)
         const Anchor = await import('@keetanetwork/anchor');
         const KeetaNet = Anchor.KeetaNet;
         console.log('[KeetaSwap] Anchor SDK loaded');
-        console.log('[KeetaSwap] Using FX Anchor:', anchor.name, anchor.publicKey);
+        console.log('[KeetaSwap] Using FX Anchor:', anchor.name, anchor.publicKey || '(Network default)');
 
-        // Create resolver account from anchor public key
-        const resolverAccount = KeetaNet.lib.Account.fromPublicKeyString(anchor.publicKey);
-        console.log('[KeetaSwap] Resolver account created');
-
-        // Create FX Client with anchor as root
+        // Create FX Client - with or without root depending on anchor
         if ((Anchor as any).FX?.Client) {
           try {
-            const fxClientInstance = new (Anchor as any).FX.Client(client, { 
-              root: resolverAccount 
-            });
+            let fxClientInstance;
+            
+            if (anchor.publicKey) {
+              // Use specific anchor as root
+              const resolverAccount = KeetaNet.lib.Account.fromPublicKeyString(anchor.publicKey);
+              console.log('[KeetaSwap] Resolver account created');
+              fxClientInstance = new (Anchor as any).FX.Client(client, { 
+                root: resolverAccount 
+              });
+            } else {
+              // Use default Network account resolver (no root option)
+              console.log('[KeetaSwap] Using default Network resolver');
+              fxClientInstance = new (Anchor as any).FX.Client(client);
+            }
             console.log('[KeetaSwap] FX Client created');
             
             // Check for available conversions
