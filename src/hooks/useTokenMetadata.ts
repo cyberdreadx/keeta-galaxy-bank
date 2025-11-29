@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import pako from 'pako';
 
 interface TokenMetadata {
   name: string;
@@ -7,8 +8,6 @@ interface TokenMetadata {
   decimalPlaces: number;
   accessMode: string;
   defaultPermissions: string;
-  isLoading: boolean;
-  error: string | null;
 }
 
 const metadataCache: Record<string, TokenMetadata> = {};
@@ -44,8 +43,9 @@ export const useTokenMetadata = (tokenAddress: string | null) => {
       }
 
       const data = await response.json();
+      console.log('[useTokenMetadata] Raw data:', data);
       
-      // Parse metadata from the info field
+      // Default metadata
       let parsedMetadata: TokenMetadata = {
         name: 'Unknown',
         symbol: 'UNKNOWN',
@@ -53,66 +53,64 @@ export const useTokenMetadata = (tokenAddress: string | null) => {
         decimalPlaces: 0,
         accessMode: 'PUBLIC',
         defaultPermissions: 'ACCESS',
-        isLoading: false,
-        error: null,
       };
 
       if (data.info?.metadata) {
         try {
-          // Metadata is base64 + compressed, need to decode
           const metadataStr = data.info.metadata;
+          console.log('[useTokenMetadata] Metadata string:', metadataStr.substring(0, 50));
           
-          // Try to decode if it's a JSON string or parse compressed data
-          if (metadataStr.startsWith('eJ')) {
-            // Compressed data - decode base64 and decompress
-            const binaryStr = atob(metadataStr);
-            const bytes = new Uint8Array(binaryStr.length);
-            for (let i = 0; i < binaryStr.length; i++) {
-              bytes[i] = binaryStr.charCodeAt(i);
-            }
-            
-            // Use pako for decompression if available, otherwise try to parse raw
-            try {
-              const pako = await import('pako');
-              const decompressed = pako.inflate(bytes, { to: 'string' });
-              const parsed = JSON.parse(decompressed);
-              
-              parsedMetadata = {
-                name: parsed.name || parsed.Name || 'Unknown',
-                symbol: parsed.symbol || parsed.Symbol || 'UNKNOWN',
-                supply: parsed.supply || parsed.Supply || '0',
-                decimalPlaces: parsed.decimalPlaces ?? parsed.DecimalPlaces ?? 0,
-                accessMode: parsed.accessMode || parsed.AccessMode || 'PUBLIC',
-                defaultPermissions: parsed.defaultPermissions || parsed.DefaultPermissions || 'ACCESS',
-                isLoading: false,
-                error: null,
-              };
-            } catch (decompressErr) {
-              console.warn('[useTokenMetadata] Could not decompress metadata:', decompressErr);
-            }
-          } else {
-            // Try direct JSON parse
-            const parsed = JSON.parse(metadataStr);
-            parsedMetadata = {
-              name: parsed.name || 'Unknown',
-              symbol: parsed.symbol || 'UNKNOWN',
-              supply: parsed.supply || '0',
-              decimalPlaces: parsed.decimalPlaces ?? 0,
-              accessMode: parsed.accessMode || 'PUBLIC',
-              defaultPermissions: parsed.defaultPermissions || 'ACCESS',
-              isLoading: false,
-              error: null,
-            };
+          // Decode base64 first
+          const binaryStr = atob(metadataStr);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            bytes[i] = binaryStr.charCodeAt(i);
           }
+          
+          let jsonStr: string;
+          
+          // Check if it's zlib compressed (starts with 0x78)
+          if (bytes[0] === 0x78) {
+            // Compressed - decompress with pako
+            console.log('[useTokenMetadata] Decompressing zlib data');
+            jsonStr = pako.inflate(bytes, { to: 'string' });
+          } else {
+            // Not compressed - just decode as UTF-8
+            console.log('[useTokenMetadata] Decoding as plain text');
+            jsonStr = new TextDecoder().decode(bytes);
+          }
+          
+          console.log('[useTokenMetadata] Parsed JSON string:', jsonStr.substring(0, 100));
+          const parsed = JSON.parse(jsonStr);
+          console.log('[useTokenMetadata] Parsed metadata:', parsed);
+          
+          parsedMetadata = {
+            name: parsed.name || parsed.Name || 'Unknown',
+            symbol: parsed.symbol || parsed.Symbol || 'UNKNOWN',
+            supply: String(parsed.supply || parsed.Supply || '0'),
+            decimalPlaces: parsed.decimalPlaces ?? parsed.DecimalPlaces ?? 0,
+            accessMode: parsed.accessMode || parsed.AccessMode || 'PUBLIC',
+            defaultPermissions: parsed.defaultPermissions || parsed.DefaultPermissions || 'ACCESS',
+          };
         } catch (parseErr) {
           console.warn('[useTokenMetadata] Could not parse metadata:', parseErr);
         }
       }
 
-      // Also check for direct fields
-      if (data.info?.name) parsedMetadata.name = data.info.name;
-      if (data.info?.symbol) parsedMetadata.symbol = data.info.symbol;
+      // Also check for direct info fields as fallback
+      if (data.info?.name && parsedMetadata.name === 'Unknown') {
+        parsedMetadata.name = data.info.name;
+      }
+      if (data.info?.description) {
+        // Sometimes name is in description
+        const desc = data.info.description;
+        if (desc && parsedMetadata.name === 'Unknown') {
+          parsedMetadata.name = desc;
+        }
+      }
 
+      console.log('[useTokenMetadata] Final metadata:', parsedMetadata);
+      
       // Cache the result
       metadataCache[tokenAddress] = parsedMetadata;
       setMetadata(parsedMetadata);
