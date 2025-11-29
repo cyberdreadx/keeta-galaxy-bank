@@ -5,6 +5,8 @@ import { StarField } from '@/components/StarField';
 import { StarWarsPanel } from '@/components/StarWarsPanel';
 import { useKeetaWallet } from '@/contexts/KeetaWalletContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Browser } from '@capacitor/browser';
+import { Capacitor } from '@capacitor/core';
 import { 
   Globe, 
   ArrowLeft, 
@@ -16,7 +18,8 @@ import {
   Search,
   X,
   Bookmark,
-  AlertTriangle
+  AlertTriangle,
+  Smartphone
 } from 'lucide-react';
 
 interface SavedDApp {
@@ -34,6 +37,7 @@ const FEATURED_DAPPS: SavedDApp[] = [
 export default function DAppBrowser() {
   const { isConnected } = useKeetaWallet();
   const isMobile = useIsMobile();
+  const isNative = Capacitor.isNativePlatform();
   const [url, setUrl] = useState('');
   const [currentUrl, setCurrentUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -53,7 +57,7 @@ export default function DAppBrowser() {
 
   // Detect iframe load errors via timeout (shorter for better UX)
   useEffect(() => {
-    if (!currentUrl || !isLoading) return;
+    if (!currentUrl || !isLoading || isNative) return;
     
     const timeout = setTimeout(() => {
       if (isLoading) {
@@ -63,7 +67,22 @@ export default function DAppBrowser() {
     }, 4000); // 4 second timeout - most sites load faster
     
     return () => clearTimeout(timeout);
-  }, [currentUrl, isLoading]);
+  }, [currentUrl, isLoading, isNative]);
+
+  // Open URL in native browser (Capacitor InAppBrowser)
+  const openInNativeBrowser = async (targetUrl: string) => {
+    try {
+      await Browser.open({ 
+        url: targetUrl,
+        presentationStyle: 'fullscreen',
+        toolbarColor: '#0a0f1c'
+      });
+    } catch (error) {
+      console.error('Failed to open native browser:', error);
+      // Fallback to window.open
+      window.open(targetUrl, '_blank');
+    }
+  };
 
   const navigateTo = (targetUrl: string) => {
     let processedUrl = targetUrl.trim();
@@ -73,6 +92,14 @@ export default function DAppBrowser() {
       processedUrl = 'https://' + processedUrl;
     }
     
+    // If native app, use Capacitor InAppBrowser
+    if (isNative) {
+      openInNativeBrowser(processedUrl);
+      setUrl(processedUrl);
+      return;
+    }
+    
+    // Web fallback - use iframe
     setLoadError(false);
     setCurrentUrl(processedUrl);
     setUrl(processedUrl);
@@ -284,12 +311,20 @@ export default function DAppBrowser() {
 
           {/* Browser Content */}
           <div className="flex-1 min-h-[400px] border border-sw-blue/30 relative overflow-hidden">
-            {!currentUrl ? (
+            {!currentUrl || isNative ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
                 <Globe className="w-16 h-16 text-sw-blue/30 mb-4" />
                 <p className="text-sw-blue/50 font-mono text-sm mb-6 text-center">
-                  ENTER A URL OR SELECT A DAPP
+                  {isNative ? 'SELECT A DAPP TO OPEN' : 'ENTER A URL OR SELECT A DAPP'}
                 </p>
+                
+                {/* Native mode indicator */}
+                {isNative && (
+                  <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-sw-green/10 border border-sw-green/30 rounded">
+                    <Smartphone className="w-4 h-4 text-sw-green" />
+                    <p className="text-sw-green font-mono text-xs">NATIVE BROWSER MODE</p>
+                  </div>
+                )}
                 
                 {/* Featured DApps */}
                 <div className="w-full max-w-sm">
@@ -312,7 +347,9 @@ export default function DAppBrowser() {
                 </div>
                 
                 <p className="text-sw-blue/20 font-mono text-[10px] mt-6 text-center">
-                  Note: Some sites may block embedding for security
+                  {isNative 
+                    ? 'DApps open in full native browser' 
+                    : 'Note: Some sites may block embedding for security'}
                 </p>
               </div>
             ) : (
