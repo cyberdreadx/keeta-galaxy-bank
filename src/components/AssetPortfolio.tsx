@@ -41,7 +41,7 @@ export const AssetPortfolio = () => {
     
     return {
       symbol: token.symbol,
-      name: token.symbol,
+      name: token.name,
       balance: token.balance,
       address: token.address,
       valueFiat,

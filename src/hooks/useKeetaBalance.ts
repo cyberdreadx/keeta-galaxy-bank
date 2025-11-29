@@ -4,6 +4,7 @@ import { useKeetaWallet } from '@/contexts/KeetaWalletContext';
 interface TokenBalance {
   address: string;
   symbol: string;
+  name: string;
   balance: number;
   rawBalance: string;
   decimals: number;
@@ -18,7 +19,7 @@ interface KeetaBalance {
 }
 
 // Known token addresses to symbols mapping for Keeta network
-const TOKEN_MAP: Record<string, { symbol: string; decimals: number; name?: string }> = {
+const TOKEN_MAP: Record<string, { symbol: string; decimals: number; name: string }> = {
   'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg': { symbol: 'KTA', decimals: 18, name: 'Keeta' },
   'keeta_amnkge74xitii5dsobstldatv3irmyimujfjotftx7plaaaseam4bntb7wnna': { symbol: 'USDC', decimals: 6, name: 'USD Coin' },
   'keeta_apblhar4ncp3ln62wrygsn73pt3houuvj7ic47aarnolpcu67oqn4xqcji3au': { symbol: 'EURC', decimals: 6, name: 'Euro Coin' },
@@ -28,15 +29,15 @@ const TOKEN_MAP: Record<string, { symbol: string; decimals: number; name?: strin
   'keeta_ap46alqluwcixrc4eoi7b5pfsyin27cjzzvimn3dnsmwy6tdt6musnpqjbz6q': { symbol: 'KRT', decimals: 8, name: 'Kreet' },
   'keeta_ao7nitutebhm2pkrfbtniepivaw324hecyb43wsxts5rrhi2p5ckgof37racm': { symbol: 'MURF', decimals: 0, name: 'Murphy' },
   // Alpaca ecosystem tokens
-  'keeta_ao55q4okjv4hrbo7z7zl3hivrf64og3fpokup5hvt2wfejim5mxzxcykboc3w': { symbol: 'NDA', decimals: 18 },
-  'keeta_aoa7ejcq5g7u22zxs5rvxcwdukxyfltred4ddfpuec54slwmw7dpi5dxg55ak': { symbol: 'AKTA', decimals: 18 },
-  'keeta_amlgmfaobrh57frim75dme2us36q2yn45oyhdhmwf4a2e4qynxefesgoslht4': { symbol: 'KTARD', decimals: 18 },
-  'keeta_ap2l475td7qfntmwfh4ukkkb2ix6rvkvfpsdmoxzgyuckbrnnq5cq6xn2knka': { symbol: 'DRINK', decimals: 18 },
-  'keeta_amk3yp4homezxzsa6q4dbzrcxtsbrwx3zrtvx5uvxps4mj5jq54v5mgornbb4': { symbol: 'SPIT', decimals: 18 },
-  'keeta_an7olqkoktcbyelprqj7uxwviztcsva6y3trmbl4t6gfe2duatzzyp3aponla': { symbol: 'ERIC', decimals: 18 },
-  'keeta_anzh4zo46vch2m2eb7gibttshj2swioe2nbrlsd7dy2bezdysb6tprofk4e5m': { symbol: 'PACA', decimals: 18 },
-  'keeta_anke4cn3qzjzfuk32eox67urm4aolmnupg7fo4migsjob5sxmpof4zksbjeq2': { symbol: 'SOON', decimals: 18 },
-  'keeta_am7dmy4bnr377napd4de73a65t5smeei3squcnrehrpmhbooqw7zq4h3n4yvu': { symbol: 'KWIF', decimals: 18 },
+  'keeta_ao55q4okjv4hrbo7z7zl3hivrf64og3fpokup5hvt2wfejim5mxzxcykboc3w': { symbol: 'NDA', decimals: 18, name: 'NDA' },
+  'keeta_aoa7ejcq5g7u22zxs5rvxcwdukxyfltred4ddfpuec54slwmw7dpi5dxg55ak': { symbol: 'AKTA', decimals: 18, name: 'Alpaca KTA' },
+  'keeta_amlgmfaobrh57frim75dme2us36q2yn45oyhdhmwf4a2e4qynxefesgoslht4': { symbol: 'KTARD', decimals: 18, name: 'KTARD' },
+  'keeta_ap2l475td7qfntmwfh4ukkkb2ix6rvkvfpsdmoxzgyuckbrnnq5cq6xn2knka': { symbol: 'DRINK', decimals: 18, name: 'Drink' },
+  'keeta_amk3yp4homezxzsa6q4dbzrcxtsbrwx3zrtvx5uvxps4mj5jq54v5mgornbb4': { symbol: 'SPIT', decimals: 18, name: 'Spit' },
+  'keeta_an7olqkoktcbyelprqj7uxwviztcsva6y3trmbl4t6gfe2duatzzyp3aponla': { symbol: 'ERIC', decimals: 18, name: 'Eric' },
+  'keeta_anzh4zo46vch2m2eb7gibttshj2swioe2nbrlsd7dy2bezdysb6tprofk4e5m': { symbol: 'PACA', decimals: 18, name: 'Alpaca' },
+  'keeta_anke4cn3qzjzfuk32eox67urm4aolmnupg7fo4migsjob5sxmpof4zksbjeq2': { symbol: 'SOON', decimals: 18, name: 'Soon' },
+  'keeta_am7dmy4bnr377napd4de73a65t5smeei3squcnrehrpmhbooqw7zq4h3n4yvu': { symbol: 'KWIF', decimals: 18, name: 'Kwif' },
 };
 
 // KTA decimals: testnet=9, mainnet=18
@@ -98,7 +99,8 @@ export const useKeetaBalance = (): KeetaBalance => {
         // Get token info from mapping or use defaults
         const tokenMeta = TOKEN_MAP[tokenAddr] || { 
           symbol: tokenAddr.substring(0, 10) + '...', 
-          decimals: 18 
+          decimals: 18,
+          name: tokenAddr.substring(0, 10) + '...'
         };
 
         const divisor = Math.pow(10, tokenMeta.decimals);
@@ -107,6 +109,7 @@ export const useKeetaBalance = (): KeetaBalance => {
         tokens.push({
           address: tokenAddr,
           symbol: tokenMeta.symbol,
+          name: tokenMeta.name,
           balance: balanceNum,
           rawBalance: balStr,
           decimals: tokenMeta.decimals,
