@@ -33,8 +33,8 @@ const FX_ANCHORS = {
   },
 };
 
-// Default to Network account resolver
-const DEFAULT_ANCHOR = 'default';
+// Default to Alpaca DEX which has liquidity
+const DEFAULT_ANCHOR = 'alpaca';
 
 export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR) {
   const { client, network, isConnected } = useKeetaWallet();
