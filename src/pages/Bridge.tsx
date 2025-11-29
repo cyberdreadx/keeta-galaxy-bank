@@ -278,7 +278,7 @@ const Bridge = () => {
                     value={destinationAddress}
                     onChange={(e) => setDestinationAddress(e.target.value)}
                     placeholder={toNetwork.id === 'base' ? '0x... (Base EVM Address)' : 'Keeta Address'}
-                    className="w-full p-4 bg-sw-space/80 border border-sw-blue/30 text-sw-blue placeholder:text-sw-blue/30 font-mono text-sm focus:outline-none focus:border-sw-blue/60"
+                    className="w-full p-4 bg-background border border-sw-blue/30 text-foreground placeholder:text-foreground/40 font-mono text-sm focus:outline-none focus:border-sw-blue rounded"
                     disabled={isBridging || isTestnet}
                   />
                 </div>
@@ -296,7 +296,7 @@ const Bridge = () => {
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder="0.00"
-                      className="w-full p-4 pr-20 bg-sw-space/80 border border-sw-blue/30 text-sw-blue placeholder:text-sw-blue/30 font-mono text-lg focus:outline-none focus:border-sw-blue/60"
+                      className="w-full p-4 pr-20 bg-background border border-sw-blue/30 text-foreground placeholder:text-foreground/40 font-mono text-lg focus:outline-none focus:border-sw-blue rounded"
                       disabled={isBridging || isTestnet}
                     />
                     <button
