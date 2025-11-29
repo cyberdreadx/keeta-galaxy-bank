@@ -10,7 +10,7 @@ import { WalletIcon, Loader2, RefreshCw } from "lucide-react";
 const TOKEN_ICONS: Record<string, string> = {
   KTA: "⚡", PACA: "🦙", NDA: "📜", AKTA: "💎", KTARD: "🃏",
   DRINK: "🍺", SPIT: "💦", ERIC: "👤", KCHAD: "💪", SOON: "🔜", KWIF: "🎩",
-  USDC: "💵", EURC: "💶", cbBTC: "₿"
+  USDC: "💵", EURC: "💶", cbBTC: "₿", KRT: "🎫", MURF: "🐕"
 };
 
 interface Asset {
