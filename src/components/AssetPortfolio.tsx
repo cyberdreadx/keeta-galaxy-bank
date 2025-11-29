@@ -4,7 +4,14 @@ import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useKeetaBalance } from "@/hooks/useKeetaBalance";
 import { useKtaPrice } from "@/hooks/useKtaPrice";
 import { useSettings } from "@/contexts/SettingsContext";
-import { WalletIcon, Loader2 } from "lucide-react";
+import { WalletIcon, Loader2, RefreshCw } from "lucide-react";
+
+// Token icons mapping
+const TOKEN_ICONS: Record<string, string> = {
+  KTA: "⚡", PACA: "🦙", NDA: "📜", AKTA: "💎", KTARD: "🃏",
+  DRINK: "🍺", SPIT: "💦", ERIC: "👤", KCHAD: "💪", SOON: "🔜", KWIF: "🎩",
+  USDC: "💵", EURC: "💶", cbBTC: "₿"
+};
 
 interface Asset {
   symbol: string;
@@ -12,24 +19,30 @@ interface Asset {
   balance: number;
   valueFiat: number | null;
   change: number | null;
+  icon: string;
 }
 
 export const AssetPortfolio = () => {
   const { isConnected } = useKeetaWallet();
-  const { balance, isLoading } = useKeetaBalance();
-  const { convertToFiat, priceChange24h } = useKtaPrice();
+  const { balance, allTokens, isLoading, refetch } = useKeetaBalance();
+  const { convertToFiat, priceChange24h, priceUsd } = useKtaPrice();
   const { formatFiat } = useSettings();
 
-  // Real asset from Keeta network - KTA is the native token
-  const assets: Asset[] = isConnected ? [
-    { 
-      symbol: "KTA", 
-      name: "KEETA", 
-      balance: balance, 
-      valueFiat: convertToFiat(balance), 
-      change: priceChange24h 
-    },
-  ] : [];
+  // Build assets from all tokens
+  const assets: Asset[] = allTokens.map(token => {
+    // Only KTA has USD price for now
+    const valueFiat = token.symbol === 'KTA' ? convertToFiat(token.balance) : null;
+    const change = token.symbol === 'KTA' ? priceChange24h : null;
+    
+    return {
+      symbol: token.symbol,
+      name: token.symbol,
+      balance: token.balance,
+      valueFiat,
+      change,
+      icon: TOKEN_ICONS[token.symbol] || '🪙',
+    };
+  });
 
   const totalValueFiat = assets.reduce((acc, asset) => acc + (asset.valueFiat || 0), 0);
 
@@ -45,7 +58,7 @@ export const AssetPortfolio = () => {
     );
   }
 
-  if (isLoading) {
+  if (isLoading && allTokens.length === 0) {
     return (
       <StarWarsPanel title="// ASSET MANIFEST">
         <div className="flex flex-col items-center justify-center py-12">
@@ -65,7 +78,10 @@ export const AssetPortfolio = () => {
           </div>
         ) : (
           assets.map((asset, index) => {
-            const percentage = 100; // Single asset = 100%
+            // Calculate allocation percentage based on USD value or balance
+            const percentage = totalValueFiat > 0 && asset.valueFiat 
+              ? (asset.valueFiat / totalValueFiat) * 100 
+              : 100 / assets.length;
 
             return (
               <div
@@ -75,16 +91,14 @@ export const AssetPortfolio = () => {
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    {/* Symbol badge */}
-                    <div className="w-12 h-12 border border-sw-blue/40 bg-sw-blue/10 flex items-center justify-center">
-                      <span className="font-display font-bold text-sm text-sw-blue">
-                        {asset.symbol}
-                      </span>
+                    {/* Icon badge */}
+                    <div className="w-12 h-12 border border-sw-blue/40 bg-sw-blue/10 flex items-center justify-center text-2xl">
+                      {asset.icon}
                     </div>
                     <div>
                       <p className="font-mono text-sm text-sw-white">{asset.name}</p>
                       <p className="font-mono text-xs text-sw-blue/60">
-                        {asset.balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} {asset.symbol}
+                        {asset.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })} {asset.symbol}
                       </p>
                     </div>
                   </div>
@@ -134,6 +148,16 @@ export const AssetPortfolio = () => {
           {totalValueFiat > 0 ? formatFiat(totalValueFiat) : "---"}
         </span>
       </div>
+
+      {/* Refresh button */}
+      <button 
+        onClick={() => refetch()}
+        disabled={isLoading}
+        className="w-full mt-4 py-2 border border-sw-blue/30 bg-sw-blue/5 hover:bg-sw-blue/10 transition-colors font-mono text-xs text-sw-blue tracking-widest flex items-center justify-center gap-2 disabled:opacity-50"
+      >
+        <RefreshCw className={cn("w-3 h-3", isLoading && "animate-spin")} />
+        {isLoading ? 'SCANNING...' : 'REFRESH ASSETS'}
+      </button>
     </StarWarsPanel>
   );
 };
