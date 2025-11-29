@@ -45,21 +45,70 @@ export const TransactionHistory = () => {
     setError(null);
 
     try {
-      // Fetch account history from Keeta network
+      // Fetch account blocks/history from Keeta network
+      console.log('[TransactionHistory] Fetching transactions for:', publicKey);
+      
+      // Try to get account blocks which contain transaction history
       const accountData = await client.account();
-      const history = accountData?.history ?? [];
+      console.log('[TransactionHistory] Account data:', accountData);
+      
+      // Get the account's blocks (transactions)
+      let blocks: any[] = [];
+      
+      // Try different methods to get transaction history
+      if (accountData?.blocks) {
+        blocks = Array.isArray(accountData.blocks) ? accountData.blocks : [];
+      } else if (accountData?.history) {
+        blocks = Array.isArray(accountData.history) ? accountData.history : [];
+      }
+      
+      // If no blocks in account data, try fetching blocks directly
+      if (blocks.length === 0) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const clientAny = client as any;
+          if (typeof clientAny.getAccountBlocks === 'function') {
+            const blocksResult = await clientAny.getAccountBlocks({ limit: 10 });
+            blocks = blocksResult?.blocks || blocksResult || [];
+            console.log('[TransactionHistory] Blocks from getAccountBlocks:', blocks);
+          }
+        } catch (e) {
+          console.log('[TransactionHistory] getAccountBlocks not available');
+        }
+      }
+      
+      console.log('[TransactionHistory] Found blocks:', blocks.length);
       
       // Transform Keeta transaction format to our format
-      const formattedTxs: Transaction[] = history.slice(0, 10).map((tx: any, index: number) => {
-        const isSend = tx.sender === publicKey;
+      const formattedTxs: Transaction[] = blocks.slice(0, 10).map((tx: any, index: number) => {
+        // Determine if this is a send or receive based on block type or sender
+        const blockType = tx.type || tx.blockType || '';
+        const isSend = blockType.toLowerCase().includes('send') || tx.sender === publicKey;
+        
+        // Parse amount - KTA uses 18 decimals
+        let amount = 0;
+        if (tx.amount) {
+          const amountBigInt = typeof tx.amount === 'bigint' ? tx.amount : BigInt(tx.amount || 0);
+          amount = Number(amountBigInt) / 1e18;
+        } else if (tx.value) {
+          const valueBigInt = typeof tx.value === 'bigint' ? tx.value : BigInt(tx.value || 0);
+          amount = Number(valueBigInt) / 1e18;
+        }
+        
+        // Get hash for ID
+        const hash = tx.hash || tx.blockHash || tx.id || String(index);
+        const shortHash = typeof hash === 'string' ? hash.substring(0, 6).toUpperCase() : String(index);
+        
         return {
-          id: `TX-${tx.hash?.substring(0, 4).toUpperCase() || index}`,
-          type: isSend ? 'send' : 'receive',
-          amount: Number(tx.amount ?? 0) / 1e9,
+          id: `TX-${shortHash}`,
+          type: isSend ? 'send' as const : 'receive' as const,
+          amount: amount,
           currency: 'KTA',
-          address: isSend ? tx.recipient?.substring(0, 8) : tx.sender?.substring(0, 8),
-          timestamp: new Date(tx.timestamp ?? Date.now()),
-          status: tx.confirmed ? 'completed' : 'pending',
+          address: isSend 
+            ? (tx.recipient || tx.to || tx.destination || '').substring(0, 12) 
+            : (tx.sender || tx.from || tx.source || '').substring(0, 12),
+          timestamp: new Date(tx.timestamp || tx.time || Date.now()),
+          status: (tx.confirmed !== false) ? 'completed' as const : 'pending' as const,
         };
       });
 
