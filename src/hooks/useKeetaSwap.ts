@@ -46,7 +46,15 @@ export function useKeetaSwap() {
           return;
         }
 
-        const userAccount = Account.fromSeed(seed, 0);
+        // Convert mnemonic to seed if needed
+        let rawSeed = seed;
+        if (seed.includes(' ')) {
+          // It's a mnemonic phrase, convert to seed
+          rawSeed = Account.seedFromPassphrase(seed);
+          console.log('[KeetaSwap] Converted mnemonic to seed');
+        }
+
+        const userAccount = Account.fromSeed(rawSeed, 0);
         console.log('[KeetaSwap] Account created from seed');
 
         // Check if Resolver exists
