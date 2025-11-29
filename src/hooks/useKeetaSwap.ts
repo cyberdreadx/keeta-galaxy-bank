@@ -104,20 +104,38 @@ export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR)
             if ((conversions && conversions.length > 0) || (tokenList && tokenList.length > 0)) {
               setFxClient(fxClientInstance);
               
+              // Helper to extract string symbol from various formats
+              const extractSymbol = (val: any): string | null => {
+                if (typeof val === 'string') return val.replace('$', '');
+                if (val?.symbol && typeof val.symbol === 'string') return val.symbol.replace('$', '');
+                if (val?.currencyCode && typeof val.currencyCode === 'string') return val.currencyCode.replace('$', '');
+                if (val?.toString && val.toString() !== '[object Object]') return val.toString().replace('$', '');
+                return null;
+              };
+              
               if (tokenList.length > 0) {
-                setAvailableTokens(tokenList.map((t: any) => ({
-                  symbol: t.symbol || t.currencyCode || String(t),
-                  name: t.name || t.symbol || String(t),
-                  address: t.address || t.publicKey,
-                })));
+                const mappedTokens = tokenList
+                  .map((t: any) => {
+                    const sym = extractSymbol(t);
+                    if (!sym) return null;
+                    return {
+                      symbol: sym,
+                      name: t?.name || sym,
+                      address: t?.address || t?.publicKey,
+                    };
+                  })
+                  .filter((t: any): t is NonNullable<typeof t> => t !== null);
+                console.log('[KeetaSwap] Mapped tokens:', mappedTokens);
+                setAvailableTokens(mappedTokens);
               } else if (conversions && conversions.length > 0) {
                 // Build token list from conversions
                 const tokens = new Set<string>();
                 tokens.add('KTA');
                 conversions.forEach((c: any) => {
-                  if (c.symbol) tokens.add(c.symbol);
-                  if (c.currencyCode) tokens.add(c.currencyCode);
+                  const sym = extractSymbol(c) || extractSymbol(c?.to);
+                  if (sym && sym !== '[object Object]') tokens.add(sym);
                 });
+                console.log('[KeetaSwap] Extracted tokens from conversions:', Array.from(tokens));
                 setAvailableTokens(Array.from(tokens).map(s => ({
                   symbol: s,
                   name: s,
