@@ -213,9 +213,13 @@ export function useBridge() {
           }
           
           // Fallback: manual send for KEETA_SEND type
-          if (instruction?.type === 'KEETA_SEND' && instruction?.sendToAddress && instruction?.value) {
+          if (instruction?.type === 'KEETA_SEND' && instruction?.sendToAddress) {
             try {
-              console.log('[Bridge] Manual send to:', instruction.sendToAddress, 'amount:', instruction.value);
+              // Use our calculated amount, not the instruction value (which may be wrong)
+              const sendAmount = valueInSmallestUnits;
+              console.log('[Bridge] Manual send to:', instruction.sendToAddress);
+              console.log('[Bridge] Instruction value:', instruction?.value);
+              console.log('[Bridge] Our calculated amount:', sendAmount.toString());
               console.log('[Bridge] External data (hex):', instruction?.external);
               
               // Load SDK to create account from address
@@ -230,17 +234,16 @@ export function useBridge() {
               console.log('[Bridge] Builder initialized');
               
               // builder.send() accepts optional 4th param: external?: string (hex string)
-              // Per SDK docs: send(recipient, amount, token, external?)
               const externalHex = instruction?.external || undefined;
-              console.log('[Bridge] Sending with external data:', externalHex ? 'yes' : 'no');
+              console.log('[Bridge] Sending', sendAmount.toString(), 'with external data:', externalHex ? 'yes' : 'no');
               
               builder.send(
                 recipientAccount, 
-                BigInt(instruction.value), 
+                sendAmount,  // Use our calculated amount
                 client.baseToken, 
-                externalHex // Pass hex string directly per SDK docs
+                externalHex
               );
-              console.log('[Bridge] Send operation added');
+              console.log('[Bridge] Send operation added with amount:', sendAmount.toString());
               
               // Compute transaction blocks
               const computed = await client.computeBuilderBlocks(builder);
