@@ -5,7 +5,6 @@ import { QuickActions } from "@/components/QuickActions";
 import { TransactionHistory } from "@/components/TransactionHistory";
 import { NetworkStats } from "@/components/NetworkStats";
 import { AssetPortfolio } from "@/components/AssetPortfolio";
-import { Footer } from "@/components/Footer";
 
 const Index = () => {
   return (
@@ -79,9 +78,6 @@ const Index = () => {
           </div>
         </div>
       </main>
-      
-      {/* Footer with links */}
-      <Footer />
     </div>
   );
 };

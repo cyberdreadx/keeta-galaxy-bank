@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { Header } from '@/components/Header';
-import { Footer } from '@/components/Footer';
 import { StarField } from '@/components/StarField';
 import { StarWarsPanel } from '@/components/StarWarsPanel';
 import { useKeetaWallet } from '@/contexts/KeetaWalletContext';
@@ -189,7 +188,6 @@ export default function DAppBrowser() {
             </div>
           </StarWarsPanel>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -216,7 +214,6 @@ export default function DAppBrowser() {
             </div>
           </StarWarsPanel>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -462,8 +459,6 @@ export default function DAppBrowser() {
           )}
         </StarWarsPanel>
       </main>
-
-      <Footer />
 
       {/* Mobile URL Input Modal */}
       {showUrlModal && (
