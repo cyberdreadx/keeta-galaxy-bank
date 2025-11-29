@@ -1,71 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { StarField } from '@/components/StarField';
 import { StarWarsPanel } from '@/components/StarWarsPanel';
 import { useKeetaWallet } from '@/contexts/KeetaWalletContext';
+import { useKeetaNFTs, NFT } from '@/hooks/useKeetaNFTs';
 import { Image, Grid, List, ExternalLink, RefreshCw } from 'lucide-react';
 
-interface NFT {
-  id: string;
-  name: string;
-  description: string;
-  image: string;
-  collection: string;
-  tokenId: string;
-}
-
 export default function NFTGallery() {
-  const { isConnected, publicKey } = useKeetaWallet();
-  const [nfts, setNfts] = useState<NFT[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const { isConnected, network } = useKeetaWallet();
+  const { nfts, isLoading, refetch } = useKeetaNFTs();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
-
-  // Mock NFT data for demo - in production would fetch from Keeta network
-  const fetchNFTs = async () => {
-    if (!isConnected || !publicKey) return;
-    
-    setIsLoading(true);
-    
-    // Simulate API call - replace with actual Keeta NFT fetching
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Demo NFTs with Star Wars theme
-    const mockNFTs: NFT[] = [
-      {
-        id: '1',
-        name: 'Holocron Fragment #42',
-        description: 'A rare Sith holocron fragment containing ancient knowledge.',
-        image: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&h=400&fit=crop',
-        collection: 'Ancient Artifacts',
-        tokenId: '42'
-      },
-      {
-        id: '2',
-        name: 'Kyber Crystal - Blue',
-        description: 'A pure kyber crystal radiating with Force energy.',
-        image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&h=400&fit=crop',
-        collection: 'Kyber Crystals',
-        tokenId: '108'
-      },
-      {
-        id: '3',
-        name: 'Galactic Map #7',
-        description: 'Star chart of the Outer Rim territories.',
-        image: 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=400&h=400&fit=crop',
-        collection: 'Galactic Archives',
-        tokenId: '7'
-      }
-    ];
-    
-    setNfts(mockNFTs);
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchNFTs();
-  }, [isConnected, publicKey]);
 
   if (!isConnected) {
     return (
@@ -120,7 +66,7 @@ export default function NFTGallery() {
                 <List className="w-4 h-4" />
               </button>
               <button
-                onClick={fetchNFTs}
+                onClick={() => refetch()}
                 disabled={isLoading}
                 className="p-2 border border-sw-blue/30 text-sw-blue/50 hover:bg-sw-blue/10 transition-colors disabled:opacity-50"
               >
@@ -150,12 +96,19 @@ export default function NFTGallery() {
                   onClick={() => setSelectedNFT(nft)}
                   className="group relative border border-sw-blue/30 bg-sw-blue/5 hover:bg-sw-blue/10 transition-all hover:border-sw-blue/50 overflow-hidden"
                 >
-                  <div className="aspect-square overflow-hidden">
-                    <img
-                      src={nft.image}
-                      alt={nft.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
+                  <div className="aspect-square overflow-hidden bg-sw-blue/5 flex items-center justify-center">
+                    {nft.image ? (
+                      <img
+                        src={nft.image}
+                        alt={nft.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <Image className="w-12 h-12 text-sw-blue/30" />
+                    )}
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-sw-space via-transparent to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-2">
@@ -178,15 +131,21 @@ export default function NFTGallery() {
                   onClick={() => setSelectedNFT(nft)}
                   className="w-full flex items-center gap-4 p-3 border border-sw-blue/30 bg-sw-blue/5 hover:bg-sw-blue/10 transition-all hover:border-sw-blue/50"
                 >
-                  <img
-                    src={nft.image}
-                    alt={nft.name}
-                    className="w-16 h-16 object-cover border border-sw-blue/30"
-                  />
+                  {nft.image ? (
+                    <img
+                      src={nft.image}
+                      alt={nft.name}
+                      className="w-16 h-16 object-cover border border-sw-blue/30"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 border border-sw-blue/30 bg-sw-blue/5 flex items-center justify-center">
+                      <Image className="w-8 h-8 text-sw-blue/30" />
+                    </div>
+                  )}
                   <div className="flex-1 text-left">
                     <p className="text-sw-blue font-mono text-sm">{nft.name}</p>
                     <p className="text-sw-blue/50 font-mono text-xs">{nft.collection}</p>
-                    <p className="text-sw-blue/30 font-mono text-[10px]">Token #{nft.tokenId}</p>
+                    <p className="text-sw-blue/30 font-mono text-[10px] truncate">ID: {nft.tokenAddress.slice(0, 20)}...</p>
                   </div>
                 </button>
               ))}
