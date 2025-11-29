@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Header } from '@/components/Header';
-import { Footer } from '@/components/Footer';
 import { StarField } from '@/components/StarField';
 import { StarWarsPanel } from '@/components/StarWarsPanel';
 import { useKeetaWallet } from '@/contexts/KeetaWalletContext';
@@ -28,7 +27,6 @@ export default function NFTGallery() {
             </div>
           </StarWarsPanel>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -196,8 +194,6 @@ export default function NFTGallery() {
           </div>
         </div>
       )}
-
-      <Footer />
     </div>
   );
 }
