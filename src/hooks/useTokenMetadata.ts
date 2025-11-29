@@ -8,6 +8,7 @@ interface TokenMetadata {
   decimalPlaces: number;
   accessMode: string;
   defaultPermissions: string;
+  logoURI?: string;
 }
 
 const metadataCache: Record<string, TokenMetadata> = {};
@@ -43,22 +44,36 @@ export const useTokenMetadata = (tokenAddress: string | null) => {
       }
 
       const data = await response.json();
-      console.log('[useTokenMetadata] Raw data:', data);
+      console.log('[useTokenMetadata] Raw API data:', JSON.stringify(data.info, null, 2));
       
       // Default metadata
       let parsedMetadata: TokenMetadata = {
-        name: 'Unknown',
-        symbol: 'UNKNOWN',
+        name: '',
+        symbol: '',
         supply: '0',
-        decimalPlaces: 0,
+        decimalPlaces: 18,
         accessMode: 'PUBLIC',
         defaultPermissions: 'ACCESS',
       };
 
+      // First check info fields at top level
+      // info.name contains the symbol (e.g., "MURF")
+      // info.description contains the full name (e.g., "Murphy")
+      if (data.info) {
+        // Symbol is in info.name
+        if (data.info.name) {
+          parsedMetadata.symbol = data.info.name;
+        }
+        // Name is in info.description
+        if (data.info.description) {
+          parsedMetadata.name = data.info.description;
+        }
+      }
+
+      // Parse the compressed/base64 metadata for other fields
       if (data.info?.metadata) {
         try {
           const metadataStr = data.info.metadata;
-          console.log('[useTokenMetadata] Metadata string:', metadataStr.substring(0, 50));
           
           // Decode base64 first
           const binaryStr = atob(metadataStr);
@@ -71,42 +86,56 @@ export const useTokenMetadata = (tokenAddress: string | null) => {
           
           // Check if it's zlib compressed (starts with 0x78)
           if (bytes[0] === 0x78) {
-            // Compressed - decompress with pako
-            console.log('[useTokenMetadata] Decompressing zlib data');
             jsonStr = pako.inflate(bytes, { to: 'string' });
           } else {
-            // Not compressed - just decode as UTF-8
-            console.log('[useTokenMetadata] Decoding as plain text');
             jsonStr = new TextDecoder().decode(bytes);
           }
           
-          console.log('[useTokenMetadata] Parsed JSON string:', jsonStr.substring(0, 100));
           const parsed = JSON.parse(jsonStr);
-          console.log('[useTokenMetadata] Parsed metadata:', parsed);
+          console.log('[useTokenMetadata] Parsed metadata JSON:', parsed);
           
-          parsedMetadata = {
-            name: parsed.name || parsed.Name || 'Unknown',
-            symbol: parsed.symbol || parsed.Symbol || 'UNKNOWN',
-            supply: String(parsed.supply || parsed.Supply || '0'),
-            decimalPlaces: parsed.decimalPlaces ?? parsed.DecimalPlaces ?? 0,
-            accessMode: parsed.accessMode || parsed.AccessMode || 'PUBLIC',
-            defaultPermissions: parsed.defaultPermissions || parsed.DefaultPermissions || 'ACCESS',
-          };
+          // Get decimals and other fields from metadata
+          if (parsed.decimalPlaces !== undefined) {
+            parsedMetadata.decimalPlaces = parsed.decimalPlaces;
+          }
+          if (parsed.DecimalPlaces !== undefined) {
+            parsedMetadata.decimalPlaces = parsed.DecimalPlaces;
+          }
+          if (parsed.supply) {
+            parsedMetadata.supply = String(parsed.supply);
+          }
+          if (parsed.accessMode) {
+            parsedMetadata.accessMode = parsed.accessMode;
+          }
+          if (parsed.defaultPermissions) {
+            parsedMetadata.defaultPermissions = parsed.defaultPermissions;
+          }
+          if (parsed.logoURI) {
+            parsedMetadata.logoURI = parsed.logoURI;
+          }
+          
+          // If name/symbol are in metadata, use them (some tokens might have it there)
+          if (parsed.name && !parsedMetadata.name) {
+            parsedMetadata.name = parsed.name;
+          }
+          if (parsed.symbol && !parsedMetadata.symbol) {
+            parsedMetadata.symbol = parsed.symbol;
+          }
         } catch (parseErr) {
           console.warn('[useTokenMetadata] Could not parse metadata:', parseErr);
         }
       }
 
-      // Also check for direct info fields as fallback
-      if (data.info?.name && parsedMetadata.name === 'Unknown') {
-        parsedMetadata.name = data.info.name;
+      // Fallback: if still no name, use symbol
+      if (!parsedMetadata.name && parsedMetadata.symbol) {
+        parsedMetadata.name = parsedMetadata.symbol;
       }
-      if (data.info?.description) {
-        // Sometimes name is in description
-        const desc = data.info.description;
-        if (desc && parsedMetadata.name === 'Unknown') {
-          parsedMetadata.name = desc;
-        }
+      // Fallback: if still no symbol, use truncated address
+      if (!parsedMetadata.symbol) {
+        parsedMetadata.symbol = tokenAddress.substring(0, 10) + '...';
+      }
+      if (!parsedMetadata.name) {
+        parsedMetadata.name = parsedMetadata.symbol;
       }
 
       console.log('[useTokenMetadata] Final metadata:', parsedMetadata);
