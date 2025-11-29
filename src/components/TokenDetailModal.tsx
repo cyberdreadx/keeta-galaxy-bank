@@ -139,13 +139,13 @@ export const TokenDetailModal = ({ isOpen, onClose, token }: TokenDetailModalPro
 
           {/* View on Explorer */}
           <a
-            href={`https://scan.keeta.com/token/${token.address}`}
+            href={`https://explorer.keeta.com/token/${token.address}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 text-sw-blue/60 hover:text-sw-blue font-mono text-xs transition-colors"
           >
             <ExternalLink className="w-3 h-3" />
-            VIEW ON KEETA SCAN
+            VIEW ON EXPLORER
           </a>
         </div>
       </DialogContent>
