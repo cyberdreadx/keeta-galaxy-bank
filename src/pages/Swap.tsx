@@ -258,11 +258,11 @@ export default function Swap() {
   }
 
   return (
-    <div className="min-h-screen bg-sw-space relative overflow-hidden">
+    <div className="min-h-screen bg-sw-space relative overflow-x-hidden overflow-y-auto">
       <StarField />
       <Header />
       
-      <main className="relative z-10 pt-20 pb-24 px-4 max-w-md mx-auto">
+      <main className="relative z-10 pt-20 pb-32 px-4 max-w-md mx-auto">
         <StarWarsPanel title="// TOKEN SWAP" className="mt-4">
           {/* Status indicator */}
           <div className="flex justify-between items-center mb-4">
