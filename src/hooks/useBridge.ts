@@ -81,6 +81,20 @@ export function useBridge() {
         console.log('[Bridge] Anchor SDK loaded successfully');
         console.log('[Bridge] All exports:', Object.keys(anchorModule || {}));
         console.log('[Bridge] Full module:', anchorModule);
+        
+        // Log all nested properties to find the client
+        for (const key of Object.keys(anchorModule || {})) {
+          console.log(`[Bridge] Export "${key}":`, anchorModule[key]);
+          if (typeof anchorModule[key] === 'object' && anchorModule[key]) {
+            console.log(`[Bridge] Export "${key}" keys:`, Object.keys(anchorModule[key]));
+          }
+        }
+        
+        // Check default export
+        if (anchorModule.default) {
+          console.log('[Bridge] Default export:', anchorModule.default);
+          console.log('[Bridge] Default export keys:', Object.keys(anchorModule.default || {}));
+        }
       } catch (importErr) {
         console.warn('[Bridge] Anchor SDK not available:', importErr);
       }
@@ -89,13 +103,18 @@ export function useBridge() {
       const AssetMovementClient = anchorModule?.AssetMovement?.Client 
         || anchorModule?.KeetaAssetMovementAnchorClient
         || anchorModule?.AssetMovementClient
+        || anchorModule?.default?.AssetMovement?.Client
+        || anchorModule?.default?.AssetMovementClient
+        || anchorModule?.AssetMovementAnchorClient
+        || anchorModule?.Client
         || null;
 
       console.log('[Bridge] AssetMovementClient found:', !!AssetMovementClient);
 
       if (!AssetMovementClient) {
         // SDK structure not as expected - show info message
-        console.log('[Bridge] Could not find AssetMovementClient');
+        console.log('[Bridge] Could not find AssetMovementClient in any known pattern');
+        console.log('[Bridge] Available patterns checked: AssetMovement.Client, KeetaAssetMovementAnchorClient, AssetMovementClient, default.AssetMovement.Client, default.AssetMovementClient, AssetMovementAnchorClient, Client');
         setState(prev => ({ ...prev, isBridging: false, status: 'idle' }));
         return { 
           success: false, 
