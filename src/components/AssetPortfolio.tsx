@@ -7,7 +7,8 @@ import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useKeetaBalance } from "@/hooks/useKeetaBalance";
 import { useKtaPrice } from "@/hooks/useKtaPrice";
 import { useSettings } from "@/contexts/SettingsContext";
-import { WalletIcon, Loader2, RefreshCw } from "lucide-react";
+import { useHiddenTokens } from "@/hooks/useHiddenTokens";
+import { WalletIcon, Loader2, RefreshCw, Eye, EyeOff } from "lucide-react";
 
 interface TokenDetail {
   symbol: string;
@@ -25,10 +26,12 @@ export const AssetPortfolio = () => {
   const { balance, allTokens, isLoading, refetch } = useKeetaBalance();
   const { convertToFiat, priceChange24h } = useKtaPrice();
   const { formatFiat } = useSettings();
+  const { isHidden, toggleHidden, hiddenCount } = useHiddenTokens();
   const [selectedToken, setSelectedToken] = useState<TokenDetail | null>(null);
+  const [showHidden, setShowHidden] = useState(false);
 
   // Build assets from all tokens with full details
-  const assets = allTokens.map(token => {
+  const allAssets = allTokens.map(token => {
     const valueFiat = token.symbol === 'KTA' ? convertToFiat(token.balance) : null;
     const change = token.symbol === 'KTA' ? priceChange24h : null;
     
@@ -43,6 +46,11 @@ export const AssetPortfolio = () => {
       rawBalance: token.rawBalance,
     };
   });
+
+  // Filter based on showHidden toggle
+  const assets = showHidden 
+    ? allAssets 
+    : allAssets.filter(asset => !isHidden(asset.address));
 
   const totalValueFiat = assets.reduce((acc, asset) => acc + (asset.valueFiat || 0), 0);
 
@@ -76,24 +84,49 @@ export const AssetPortfolio = () => {
   return (
     <>
       <StarWarsPanel title="// ASSET MANIFEST">
+        {/* Show hidden toggle */}
+        {hiddenCount > 0 && (
+          <button
+            onClick={() => setShowHidden(!showHidden)}
+            className="w-full mb-3 py-2 border border-sw-blue/20 bg-sw-blue/5 hover:bg-sw-blue/10 transition-colors font-mono text-xs text-sw-blue/60 flex items-center justify-center gap-2"
+          >
+            {showHidden ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+            {showHidden ? `HIDE ${hiddenCount} TOKEN${hiddenCount > 1 ? 'S' : ''}` : `SHOW ${hiddenCount} HIDDEN TOKEN${hiddenCount > 1 ? 'S' : ''}`}
+          </button>
+        )}
+
         <div className="space-y-3">
           {assets.length === 0 ? (
             <div className="text-center py-8">
               <p className="font-mono text-sm text-sw-blue/60">NO ASSETS FOUND</p>
+              {hiddenCount > 0 && !showHidden && (
+                <p className="font-mono text-xs text-sw-blue/40 mt-2">
+                  {hiddenCount} hidden token{hiddenCount > 1 ? 's' : ''}
+                </p>
+              )}
             </div>
           ) : (
             assets.map((asset, index) => {
               const percentage = totalValueFiat > 0 && asset.valueFiat 
                 ? (asset.valueFiat / totalValueFiat) * 100 
                 : 100 / assets.length;
+              const hidden = isHidden(asset.address);
 
               return (
                 <div
-                  key={asset.symbol}
+                  key={asset.address}
                   onClick={() => handleTokenClick(asset)}
-                  className="relative border border-sw-blue/20 bg-sw-blue/5 p-4 hover:bg-sw-blue/10 hover:border-sw-blue/40 transition-all cursor-pointer animate-fade-in"
+                  className={cn(
+                    "relative border bg-sw-blue/5 p-4 hover:bg-sw-blue/10 transition-all cursor-pointer animate-fade-in",
+                    hidden ? "border-sw-blue/10 opacity-60" : "border-sw-blue/20 hover:border-sw-blue/40"
+                  )}
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
+                  {hidden && (
+                    <div className="absolute top-2 right-2">
+                      <EyeOff className="w-3 h-3 text-sw-blue/40" />
+                    </div>
+                  )}
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <TokenIcon tokenAddress={asset.address} symbol={asset.symbol} size="md" />
@@ -162,6 +195,8 @@ export const AssetPortfolio = () => {
         isOpen={!!selectedToken}
         onClose={() => setSelectedToken(null)}
         token={selectedToken}
+        isHidden={selectedToken ? isHidden(selectedToken.address) : false}
+        onToggleHidden={selectedToken ? () => toggleHidden(selectedToken.address) : undefined}
       />
     </>
   );

@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Copy, ExternalLink, ArrowUpRight, RefreshCw, Check, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Copy, ExternalLink, ArrowUpRight, RefreshCw, Check, Loader2, Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useTokenMetadata } from "@/hooks/useTokenMetadata";
@@ -20,9 +20,11 @@ interface TokenDetailModalProps {
     decimals: number;
     rawBalance: string;
   } | null;
+  isHidden?: boolean;
+  onToggleHidden?: () => void;
 }
 
-export const TokenDetailModal = ({ isOpen, onClose, token }: TokenDetailModalProps) => {
+export const TokenDetailModal = ({ isOpen, onClose, token, isHidden, onToggleHidden }: TokenDetailModalProps) => {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const { metadata, isLoading: metadataLoading } = useTokenMetadata(isOpen ? token?.address || null : null);
@@ -69,7 +71,7 @@ export const TokenDetailModal = ({ isOpen, onClose, token }: TokenDetailModalPro
         <DialogHeader>
           <DialogTitle className="text-sw-blue font-mono tracking-wider flex items-center gap-3">
             <TokenIcon tokenAddress={token.address} symbol={token.symbol} size="lg" />
-            <div>
+            <div className="flex-1">
               <div className="text-sw-white text-xl">{displayName}</div>
               <div className="text-sw-blue/60 text-sm font-normal">{displaySymbol}</div>
             </div>
@@ -182,6 +184,32 @@ export const TokenDetailModal = ({ isOpen, onClose, token }: TokenDetailModalPro
               SWAP
             </Button>
           </div>
+
+          {/* Hide/Unhide Button */}
+          {onToggleHidden && (
+            <Button
+              onClick={onToggleHidden}
+              variant="ghost"
+              className={cn(
+                "w-full font-mono text-xs border",
+                isHidden 
+                  ? "border-sw-green/30 text-sw-green hover:bg-sw-green/10" 
+                  : "border-sw-blue/20 text-sw-blue/60 hover:bg-sw-blue/10"
+              )}
+            >
+              {isHidden ? (
+                <>
+                  <Eye className="w-4 h-4 mr-2" />
+                  SHOW TOKEN
+                </>
+              ) : (
+                <>
+                  <EyeOff className="w-4 h-4 mr-2" />
+                  HIDE TOKEN
+                </>
+              )}
+            </Button>
+          )}
 
           {/* View on Explorer */}
           <a
