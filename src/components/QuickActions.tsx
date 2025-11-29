@@ -1,4 +1,4 @@
-import { Globe, Image, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Globe, Image, ArrowUpRight, ArrowDownLeft, ArrowLeftRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { StarWarsPanel } from "./StarWarsPanel";
 import { cn } from "@/lib/utils";
@@ -20,16 +20,23 @@ const actions = [
     nativeOnly: false,
   },
   {
+    icon: ArrowLeftRight,
+    label: "SWAP",
+    code: "SW-003",
+    path: "/swap",
+    nativeOnly: false,
+  },
+  {
     icon: Image,
     label: "NFTs",
-    code: "NF-003",
+    code: "NF-004",
     path: "/nfts",
     nativeOnly: false,
   },
   {
     icon: Globe,
     label: "BROWSER",
-    code: "BR-004",
+    code: "BR-005",
     path: "/browser",
     nativeOnly: true,
   },
