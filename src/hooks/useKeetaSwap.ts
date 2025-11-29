@@ -197,12 +197,50 @@ export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR)
     try {
       setIsLoading(true);
 
-      const result = await fxClient.exchange({
+      // First get a quote
+      console.log('[KeetaSwap] Getting quote...');
+      const quote = await fxClient.getQuote?.({
+        affinity: 'from',
+        amount,
         from: fromToken,
         to: toToken,
-        amount,
-        minReceived,
+      }).catch((e: any) => {
+        console.log('[KeetaSwap] getQuote error:', e?.message);
+        return null;
       });
+      
+      console.log('[KeetaSwap] Quote:', quote);
+
+      // Try different exchange methods
+      let result;
+      
+      if (typeof fxClient.createExchange === 'function') {
+        result = await fxClient.createExchange({
+          quote,
+          from: fromToken,
+          to: toToken,
+          amount,
+          minReceived,
+        });
+      } else if (typeof fxClient.swap === 'function') {
+        result = await fxClient.swap({
+          from: fromToken,
+          to: toToken,
+          amount,
+          minReceived,
+        });
+      } else if (typeof fxClient.execute === 'function') {
+        result = await fxClient.execute({
+          from: fromToken,
+          to: toToken,
+          amount,
+        });
+      } else {
+        // Log available methods
+        console.log('[KeetaSwap] FX Client methods:', Object.keys(fxClient));
+        console.log('[KeetaSwap] FX Client prototype:', Object.getOwnPropertyNames(Object.getPrototypeOf(fxClient)));
+        return { success: false, error: 'Exchange method not found on FX client' };
+      }
 
       console.log('[KeetaSwap] Exchange result:', result);
 
