@@ -19,12 +19,11 @@ interface Token {
   icon: string;
 }
 
-// Available tokens - will be expanded when resolver provides more pairs
-const AVAILABLE_TOKENS: Token[] = [
-  { symbol: "KTA", name: "Keeta", balance: 0, icon: "⚡" },
-  { symbol: "USDC", name: "USD Coin", balance: 0, icon: "💵" },
-  { symbol: "WETH", name: "Wrapped ETH", balance: 0, icon: "◇" },
-];
+// Token icons mapping
+const TOKEN_ICONS: Record<string, string> = {
+  KTA: "⚡", PACA: "🦙", NDA: "📜", AKTA: "💎", KTARD: "🃏",
+  DRINK: "🍺", SPIT: "💦", ERIC: "👤", KCHAD: "💪", SOON: "🔜", KWIF: "🎩"
+};
 
 export default function Swap() {
   const { isConnected, network } = useKeetaWallet();
@@ -36,12 +35,26 @@ export default function Swap() {
     error: swapError, 
     fxServiceAvailable,
     comingSoon,
+    availableTokens,
     getEstimate,
     executeSwap 
   } = useKeetaSwap();
   
-  const [fromToken, setFromToken] = useState<Token>({ ...AVAILABLE_TOKENS[0], balance: ktaBalance });
-  const [toToken, setToToken] = useState<Token>(AVAILABLE_TOKENS[1]);
+  // Build token list from FX service
+  const tokens: Token[] = availableTokens.length > 0 
+    ? availableTokens.map(t => {
+        const sym = t.symbol.replace('$', '');
+        return {
+          symbol: sym,
+          name: t.name || sym,
+          balance: sym === 'KTA' ? ktaBalance : 0,
+          icon: TOKEN_ICONS[sym] || '🪙'
+        };
+      })
+    : [{ symbol: 'KTA', name: 'Keeta', balance: ktaBalance, icon: '⚡' }];
+
+  const [fromToken, setFromToken] = useState<Token | null>(null);
+  const [toToken, setToToken] = useState<Token | null>(null);
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
   const [isSwapping, setIsSwapping] = useState(false);
@@ -50,10 +63,13 @@ export default function Swap() {
   const [slippage, setSlippage] = useState(0.5);
   const [estimateLoading, setEstimateLoading] = useState(false);
 
-  // Update KTA balance when it changes
-  const tokens = AVAILABLE_TOKENS.map(t => 
-    t.symbol === "KTA" ? { ...t, balance: ktaBalance } : t
-  );
+  // Initialize tokens when available
+  useEffect(() => {
+    if (tokens.length > 0 && !fromToken) {
+      setFromToken(tokens.find(t => t.symbol === 'KTA') || tokens[0]);
+      setToToken(tokens.find(t => t.symbol !== 'KTA') || tokens[1] || tokens[0]);
+    }
+  }, [tokens, fromToken]);
 
   // Fallback exchange rate calculation when FX service unavailable
   const getFallbackRate = (from: string, to: string): number => {
@@ -71,7 +87,7 @@ export default function Swap() {
   const handleFromAmountChange = async (value: string) => {
     setFromAmount(value);
     
-    if (!value || isNaN(parseFloat(value))) {
+    if (!value || isNaN(parseFloat(value)) || !fromToken || !toToken) {
       setToAmount("");
       return;
     }
@@ -96,7 +112,7 @@ export default function Swap() {
   const handleToAmountChange = async (value: string) => {
     setToAmount(value);
     
-    if (!value || isNaN(parseFloat(value))) {
+    if (!value || isNaN(parseFloat(value)) || !fromToken || !toToken) {
       setFromAmount("");
       return;
     }
@@ -119,6 +135,7 @@ export default function Swap() {
   };
 
   const handleSwapTokens = () => {
+    if (!fromToken || !toToken) return;
     const tempToken = fromToken;
     const tempAmount = fromAmount;
     setFromToken(toToken);
@@ -128,11 +145,13 @@ export default function Swap() {
   };
 
   const handleMaxClick = () => {
+    if (!fromToken) return;
     const maxBalance = fromToken.symbol === "KTA" ? ktaBalance : fromToken.balance;
     handleFromAmountChange(maxBalance.toString());
   };
 
   const handleSwap = async () => {
+    if (!fromToken || !toToken) return;
     if (!fromAmount || parseFloat(fromAmount) <= 0) {
       toast.error("Enter an amount to swap");
       return;
@@ -177,7 +196,7 @@ export default function Swap() {
     return Math.floor(amt * 100) / 100 + "";
   };
 
-  const currentRate = getFallbackRate(fromToken.symbol, toToken.symbol);
+  const currentRate = fromToken && toToken ? getFallbackRate(fromToken.symbol, toToken.symbol) : 0;
 
   if (!isConnected) {
     return (
@@ -307,7 +326,7 @@ export default function Swap() {
               <div className="flex justify-between mb-2">
                 <span className="font-mono text-xs text-sw-blue/60">FROM</span>
                 <span className="font-mono text-xs text-sw-blue/60">
-                  BAL: {formatBalance(fromToken.symbol === "KTA" ? ktaBalance : fromToken.balance)}
+                  BAL: {formatBalance(fromToken?.symbol === "KTA" ? ktaBalance : fromToken?.balance || 0)}
                 </span>
               </div>
               
@@ -317,8 +336,8 @@ export default function Swap() {
                     onClick={() => setShowFromTokens(!showFromTokens)}
                     className="flex items-center gap-2 bg-sw-blue/10 border border-sw-blue/40 px-3 py-2 rounded hover:bg-sw-blue/20 transition-colors"
                   >
-                    <span className="text-lg">{fromToken.icon}</span>
-                    <span className="font-display font-bold text-sw-white">{fromToken.symbol}</span>
+                    <span className="text-lg">{fromToken?.icon || '🪙'}</span>
+                    <span className="font-display font-bold text-sw-white">{fromToken?.symbol || 'Select'}</span>
                     <ChevronDown className="w-4 h-4 text-sw-blue" />
                   </button>
                   
@@ -330,7 +349,7 @@ export default function Swap() {
                         exit={{ opacity: 0, y: -10 }}
                         className="absolute top-full left-0 mt-1 z-50 bg-sw-space border border-sw-blue/40 rounded min-w-[150px]"
                       >
-                        {tokens.filter(t => t.symbol !== toToken.symbol).map(token => (
+                        {tokens.filter(t => t.symbol !== toToken?.symbol).map(token => (
                           <button
                             key={token.symbol}
                             onClick={() => {
@@ -388,7 +407,7 @@ export default function Swap() {
               <div className="flex justify-between mb-2">
                 <span className="font-mono text-xs text-sw-blue/60">TO</span>
                 <span className="font-mono text-xs text-sw-blue/60">
-                  BAL: {formatBalance(toToken.balance)}
+                  BAL: {formatBalance(toToken?.balance || 0)}
                 </span>
               </div>
               
@@ -398,8 +417,8 @@ export default function Swap() {
                     onClick={() => setShowToTokens(!showToTokens)}
                     className="flex items-center gap-2 bg-sw-blue/10 border border-sw-blue/40 px-3 py-2 rounded hover:bg-sw-blue/20 transition-colors"
                   >
-                    <span className="text-lg">{toToken.icon}</span>
-                    <span className="font-display font-bold text-sw-white">{toToken.symbol}</span>
+                    <span className="text-lg">{toToken?.icon || '🪙'}</span>
+                    <span className="font-display font-bold text-sw-white">{toToken?.symbol || 'Select'}</span>
                     <ChevronDown className="w-4 h-4 text-sw-blue" />
                   </button>
                   
@@ -411,7 +430,7 @@ export default function Swap() {
                         exit={{ opacity: 0, y: -10 }}
                         className="absolute top-full left-0 mt-1 z-50 bg-sw-space border border-sw-blue/40 rounded min-w-[150px]"
                       >
-                        {tokens.filter(t => t.symbol !== fromToken.symbol).map(token => (
+                        {tokens.filter(t => t.symbol !== fromToken?.symbol).map(token => (
                           <button
                             key={token.symbol}
                             onClick={() => {
@@ -457,7 +476,7 @@ export default function Swap() {
                 <span className="font-mono text-xs text-sw-blue/60">RATE</span>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-sm text-sw-white">
-                    1 {fromToken.symbol} = {currentRate.toFixed(6)} {toToken.symbol}
+                    1 {fromToken?.symbol} = {currentRate.toFixed(6)} {toToken?.symbol}
                   </span>
                   <RefreshCw className="w-3 h-3 text-sw-blue/60" />
                 </div>
@@ -465,7 +484,7 @@ export default function Swap() {
               <div className="flex justify-between items-center mt-2">
                 <span className="font-mono text-xs text-sw-blue/60">MIN RECEIVED</span>
                 <span className="font-mono text-sm text-sw-white">
-                  {(parseFloat(toAmount) * (1 - slippage / 100)).toFixed(6)} {toToken.symbol}
+                  {(parseFloat(toAmount) * (1 - slippage / 100)).toFixed(6)} {toToken?.symbol}
                 </span>
               </div>
               {!fxServiceAvailable && (
