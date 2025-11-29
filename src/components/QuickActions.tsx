@@ -2,6 +2,7 @@ import { Globe, Image, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { StarWarsPanel } from "./StarWarsPanel";
 import { cn } from "@/lib/utils";
+import { Capacitor } from "@capacitor/core";
 
 const actions = [
   {
@@ -9,29 +10,37 @@ const actions = [
     label: "SEND",
     code: "TX-001",
     path: "/send",
+    nativeOnly: false,
   },
   {
     icon: ArrowDownLeft,
     label: "RECEIVE",
     code: "RX-002",
     path: "/receive",
+    nativeOnly: false,
   },
   {
     icon: Image,
     label: "NFTs",
     code: "NF-003",
     path: "/nfts",
+    nativeOnly: false,
   },
   {
     icon: Globe,
     label: "BROWSER",
     code: "BR-004",
     path: "/browser",
+    nativeOnly: true,
   },
 ];
 
 export const QuickActions = () => {
   const navigate = useNavigate();
+  const isNative = Capacitor.isNativePlatform();
+  
+  // Filter out native-only actions when on web
+  const visibleActions = actions.filter(a => !a.nativeOnly || isNative);
   
   const handleClick = (path: string | null) => {
     if (path) {
@@ -41,8 +50,8 @@ export const QuickActions = () => {
 
   return (
     <StarWarsPanel title="// COMMAND INTERFACE" className="h-full">
-      <div className="grid grid-cols-2 gap-3">
-        {actions.map((action) => (
+      <div className="grid grid-cols-3 gap-3">
+        {visibleActions.map((action) => (
           <button
             key={action.label}
             onClick={() => handleClick(action.path)}
