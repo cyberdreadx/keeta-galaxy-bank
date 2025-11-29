@@ -37,7 +37,7 @@ export const TransactionHistory = () => {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
-  const ITEMS_PER_PAGE = 10;
+  const ITEMS_PER_PAGE = 6;
 
   const fetchTransactions = useCallback(async (loadMore = false) => {
     if (!client || !isConnected) {
