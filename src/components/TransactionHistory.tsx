@@ -37,18 +37,60 @@ export const TransactionHistory = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [displayCount, setDisplayCount] = useState(6);
+  const [isFromCache, setIsFromCache] = useState(false);
   const ITEMS_PER_PAGE = 6;
+  const CACHE_KEY = `yoda_tx_cache_${publicKey}`;
+  const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 
-  const fetchTransactions = useCallback(async () => {
+  // Load from cache on mount
+  useEffect(() => {
+    if (!publicKey) return;
+    
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        const isExpired = Date.now() - timestamp > CACHE_EXPIRY;
+        
+        if (data && data.length > 0) {
+          // Restore dates from strings
+          const restored = data.map((tx: any) => ({
+            ...tx,
+            timestamp: new Date(tx.timestamp)
+          }));
+          setAllTransactions(restored);
+          setTransactions(restored.slice(0, ITEMS_PER_PAGE));
+          setIsFromCache(!isExpired);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load tx cache:', e);
+    }
+  }, [publicKey, CACHE_KEY]);
+
+  const saveToCache = useCallback((txs: Transaction[]) => {
+    if (!publicKey) return;
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        data: txs,
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      console.warn('Failed to save tx cache:', e);
+    }
+  }, [publicKey, CACHE_KEY]);
+
+  const fetchTransactions = useCallback(async (background = false) => {
     if (!client || !isConnected) {
       setTransactions([]);
       setAllTransactions([]);
       return;
     }
 
-    setIsLoading(true);
+    if (!background) {
+      setIsLoading(true);
+    }
     setError(null);
-    setDisplayCount(ITEMS_PER_PAGE);
 
     try {
       const repsResponse = await fetch('https://rep1.main.network.api.keeta.com/api/node/ledger/representatives');
@@ -136,15 +178,27 @@ export const TransactionHistory = () => {
           };
         });
 
+      // Save to cache
+      saveToCache(allFormattedTxs);
+      
       setAllTransactions(allFormattedTxs);
-      setTransactions(allFormattedTxs.slice(0, ITEMS_PER_PAGE));
+      if (!background) {
+        setDisplayCount(ITEMS_PER_PAGE);
+        setTransactions(allFormattedTxs.slice(0, ITEMS_PER_PAGE));
+      } else {
+        // Keep current display count when refreshing in background
+        setTransactions(allFormattedTxs.slice(0, displayCount));
+      }
+      setIsFromCache(false);
     } catch (err: any) {
       console.error('Failed to fetch transactions:', err);
-      setError(err.message || 'Failed to fetch transactions');
+      if (!background) {
+        setError(err.message || 'Failed to fetch transactions');
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [client, isConnected, publicKey]);
+  }, [client, isConnected, publicKey, saveToCache, displayCount]);
 
   const loadMore = useCallback(() => {
     setIsLoadingMore(true);
@@ -156,9 +210,13 @@ export const TransactionHistory = () => {
 
   const hasMore = displayCount < allTransactions.length;
 
+  // Fetch fresh data (background refresh if we have cache)
   useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
+    if (isConnected && publicKey) {
+      const hasCache = allTransactions.length > 0;
+      fetchTransactions(hasCache);
+    }
+  }, [isConnected, publicKey]); // Intentionally not including fetchTransactions to avoid loops
 
   if (!isConnected) {
     return (
@@ -246,10 +304,10 @@ export const TransactionHistory = () => {
       </div>
 
       <button 
-        onClick={() => fetchTransactions()}
+        onClick={() => fetchTransactions(false)}
         className="w-full mt-4 py-2 border border-sw-blue/30 bg-sw-blue/5 hover:bg-sw-blue/10 transition-colors font-mono text-xs text-sw-blue tracking-widest"
       >
-        {isLoading ? 'SCANNING...' : 'REFRESH TRANSACTIONS →'}
+        {isLoading ? 'SCANNING...' : isFromCache ? 'REFRESH (CACHED) →' : 'REFRESH TRANSACTIONS →'}
       </button>
 
       {hasMore && transactions.length > 0 && (
