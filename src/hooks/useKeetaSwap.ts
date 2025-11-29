@@ -279,20 +279,29 @@ export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR)
       const bestQuote = quotes[0];
       console.log('[KeetaSwap] Best quote:', bestQuote);
 
-      // The quote should contain execution instructions
+      // The quote should contain execution instructions - check various method names
+      if (bestQuote.createExchange && typeof bestQuote.createExchange === 'function') {
+        console.log('[KeetaSwap] Using createExchange method');
+        const result = await bestQuote.createExchange();
+        console.log('[KeetaSwap] CreateExchange result:', result);
+        return { success: true, txId: result?.id || result?.txId || result?.exchangeId };
+      }
+
       if (bestQuote.execute && typeof bestQuote.execute === 'function') {
+        console.log('[KeetaSwap] Using execute method');
         const result = await bestQuote.execute();
         console.log('[KeetaSwap] Execute result:', result);
         return { success: true, txId: result?.id || result?.txId };
       }
 
       if (bestQuote.accept && typeof bestQuote.accept === 'function') {
+        console.log('[KeetaSwap] Using accept method');
         const result = await bestQuote.accept();
         console.log('[KeetaSwap] Accept result:', result);
         return { success: true, txId: result?.id || result?.txId };
       }
 
-      // Log quote structure
+      // Log quote structure for debugging
       console.log('[KeetaSwap] Quote keys:', Object.keys(bestQuote));
       console.log('[KeetaSwap] Quote prototype:', Object.getOwnPropertyNames(Object.getPrototypeOf(bestQuote) || {}));
 
