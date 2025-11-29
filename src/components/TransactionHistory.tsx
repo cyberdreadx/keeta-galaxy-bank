@@ -76,6 +76,9 @@ export const TransactionHistory = () => {
 
       console.log('[TransactionHistory] Found blocks:', allBlocks.length);
 
+      // Log raw blocks for debugging
+      console.log('[TransactionHistory] Raw blocks sample:', allBlocks.slice(0, 2));
+
       // Filter and transform blocks to transactions
       const formattedTxs: Transaction[] = allBlocks
         .filter(block => 
@@ -84,39 +87,64 @@ export const TransactionHistory = () => {
         )
         .slice(0, 10)
         .map((block: any, index: number) => {
-          // Determine transaction type based on operations
-          const sendOp = block.operations?.find((op: any) => op.type === 1 || op.send);
-          const isSend = block.account === publicKey && sendOp;
+          // Log each block's operations for debugging
+          console.log('[TransactionHistory] Block operations:', block.operations);
+          
+          // Find send operation - type 1 is typically send in Keeta
+          const operations = block.operations || [];
+          const sendOp = operations.find((op: any) => 
+            op.type === 1 || op.send || op.to
+          );
+          
+          // Determine if this account is sender or receiver
+          const isSender = block.account === publicKey;
+          const isRecipient = operations.some((op: any) => op.to === publicKey);
           
           // Parse amount from operations (KTA uses 18 decimals)
           let amount = 0;
-          let recipient = '';
+          let counterparty = '';
           
           if (sendOp) {
-            const rawAmount = sendOp.amount || sendOp.value || '0';
+            // Try multiple possible amount field names
+            const rawAmount = sendOp.amount || sendOp.value || sendOp.balance || '0';
+            console.log('[TransactionHistory] Raw amount:', rawAmount, 'type:', typeof rawAmount);
+            
             try {
-              const amountBigInt = typeof rawAmount === 'string' && rawAmount.startsWith('0x')
-                ? BigInt(rawAmount)
-                : BigInt(rawAmount);
+              let amountBigInt: bigint;
+              if (typeof rawAmount === 'string') {
+                amountBigInt = rawAmount.startsWith('0x') 
+                  ? BigInt(rawAmount) 
+                  : BigInt(rawAmount);
+              } else if (typeof rawAmount === 'number') {
+                amountBigInt = BigInt(Math.floor(rawAmount));
+              } else {
+                amountBigInt = BigInt(0);
+              }
               amount = Number(amountBigInt) / 1e18;
-            } catch {
+            } catch (e) {
+              console.error('[TransactionHistory] Amount parse error:', e);
               amount = 0;
             }
-            recipient = sendOp.to || sendOp.recipient || '';
+            
+            // Get counterparty address
+            counterparty = isSender 
+              ? (sendOp.to || sendOp.recipient || sendOp.destination || '')
+              : (block.account || '');
           }
           
           // Get hash for ID
           const hash = block.hash || block.$hash || block.blockHash || String(index);
           const shortHash = typeof hash === 'string' ? hash.substring(0, 6).toUpperCase() : String(index);
           
+          // Determine transaction type: if we're sender -> send, if we're recipient -> receive
+          const txType = isSender && !isRecipient ? 'send' : 'receive';
+          
           return {
             id: `TX-${shortHash}`,
-            type: isSend ? 'send' as const : 'receive' as const,
+            type: txType as 'send' | 'receive',
             amount: amount,
             currency: 'KTA',
-            address: isSend 
-              ? (recipient).substring(0, 12) 
-              : (block.account || '').substring(0, 12),
+            address: counterparty.substring(0, 12),
             timestamp: new Date(block.date || Date.now()),
             status: 'completed' as const,
           };
