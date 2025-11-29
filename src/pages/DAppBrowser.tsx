@@ -194,6 +194,33 @@ export default function DAppBrowser() {
     );
   }
 
+  // Show native-only message on web
+  if (!isNative) {
+    return (
+      <div className="min-h-screen bg-sw-space flex flex-col">
+        <StarField />
+        <Header />
+        <main className="flex-1 flex items-center justify-center p-4 pt-20">
+          <StarWarsPanel title="DAPP BROWSER" className="max-w-md w-full">
+            <div className="text-center py-8">
+              <Smartphone className="w-16 h-16 text-sw-blue/50 mx-auto mb-4" />
+              <p className="text-sw-blue font-mono text-sm mb-2">
+                NATIVE APP ONLY
+              </p>
+              <p className="text-sw-blue/70 font-mono text-xs mb-4">
+                The DApp Browser is available in the native mobile app for iOS and Android.
+              </p>
+              <p className="text-sw-blue/50 font-mono text-[10px]">
+                Install Yoda Wallet on your device to browse DApps with full functionality.
+              </p>
+            </div>
+          </StarWarsPanel>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-sw-space flex flex-col">
       <StarField />
