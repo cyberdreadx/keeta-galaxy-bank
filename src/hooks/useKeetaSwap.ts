@@ -14,66 +14,72 @@ interface SwapToken {
   address?: string;
 }
 
+// TODO: Replace with actual FX resolver public key for mainnet
+const FX_RESOLVER_PUBLIC_KEY = {
+  main: '', // Need mainnet FX resolver address
+  test: '', // Need testnet FX resolver address
+};
+
 export function useKeetaSwap() {
   const { client, network, isConnected } = useKeetaWallet();
-  const [fxConfig, setFxConfig] = useState<any>(null);
+  const [fxClient, setFxClient] = useState<any>(null);
   const [availableTokens, setAvailableTokens] = useState<SwapToken[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load Anchor SDK and try to initialize FX services
+  // Initialize FX Client
   useEffect(() => {
     const init = async () => {
       if (!isConnected || !client) return;
+
+      const resolverPublicKey = FX_RESOLVER_PUBLIC_KEY[network];
+      if (!resolverPublicKey) {
+        console.log('[KeetaSwap] No FX resolver configured for network:', network);
+        setError(`No FX resolver configured for ${network}net`);
+        setIsInitialized(true);
+        return;
+      }
 
       try {
         setIsLoading(true);
         setError(null);
 
         // Load Anchor SDK
-        const anchor = await import('@keetanetwork/anchor');
+        const Anchor = await import('@keetanetwork/anchor');
+        const KeetaNet = Anchor.KeetaNet;
         console.log('[KeetaSwap] Anchor SDK loaded');
 
-        // Check if Resolver exists
-        if (anchor.lib?.Resolver) {
-          console.log('[KeetaSwap] Resolver class found');
-          
-          try {
-            const Resolver = anchor.lib.Resolver as any;
-            
-            // Create resolver with just the client for lookups
-            const resolverInstance = new Resolver({ client });
-            console.log('[KeetaSwap] Resolver instance created');
-            
-            // Use lookupFXServices method
-            if (typeof resolverInstance.lookupFXServices === 'function') {
-              console.log('[KeetaSwap] Calling lookupFXServices...');
-              const fxServices = await resolverInstance.lookupFXServices();
-              console.log('[KeetaSwap] FX Services result:', fxServices);
-              
-              if (fxServices && (Array.isArray(fxServices) ? fxServices.length > 0 : true)) {
-                setFxConfig(fxServices);
-                setAvailableTokens([
-                  { symbol: 'KTA', name: 'Keeta' },
-                  { symbol: 'USDC', name: 'USD Coin' },
-                ]);
-                console.log('[KeetaSwap] FX services configured');
-              } else {
-                console.log('[KeetaSwap] No FX services available on this network');
-                setError('No FX services available on this network');
-              }
-            } else {
-              console.log('[KeetaSwap] lookupFXServices method not found');
-              setError('FX lookup not available');
-            }
-          } catch (resolverErr: any) {
-            console.error('[KeetaSwap] Resolver error:', resolverErr);
-            setError(resolverErr?.message || 'FX resolver unavailable');
-          }
+        // Create resolver account from public key
+        const resolverAccount = KeetaNet.lib.Account.fromPublicKeyString(resolverPublicKey);
+        console.log('[KeetaSwap] Resolver account created');
+
+        // Create FX Client
+        const fxClientInstance = new (Anchor as any).FX.Client(client, { root: resolverAccount });
+        console.log('[KeetaSwap] FX Client created');
+
+        // Get available tokens
+        const tokenList = await fxClientInstance.resolver.listTokens().catch(() => []);
+        console.log('[KeetaSwap] Token list:', tokenList);
+
+        // Get possible conversions from KTA
+        const conversions = await fxClientInstance.listPossibleConversions({ from: '$KTA' }).catch(() => []);
+        console.log('[KeetaSwap] Possible conversions:', conversions);
+
+        setFxClient(fxClientInstance);
+        
+        // Set available tokens based on what we found
+        if (tokenList && tokenList.length > 0) {
+          setAvailableTokens(tokenList.map((t: any) => ({
+            symbol: t.symbol || t.currencyCode || t,
+            name: t.name || t.symbol || t,
+            address: t.address || t.publicKey,
+          })));
         } else {
-          console.log('[KeetaSwap] Resolver not found in anchor.lib');
-          setError('Resolver not available in SDK');
+          setAvailableTokens([
+            { symbol: 'KTA', name: 'Keeta' },
+            { symbol: 'USDC', name: 'USD Coin' },
+          ]);
         }
 
         setIsInitialized(true);
@@ -94,28 +100,34 @@ export function useKeetaSwap() {
     toToken: string,
     amount: string
   ): Promise<SwapEstimate | null> => {
-    if (!fxConfig || !amount || parseFloat(amount) <= 0) {
+    if (!fxClient || !amount || parseFloat(amount) <= 0) {
       return null;
     }
 
     try {
       setIsLoading(true);
       
-      // Use FX service getEstimate method
-      const estimate = await fxConfig.getEstimate({
-        fromToken,
-        toToken,
+      // Use FX client getEstimates method
+      const estimates = await fxClient.getEstimates({
+        affinity: 'from',
         amount,
+        from: fromToken,
+        to: toToken,
       });
 
-      console.log('[KeetaSwap] Estimate result:', estimate);
+      console.log('[KeetaSwap] Estimates result:', estimates);
 
-      return {
-        fromAmount: amount,
-        toAmount: estimate?.toAmount || estimate?.output || '0',
-        rate: estimate?.rate || 0,
-        fee: estimate?.fee,
-      };
+      if (estimates && estimates.length > 0) {
+        const best = estimates[0];
+        return {
+          fromAmount: amount,
+          toAmount: best.toAmount || best.output || '0',
+          rate: best.rate || parseFloat(best.toAmount) / parseFloat(amount),
+          fee: best.fee,
+        };
+      }
+
+      return null;
     } catch (err: any) {
       console.error('[KeetaSwap] Estimate error:', err);
       setError(err?.message || 'Failed to get estimate');
@@ -123,7 +135,7 @@ export function useKeetaSwap() {
     } finally {
       setIsLoading(false);
     }
-  }, [fxConfig]);
+  }, [fxClient]);
 
   const executeSwap = useCallback(async (
     fromToken: string,
@@ -131,36 +143,26 @@ export function useKeetaSwap() {
     amount: string,
     minReceived?: string
   ): Promise<{ success: boolean; txId?: string; error?: string }> => {
-    if (!fxConfig) {
+    if (!fxClient) {
       return { success: false, error: 'Swap service not available' };
     }
 
     try {
       setIsLoading(true);
 
-      // Get quote first
-      const quote = await fxConfig.getQuote({
-        fromToken,
-        toToken,
+      // Execute exchange via FX client
+      const result = await fxClient.exchange({
+        from: fromToken,
+        to: toToken,
         amount,
         minReceived,
       });
 
-      console.log('[KeetaSwap] Quote:', quote);
-
-      // Execute exchange
-      const exchange = await fxConfig.createExchange({
-        quoteId: quote?.id,
-        fromToken,
-        toToken,
-        amount,
-      });
-
-      console.log('[KeetaSwap] Exchange created:', exchange);
+      console.log('[KeetaSwap] Exchange result:', result);
 
       return {
         success: true,
-        txId: exchange?.id || exchange?.txId,
+        txId: result?.id || result?.txId,
       };
     } catch (err: any) {
       console.error('[KeetaSwap] Swap error:', err);
@@ -171,24 +173,24 @@ export function useKeetaSwap() {
     } finally {
       setIsLoading(false);
     }
-  }, [fxConfig]);
+  }, [fxClient]);
 
   const getExchangeStatus = useCallback(async (exchangeId: string) => {
-    if (!fxConfig) return null;
+    if (!fxClient) return null;
 
     try {
-      return await fxConfig.getExchangeStatus(exchangeId);
+      return await fxClient.getExchangeStatus(exchangeId);
     } catch (err) {
       console.error('[KeetaSwap] Status check error:', err);
       return null;
     }
-  }, [fxConfig]);
+  }, [fxClient]);
 
   return {
     isInitialized,
     isLoading,
     error,
-    fxServiceAvailable: !!fxConfig,
+    fxServiceAvailable: !!fxClient,
     availableTokens,
     getEstimate,
     executeSwap,
