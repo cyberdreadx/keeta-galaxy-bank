@@ -15,7 +15,7 @@ interface SwapToken {
 }
 
 export function useKeetaSwap() {
-  const { client, network, isConnected } = useKeetaWallet();
+  const { client, network, isConnected, seed } = useKeetaWallet();
   const [fxConfig, setFxConfig] = useState<any>(null);
   const [availableTokens, setAvailableTokens] = useState<SwapToken[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +25,7 @@ export function useKeetaSwap() {
   // Load Anchor SDK and try to initialize FX services
   useEffect(() => {
     const init = async () => {
-      if (!isConnected || !client) return;
+      if (!isConnected || !client || !seed) return;
 
       try {
         setIsLoading(true);
@@ -34,62 +34,60 @@ export function useKeetaSwap() {
         // Load Anchor SDK
         const anchor = await import('@keetanetwork/anchor');
         console.log('[KeetaSwap] Anchor SDK loaded');
-        console.log('[KeetaSwap] Available in anchor.lib:', anchor.lib ? Object.keys(anchor.lib) : 'none');
 
-        // Check if Resolver exists and use lookup methods
+        // Create account from seed
+        const KeetaNet = anchor.KeetaNet as any;
+        const Account = KeetaNet?.lib?.Account;
+        if (!Account) {
+          console.log('[KeetaSwap] Account class not found');
+          setError('Account class not available');
+          setIsInitialized(true);
+          setIsLoading(false);
+          return;
+        }
+
+        const userAccount = Account.fromSeed(seed, 0);
+        console.log('[KeetaSwap] Account created from seed');
+
+        // Check if Resolver exists
         if (anchor.lib?.Resolver) {
           console.log('[KeetaSwap] Resolver class found');
           
           try {
             const Resolver = anchor.lib.Resolver as any;
             
-            // Create resolver instance - try with client
-            let resolverInstance: any = null;
+            // Create resolver with proper config: { root, client, trustedCAs }
+            const resolverInstance = new Resolver({
+              root: userAccount,
+              client: client,
+              trustedCAs: []
+            });
+            console.log('[KeetaSwap] Resolver instance created');
             
-            try {
-              resolverInstance = new Resolver(client);
-              console.log('[KeetaSwap] Resolver created with client');
-            } catch (e) {
-              console.log('[KeetaSwap] Resolver(client) failed, trying empty config');
-              try {
-                resolverInstance = new Resolver({});
-                console.log('[KeetaSwap] Resolver created with empty config');
-              } catch (e2) {
-                console.log('[KeetaSwap] Resolver({}) also failed');
-              }
-            }
-
-            if (resolverInstance) {
-              console.log('[KeetaSwap] Resolver instance created');
+            // Use lookupFXServices method
+            if (typeof resolverInstance.lookupFXServices === 'function') {
+              console.log('[KeetaSwap] Calling lookupFXServices...');
+              const fxServices = await resolverInstance.lookupFXServices();
+              console.log('[KeetaSwap] FX Services result:', fxServices);
               
-              // Use lookupFXServices method
-              if (typeof resolverInstance.lookupFXServices === 'function') {
-                console.log('[KeetaSwap] Calling lookupFXServices...');
-                const fxServices = await resolverInstance.lookupFXServices();
-                console.log('[KeetaSwap] FX Services result:', fxServices);
-                
-                if (fxServices && (Array.isArray(fxServices) ? fxServices.length > 0 : true)) {
-                  setFxConfig(fxServices);
-                  setAvailableTokens([
-                    { symbol: 'KTA', name: 'Keeta' },
-                    { symbol: 'USDC', name: 'USD Coin' },
-                  ]);
-                  console.log('[KeetaSwap] FX services configured');
-                } else {
-                  console.log('[KeetaSwap] No FX services available on this network');
-                  setError('No FX services available on this network');
-                }
+              if (fxServices && (Array.isArray(fxServices) ? fxServices.length > 0 : true)) {
+                setFxConfig(fxServices);
+                setAvailableTokens([
+                  { symbol: 'KTA', name: 'Keeta' },
+                  { symbol: 'USDC', name: 'USD Coin' },
+                ]);
+                console.log('[KeetaSwap] FX services configured');
               } else {
-                console.log('[KeetaSwap] lookupFXServices method not found');
-                setError('FX lookup not available');
+                console.log('[KeetaSwap] No FX services available on this network');
+                setError('No FX services available on this network');
               }
             } else {
-              console.log('[KeetaSwap] Could not create resolver instance');
-              setError('Resolver initialization failed');
+              console.log('[KeetaSwap] lookupFXServices method not found');
+              setError('FX lookup not available');
             }
           } catch (resolverErr: any) {
             console.error('[KeetaSwap] Resolver error:', resolverErr);
-            setError('FX resolver unavailable');
+            setError(resolverErr?.message || 'FX resolver unavailable');
           }
         } else {
           console.log('[KeetaSwap] Resolver not found in anchor.lib');
@@ -107,7 +105,7 @@ export function useKeetaSwap() {
     };
 
     init();
-  }, [isConnected, client, network]);
+  }, [isConnected, client, seed, network]);
 
   const getEstimate = useCallback(async (
     fromToken: string,
