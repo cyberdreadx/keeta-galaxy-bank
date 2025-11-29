@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 import { StarWarsPanel } from "@/components/StarWarsPanel";
 import { useKeetaWallet, AccountType } from "@/contexts/KeetaWalletContext";
@@ -403,6 +404,7 @@ const Account = () => {
         </div>
       </main>
 
+      <Footer />
       
       
       <InternalTransferModal 
