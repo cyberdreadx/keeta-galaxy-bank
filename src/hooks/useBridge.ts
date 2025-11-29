@@ -144,8 +144,8 @@ export function useBridge() {
       // Use the first available provider
       const provider = providers[0];
 
-      // Convert amount to smallest units (9 decimals for KTA)
-      const valueInSmallestUnits = BigInt(Math.floor(amountValue * 1e9));
+      // Convert amount to smallest units (18 decimals for KTA)
+      const valueInSmallestUnits = BigInt(Math.floor(amountValue * 1e18));
 
       // Initiate the transfer with user-provided destination address
       console.log('[Bridge] Calling initiateTransfer...');
