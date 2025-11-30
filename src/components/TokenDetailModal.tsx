@@ -61,9 +61,10 @@ export const TokenDetailModal = ({ isOpen, onClose, token, isHidden, onToggleHid
     }
   };
 
-  // Use fetched metadata name if available, otherwise fall back to local
-  const displayName = metadata?.name || token.name;
-  const displaySymbol = metadata?.symbol || token.symbol;
+  // Use token data passed from balance hook as source of truth (verified by address)
+  // Only use metadata for additional details like supply, logoURI, etc.
+  const displayName = token.name;
+  const displaySymbol = token.symbol;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
