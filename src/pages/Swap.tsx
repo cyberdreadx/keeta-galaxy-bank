@@ -354,7 +354,7 @@ export default function Swap() {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="fixed left-4 right-4 mt-1 z-[200] bg-[#0a1628] border border-sw-blue/40 rounded max-h-[300px] overflow-y-auto shadow-xl"
+                        className="fixed left-4 right-4 mt-1 z-[200] bg-[#0a1628] border border-sw-blue/40 rounded max-h-[300px] overflow-y-auto shadow-xl pb-16"
                         style={{ top: 'auto' }}
                       >
                         {tokens.filter(t => t.symbol !== toToken?.symbol && t.symbol !== fromToken?.symbol).map(token => (
@@ -446,7 +446,7 @@ export default function Swap() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
-                        className="fixed left-4 right-4 bottom-24 z-[200] bg-[#0a1628] border border-sw-blue/40 rounded max-h-[300px] overflow-y-auto shadow-xl"
+                        className="fixed left-4 right-4 bottom-24 z-[200] bg-[#0a1628] border border-sw-blue/40 rounded max-h-[300px] overflow-y-auto shadow-xl pb-16"
                       >
                         {tokens.filter(t => t.symbol !== fromToken?.symbol && t.symbol !== toToken?.symbol).map(token => (
                           <button
