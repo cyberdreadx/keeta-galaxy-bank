@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useTokenMetadata } from "@/hooks/useTokenMetadata";
 import ktaLogo from "@/assets/kta-logo.jpg";
 import kchadLogo from "@/assets/kchad-logo.jpg";
+import pacaLogo from "@/assets/paca-logo.jpeg";
 
 // Fallback emoji icons
 const TOKEN_ICONS: Record<string, string> = {
-  PACA: "🦙", NDA: "📜", AKTA: "💎", KTARD: "🃏",
+  NDA: "📜", AKTA: "💎", KTARD: "🃏",
   DRINK: "🍺", SPIT: "💦", ERIC: "👤", SOON: "🔜", KWIF: "🎩",
   USDC: "💵", EURC: "💶", cbBTC: "₿", KRT: "🎫", MURF: "🐕"
 };
@@ -14,6 +15,7 @@ const TOKEN_ICONS: Record<string, string> = {
 const STATIC_LOGOS: Record<string, string> = {
   KTA: ktaLogo,
   KCHAD: kchadLogo,
+  PACA: pacaLogo,
 };
 
 interface TokenIconProps {
