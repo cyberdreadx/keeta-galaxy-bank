@@ -172,7 +172,7 @@ export const WalletConnect = ({ onClose }: WalletConnectProps) => {
   }
 
   return (
-    <StarWarsPanel title="CONNECT WALLET" className="w-full max-w-md">
+    <StarWarsPanel title="ACCESS WALLET" className="w-full max-w-md">
       <div className="space-y-4">
         {error && (
           <div className="p-3 bg-sw-red/10 border border-sw-red/40 font-mono text-xs text-sw-red">

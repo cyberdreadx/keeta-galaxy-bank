@@ -153,7 +153,7 @@ export const Header = () => {
                     </div>
                   ) : (
                     <span className="font-mono text-xs text-sw-yellow">
-                      {isConnecting ? 'CONNECTING...' : 'CONNECT'}
+                      {isConnecting ? 'LOADING...' : 'SET UP'}
                     </span>
                   )}
                 </button>
@@ -235,7 +235,7 @@ export const Header = () => {
                       "font-mono text-xs",
                       isConnected ? "text-sw-green" : "text-sw-yellow"
                     )}>
-                      {isConnected && publicKey ? truncateAddress(publicKey) : 'CONNECT WALLET'}
+                      {isConnected && publicKey ? truncateAddress(publicKey) : 'SET UP WALLET'}
                     </span>
                   </button>
                 </nav>
