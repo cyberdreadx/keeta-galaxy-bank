@@ -3,6 +3,7 @@ import { ArrowDownUp, ChevronDown, Loader2, RefreshCw, AlertCircle, Rocket } fro
 import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
+import { TokenIcon } from "@/components/TokenIcon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
@@ -16,14 +17,8 @@ interface Token {
   symbol: string;
   name: string;
   balance: number;
-  icon: string;
+  address?: string;
 }
-
-// Token icons mapping
-const TOKEN_ICONS: Record<string, string> = {
-  KTA: "⚡", PACA: "🦙", NDA: "📜", AKTA: "💎", KTARD: "🃏",
-  DRINK: "🍺", SPIT: "💦", ERIC: "👤", KCHAD: "💪", SOON: "🔜", KWIF: "🎩"
-};
 
 export default function Swap() {
   const { isConnected, network } = useKeetaWallet();
@@ -48,10 +43,10 @@ export default function Swap() {
           symbol: sym,
           name: t.name || sym,
           balance: sym === 'KTA' ? ktaBalance : 0,
-          icon: TOKEN_ICONS[sym] || '🪙'
+          address: t.address,
         };
       })
-    : [{ symbol: 'KTA', name: 'Keeta', balance: ktaBalance, icon: '⚡' }];
+    : [{ symbol: 'KTA', name: 'Keeta', balance: ktaBalance }];
 
   const [fromToken, setFromToken] = useState<Token | null>(null);
   const [toToken, setToToken] = useState<Token | null>(null);
@@ -63,11 +58,13 @@ export default function Swap() {
   const [slippage, setSlippage] = useState(0.5);
   const [estimateLoading, setEstimateLoading] = useState(false);
 
-  // Initialize tokens when available
+  // Initialize tokens when available - ensure different tokens selected
   useEffect(() => {
     if (tokens.length > 0 && !fromToken) {
-      setFromToken(tokens.find(t => t.symbol === 'KTA') || tokens[0]);
-      setToToken(tokens.find(t => t.symbol !== 'KTA') || tokens[1] || tokens[0]);
+      const kta = tokens.find(t => t.symbol === 'KTA');
+      const other = tokens.find(t => t.symbol !== 'KTA');
+      setFromToken(kta || tokens[0]);
+      setToToken(other || (tokens.length > 1 ? tokens[1] : null));
     }
   }, [tokens, fromToken]);
 
@@ -341,7 +338,7 @@ export default function Swap() {
                     onClick={() => setShowFromTokens(!showFromTokens)}
                     className="flex items-center gap-2 bg-sw-blue/10 border border-sw-blue/40 px-3 py-2 rounded hover:bg-sw-blue/20 transition-colors"
                   >
-                    <span className="text-lg">{fromToken?.icon || '🪙'}</span>
+                    <TokenIcon tokenAddress={fromToken?.address || ''} symbol={fromToken?.symbol || ''} size="sm" />
                     <div className="text-left">
                       <span className="font-display font-bold text-sw-white block">{fromToken?.symbol || 'Select'}</span>
                       {fromToken?.name && fromToken.name !== fromToken.symbol && (
@@ -359,7 +356,7 @@ export default function Swap() {
                         exit={{ opacity: 0, y: -10 }}
                         className="absolute top-full left-0 mt-1 z-[100] bg-[#0a1628] border border-sw-blue/40 rounded min-w-[200px] max-h-[250px] overflow-y-auto shadow-lg"
                       >
-                        {tokens.filter(t => t.symbol !== toToken?.symbol).map(token => (
+                        {tokens.filter(t => t.symbol !== toToken?.symbol && t.symbol !== fromToken?.symbol).map(token => (
                           <button
                             key={token.symbol}
                             onClick={() => {
@@ -369,7 +366,7 @@ export default function Swap() {
                             }}
                             className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-sw-blue/20 transition-colors bg-[#0a1628] border-b border-sw-blue/10 last:border-b-0"
                           >
-                            <span className="text-xl">{token.icon}</span>
+                            <TokenIcon tokenAddress={token.address || ''} symbol={token.symbol} size="sm" />
                             <div className="text-left">
                               <span className="font-mono text-sw-white font-bold block">{token.symbol}</span>
                               {token.name && token.name !== token.symbol && (
@@ -432,7 +429,7 @@ export default function Swap() {
                     onClick={() => setShowToTokens(!showToTokens)}
                     className="flex items-center gap-2 bg-sw-blue/10 border border-sw-blue/40 px-3 py-2 rounded hover:bg-sw-blue/20 transition-colors"
                   >
-                    <span className="text-lg">{toToken?.icon || '🪙'}</span>
+                    <TokenIcon tokenAddress={toToken?.address || ''} symbol={toToken?.symbol || ''} size="sm" />
                     <div className="text-left">
                       <span className="font-display font-bold text-sw-white block">{toToken?.symbol || 'Select'}</span>
                       {toToken?.name && toToken.name !== toToken.symbol && (
@@ -450,7 +447,7 @@ export default function Swap() {
                         exit={{ opacity: 0, y: -10 }}
                         className="absolute top-full left-0 mt-1 z-[100] bg-[#0a1628] border border-sw-blue/40 rounded min-w-[200px] max-h-[250px] overflow-y-auto shadow-lg"
                       >
-                        {tokens.filter(t => t.symbol !== fromToken?.symbol).map(token => (
+                        {tokens.filter(t => t.symbol !== fromToken?.symbol && t.symbol !== toToken?.symbol).map(token => (
                           <button
                             key={token.symbol}
                             onClick={() => {
@@ -460,7 +457,7 @@ export default function Swap() {
                             }}
                             className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-sw-blue/20 transition-colors bg-[#0a1628] border-b border-sw-blue/10 last:border-b-0"
                           >
-                            <span className="text-xl">{token.icon}</span>
+                            <TokenIcon tokenAddress={token.address || ''} symbol={token.symbol} size="sm" />
                             <div className="text-left">
                               <span className="font-mono text-sw-white font-bold block">{token.symbol}</span>
                               {token.name && token.name !== token.symbol && (
