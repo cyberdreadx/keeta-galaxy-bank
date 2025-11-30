@@ -27,7 +27,7 @@ const TOKEN_ICONS: Record<string, string> = {
 
 export default function Swap() {
   const { isConnected, network } = useKeetaWallet();
-  const { balance: ktaBalance } = useKeetaBalance();
+  const { balance: ktaBalance, refetch: refetchBalance } = useKeetaBalance();
   const { priceUsd } = useKtaPrice();
   const { 
     isInitialized, 
@@ -176,6 +176,8 @@ export default function Swap() {
         });
         setFromAmount("");
         setToAmount("");
+        // Refresh balances after successful swap
+        setTimeout(() => refetchBalance(), 1000);
       } else {
         const errorMessage = result.error?.includes('No quotes available')
           ? `No liquidity providers found for ${fromToken.symbol}/${toToken.symbol} on the default resolver. Try again later as liquidity is still being added.`
