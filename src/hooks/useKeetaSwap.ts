@@ -183,6 +183,34 @@ export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR)
     return baseUnits.toString();
   };
 
+  // Convert base units back to decimal (handles BigInt values)
+  const fromBaseUnits = (value: any, decimals: number = 18): string => {
+    let rawValue: string;
+    
+    // Handle various BigInt representations
+    if (typeof value === 'bigint') {
+      rawValue = value.toString();
+    } else if (typeof value === 'object' && value?.value) {
+      rawValue = String(value.value);
+    } else if (typeof value === 'string') {
+      rawValue = value;
+    } else {
+      return '0';
+    }
+    
+    // Pad with leading zeros if needed
+    while (rawValue.length <= decimals) {
+      rawValue = '0' + rawValue;
+    }
+    
+    const intPart = rawValue.slice(0, -decimals) || '0';
+    const decPart = rawValue.slice(-decimals);
+    
+    // Format with reasonable precision (6 decimals)
+    const fullNumber = parseFloat(`${intPart}.${decPart}`);
+    return fullNumber.toFixed(6);
+  };
+
   const getEstimate = useCallback(async (
     fromToken: string,
     toToken: string,
@@ -219,6 +247,29 @@ export function useKeetaSwap(anchorId: keyof typeof FX_ANCHORS = DEFAULT_ANCHOR)
 
       if (estimates && estimates.length > 0) {
         const best = estimates[0];
+        
+        // Extract convertedAmount from the estimate structure
+        // The API returns: { provider, estimate: { convertedAmount, expectedCost, ... } }
+        const estimateData = best.estimate || best;
+        const convertedAmount = estimateData.convertedAmount;
+        
+        if (convertedAmount) {
+          // Convert from base units to human-readable
+          const toAmountDecimal = fromBaseUnits(convertedAmount);
+          const fromAmountNum = parseFloat(amount);
+          const toAmountNum = parseFloat(toAmountDecimal);
+          
+          console.log('[KeetaSwap] Converted amount:', toAmountDecimal);
+          
+          return {
+            fromAmount: amount,
+            toAmount: toAmountDecimal,
+            rate: toAmountNum / fromAmountNum,
+            fee: estimateData.expectedCost ? fromBaseUnits(estimateData.expectedCost.min) : undefined,
+          };
+        }
+        
+        // Fallback to old field names
         return {
           fromAmount: amount,
           toAmount: best.toAmount || best.output || '0',
