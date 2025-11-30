@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { useTokenMetadata } from "@/hooks/useTokenMetadata";
 import ktaLogo from "@/assets/kta-logo.jpg";
+import kchadLogo from "@/assets/kchad-logo.jpg";
 
 // Fallback emoji icons
 const TOKEN_ICONS: Record<string, string> = {
   PACA: "🦙", NDA: "📜", AKTA: "💎", KTARD: "🃏",
-  DRINK: "🍺", SPIT: "💦", ERIC: "👤", KCHAD: "💪", SOON: "🔜", KWIF: "🎩",
+  DRINK: "🍺", SPIT: "💦", ERIC: "👤", SOON: "🔜", KWIF: "🎩",
   USDC: "💵", EURC: "💶", cbBTC: "₿", KRT: "🎫", MURF: "🐕"
 };
 
 // Static logo URLs for known tokens
 const STATIC_LOGOS: Record<string, string> = {
   KTA: ktaLogo,
+  KCHAD: kchadLogo,
 };
 
 interface TokenIconProps {
