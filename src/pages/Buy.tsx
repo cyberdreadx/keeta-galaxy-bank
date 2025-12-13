@@ -21,6 +21,7 @@ const Buy = () => {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [buyAmount, setBuyAmount] = useState("20");
 
   const KTA_ADDRESS = "0xc0634090F2Fe6c6d75e61Be2b949464aBB498973";
 
@@ -72,7 +73,7 @@ const Buy = () => {
         params.append('sessionToken', sessionToken);
         params.append('defaultNetwork', "base");
         params.append('defaultAsset', "ETH"); // ETH required for Gas
-        params.append('presetFiatAmount', "50");
+        params.append('presetFiatAmount', buyAmount);
         
         const finalUrl = `https://pay.coinbase.com/buy/select-asset?${params.toString()}`;
         
@@ -324,7 +325,23 @@ const Buy = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="font-bold text-yellow-400 mb-1 text-lg">1. Coinbase Onramp</h4>
-                    <p className="text-sm text-gray-400">Buy ETH on Base (Required for Gas).</p>
+                    <p className="text-sm text-gray-400 mb-3">Buy ETH on Base (Required for Gas).</p>
+                    {step === 1 && (
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                          <input 
+                            type="number" 
+                            value={buyAmount}
+                            onChange={(e) => setBuyAmount(e.target.value)}
+                            className="bg-gray-900 border border-yellow-400/30 rounded px-3 py-2 pl-6 w-24 text-yellow-400 font-mono focus:outline-none focus:border-yellow-400"
+                            placeholder="20"
+                            min="5"
+                          />
+                        </div>
+                        <span className="text-sm text-gray-500">USD Amount</span>
+                      </div>
+                    )}
                   </div>
                   {step === 1 && (
                     <Button onClick={handleBuyEth} className="bg-yellow-400 text-black hover:bg-yellow-300 font-bold px-8 py-3 text-lg shadow-2xl shadow-yellow-400/60 ring-4 ring-yellow-400/40 hover:ring-yellow-300/60 transition-all brightness-110">
