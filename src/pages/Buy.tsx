@@ -65,7 +65,7 @@ const Buy = () => {
       params.append('sessionToken', sessionToken);
       // Optional: Default view params
       params.append('defaultNetwork', "base");
-      params.append('defaultAsset', "USDC"); // USDC often has better guest flows
+      params.append('defaultAsset', "ETH"); // ETH required for Gas
       params.append('presetFiatAmount', "50");
       
       window.open(`https://pay.coinbase.com/buy/select-asset?${params.toString()}`, "_blank");
@@ -78,9 +78,9 @@ const Buy = () => {
 
   const handleSwap = () => {
     // Open Aerodrome with pre-selected tokens
-    // USDC -> KTA (Matching the default purchase asset)
+    // ETH -> KTA (Using ETH since user bought ETH for gas)
     // Using explicit address for KTA to ensure it loads
-    window.open(`https://aerodrome.finance/swap?from=usdc&to=${KTA_ADDRESS}`, "_blank");
+    window.open(`https://aerodrome.finance/swap?from=eth&to=${KTA_ADDRESS}`, "_blank");
     setStep(3);
   };
 
@@ -298,7 +298,7 @@ const Buy = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="font-bold text-yellow-400 mb-1 text-lg">1. Coinbase Onramp</h4>
-                    <p className="text-sm text-gray-400">Buy USDC on Base network instantly with card.</p>
+                    <p className="text-sm text-gray-400">Buy ETH on Base (Required for Gas).</p>
                   </div>
                   {step === 1 && (
                     <Button onClick={handleBuyEth} className="bg-yellow-400 text-black hover:bg-yellow-300 font-bold px-8 py-3 text-lg shadow-2xl shadow-yellow-400/60 ring-4 ring-yellow-400/40 hover:ring-yellow-300/60 transition-all brightness-110">
