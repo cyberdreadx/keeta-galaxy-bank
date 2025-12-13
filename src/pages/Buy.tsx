@@ -43,32 +43,58 @@ const Buy = () => {
 
     // Open Coinbase Pay
     if (COINBASE_APP_ID) {
-      setLoading(true);
-      // Generate session token (Client-side signing + API call)
-      // Note: This makes a real API call to Coinbase to get a short-lived session token
-      const sessionToken = await generateCoinbaseSessionToken(baseAddress);
-      setLoading(false);
-
-      if (!sessionToken) {
-        toast({
-          title: "Error",
-          description: "Failed to generate session token. Opening standard buy page.",
-          variant: "destructive",
-        });
-        window.open("https://www.coinbase.com/buy", "_blank");
-        setStep(2);
-        return;
+      // Mobile popup blocker fix: Open window immediately before async call
+      const popup = window.open("", "_blank");
+      if (popup) {
+        popup.document.write(`
+          <html>
+            <head><title>Redirecting to Coinbase...</title></head>
+            <body style="background:#000;color:#fbbf24;display:flex;justify-content:center;align-items:center;height:100vh;font-family:monospace;">
+              <div>Connecting to Coinbase Secure Onramp...</div>
+            </body>
+          </html>
+        `);
       }
 
-      // Use official SDK URL with sessionToken only (addresses/assets are baked into the token)
-      const params = new URLSearchParams();
-      params.append('sessionToken', sessionToken);
-      // Optional: Default view params
-      params.append('defaultNetwork', "base");
-      params.append('defaultAsset', "ETH"); // ETH required for Gas
-      params.append('presetFiatAmount', "50");
+      setLoading(true);
       
-      window.open(`https://pay.coinbase.com/buy/select-asset?${params.toString()}`, "_blank");
+      try {
+        // Generate session token (Client-side signing + API call)
+        const sessionToken = await generateCoinbaseSessionToken(baseAddress);
+        
+        if (!sessionToken) {
+          if (popup) popup.close();
+          throw new Error("Failed to generate token");
+        }
+
+        // Use official SDK URL with sessionToken only
+        const params = new URLSearchParams();
+        params.append('sessionToken', sessionToken);
+        params.append('defaultNetwork', "base");
+        params.append('defaultAsset', "ETH"); // ETH required for Gas
+        params.append('presetFiatAmount', "50");
+        
+        const finalUrl = `https://pay.coinbase.com/buy/select-asset?${params.toString()}`;
+        
+        if (popup) {
+          popup.location.href = finalUrl;
+        } else {
+          // Fallback if popup blocked entirely (rare if sync)
+          window.location.href = finalUrl;
+        }
+      } catch (e) {
+        console.error(e);
+        toast({
+          title: "Error",
+          description: "Failed to connect to Coinbase. Opening standard page.",
+          variant: "destructive",
+        });
+        if (popup) popup.location.href = "https://www.coinbase.com/buy";
+        else window.open("https://www.coinbase.com/buy", "_blank");
+      } finally {
+        setLoading(false);
+        setStep(2);
+      }
     } else {
       // Fallback to generic buy page if no App ID
       window.open("https://www.coinbase.com/buy", "_blank");
