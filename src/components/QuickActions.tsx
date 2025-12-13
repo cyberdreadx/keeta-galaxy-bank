@@ -1,10 +1,17 @@
-import { Globe, Image, ArrowUpRight, ArrowDownLeft, ArrowLeftRight } from "lucide-react";
+import { Globe, Image, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { StarWarsPanel } from "./StarWarsPanel";
 import { cn } from "@/lib/utils";
 import { Capacitor } from "@capacitor/core";
 
 const actions = [
+  {
+    icon: CreditCard,
+    label: "BUY",
+    code: "BY-000",
+    path: "/buy",
+    nativeOnly: false,
+  },
   {
     icon: ArrowUpRight,
     label: "SEND",

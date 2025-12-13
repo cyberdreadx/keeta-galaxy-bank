@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -6,17 +6,37 @@ import { Footer } from "@/components/Footer";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
 import { useKeetaWallet, AccountType } from "@/contexts/KeetaWalletContext";
 import { InternalTransferModal } from "@/components/InternalTransferModal";
-import { Copy, LogOut, Settings as SettingsIcon, Shield, Plus, Wallet, PiggyBank, ArrowRightLeft, Tag, BookUser } from "lucide-react";
+import { Copy, LogOut, Settings as SettingsIcon, Shield, Plus, Wallet, PiggyBank, ArrowRightLeft, Tag, BookUser, Loader2, ExternalLink, AlertCircle, Key, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { useBridge } from "@/hooks/useBridge";
+import { useBaseWallet } from "@/contexts/BaseWalletContext";
+import { useBaseBalance } from "@/hooks/useBaseBalance";
 
 const Account = () => {
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [showCreateCustom, setShowCreateCustom] = useState(false);
   const [customAccountName, setCustomAccountName] = useState("");
+  const [baseDepositAddress, setBaseDepositAddress] = useState<string | null>(null);
+  const [loadingBaseAddress, setLoadingBaseAddress] = useState(false);
+  const [showBaseWalletImport, setShowBaseWalletImport] = useState(false);
+  const [baseWalletInput, setBaseWalletInput] = useState("");
+  const [showBasePrivateKey, setShowBasePrivateKey] = useState(false);
   const navigate = useNavigate();
   const { play } = useSoundEffects();
+  const { getPersistentAddress } = useBridge();
+  const { 
+    isConnected: isBaseConnected, 
+    address: baseAddress,
+    privateKey: basePrivateKey,
+    isConnecting: isBaseConnecting,
+    error: baseError,
+    generateNewWallet: generateBaseWallet,
+    importWallet: importBaseWallet,
+    disconnect: disconnectBaseWallet,
+  } = useBaseWallet();
+  const { ethBalance, ktaBalance, isLoading: isLoadingBaseBalance, refetch: refetchBaseBalance } = useBaseBalance();
   const { 
     publicKey, 
     isConnected, 
@@ -30,6 +50,19 @@ const Account = () => {
     switchAccount,
     getAllAccounts,
   } = useKeetaWallet();
+
+  // Fetch BASE deposit address when connected
+  useEffect(() => {
+    const fetchBaseAddress = async () => {
+      if (isConnected) {
+        setLoadingBaseAddress(true);
+        const address = await getPersistentAddress(8453); // Base chain ID
+        setBaseDepositAddress(address);
+        setLoadingBaseAddress(false);
+      }
+    };
+    fetchBaseAddress();
+  }, [isConnected, getPersistentAddress]);
 
   const copyAddress = (address: string) => {
     navigator.clipboard.writeText(address);
@@ -362,6 +395,221 @@ const Account = () => {
                 )}
               </div>
             </StarWarsPanel>
+
+            {/* BASE Wallet Information */}
+            {isConnected && (
+              <StarWarsPanel title="BASE NETWORK" className="animate-slide-up [animation-delay:150ms]">
+                <div className="space-y-4">
+                  {/* Your BASE Wallet Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs text-sw-green/60 tracking-wider">YOUR BASE WALLET</span>
+                      {isBaseConnected && (
+                        <span className="font-mono text-xs text-sw-green">● CONNECTED</span>
+                      )}
+                    </div>
+
+                    {!isBaseConnected ? (
+                      <div className="space-y-2">
+                        <div className="p-3 bg-sw-green/5 border border-sw-green/20 rounded">
+                          <p className="font-mono text-[10px] text-sw-green/70 mb-3">
+                            Create or import a BASE wallet for instant onramps, swaps, and full control of your Base assets.
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={async () => {
+                                play('click');
+                                await generateBaseWallet();
+                                toast.success("BASE wallet created!");
+                              }}
+                              disabled={isBaseConnecting}
+                              className="flex-1 flex items-center justify-center gap-2 p-2 bg-sw-green/20 border border-sw-green/40 text-sw-green hover:bg-sw-green/30 transition-colors disabled:opacity-50"
+                            >
+                              {isBaseConnecting ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Plus className="w-4 h-4" />
+                              )}
+                              <span className="font-mono text-xs">CREATE</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                play('click');
+                                setShowBaseWalletImport(!showBaseWalletImport);
+                              }}
+                              className="flex-1 flex items-center justify-center gap-2 p-2 bg-sw-yellow/20 border border-sw-yellow/40 text-sw-yellow hover:bg-sw-yellow/30 transition-colors"
+                            >
+                              <Key className="w-4 h-4" />
+                              <span className="font-mono text-xs">IMPORT</span>
+                            </button>
+                          </div>
+
+                          {showBaseWalletImport && (
+                            <div className="mt-3 space-y-2">
+                              <input
+                                type={showBasePrivateKey ? "text" : "password"}
+                                value={baseWalletInput}
+                                onChange={(e) => setBaseWalletInput(e.target.value)}
+                                placeholder="Private key or mnemonic..."
+                                className="w-full p-2 bg-sw-dark/50 border border-sw-green/30 text-sw-green font-mono text-xs focus:outline-none focus:border-sw-green rounded"
+                              />
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => setShowBasePrivateKey(!showBasePrivateKey)}
+                                  className="p-1 hover:bg-sw-green/20 transition-colors"
+                                >
+                                  {showBasePrivateKey ? (
+                                    <EyeOff className="w-3 h-3 text-sw-green/60" />
+                                  ) : (
+                                    <Eye className="w-3 h-3 text-sw-green/60" />
+                                  )}
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    if (!baseWalletInput.trim()) {
+                                      toast.error("Please enter a private key or mnemonic");
+                                      return;
+                                    }
+                                    play('click');
+                                    await importBaseWallet(baseWalletInput);
+                                    setBaseWalletInput("");
+                                    setShowBaseWalletImport(false);
+                                    toast.success("BASE wallet imported!");
+                                  }}
+                                  disabled={isBaseConnecting || !baseWalletInput.trim()}
+                                  className="flex-1 p-2 bg-sw-green/20 border border-sw-green/40 text-sw-green hover:bg-sw-green/30 transition-colors disabled:opacity-50 font-mono text-xs"
+                                >
+                                  {isBaseConnecting ? "IMPORTING..." : "IMPORT"}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {/* BASE Wallet Address */}
+                        <div className="space-y-1">
+                          <span className="font-mono text-[10px] text-sw-green/60">ADDRESS</span>
+                          <button
+                            onClick={() => copyAddress(baseAddress || '')}
+                            className="w-full flex items-center justify-between p-3 bg-sw-green/5 border border-sw-green/20 rounded hover:bg-sw-green/10 transition-colors group"
+                          >
+                            <span className="font-mono text-xs text-sw-green truncate max-w-[200px]">
+                              {baseAddress}
+                            </span>
+                            <Copy className="w-4 h-4 text-sw-green/60 group-hover:text-sw-yellow transition-colors" />
+                          </button>
+                        </div>
+
+                        {/* BASE Balances */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="p-3 bg-sw-green/5 border border-sw-green/20 rounded">
+                            <p className="font-mono text-[10px] text-sw-green/60 mb-1">ETH BALANCE</p>
+                            <p className="font-mono text-sm text-sw-green">
+                              {isLoadingBaseBalance ? "..." : parseFloat(ethBalance).toFixed(4)}
+                            </p>
+                          </div>
+                          <div className="p-3 bg-sw-green/5 border border-sw-green/20 rounded">
+                            <p className="font-mono text-[10px] text-sw-green/60 mb-1">KTA BALANCE</p>
+                            <p className="font-mono text-sm text-sw-green">
+                              {isLoadingBaseBalance ? "..." : parseFloat(ktaBalance).toFixed(4)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Backup Key */}
+                        {basePrivateKey && (
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-mono text-[10px] text-sw-yellow/60">PRIVATE KEY (BACKUP REQUIRED)</span>
+                              <button
+                                onClick={() => setShowBasePrivateKey(!showBasePrivateKey)}
+                                className="text-[10px] text-sw-yellow hover:underline"
+                              >
+                                {showBasePrivateKey ? "HIDE" : "SHOW"}
+                              </button>
+                            </div>
+                            {showBasePrivateKey && (
+                              <button
+                                onClick={() => copyAddress(basePrivateKey)}
+                                className="w-full flex items-center justify-between p-3 bg-sw-yellow/5 border border-sw-yellow/20 rounded hover:bg-sw-yellow/10 transition-colors group"
+                              >
+                                <span className="font-mono text-xs text-sw-yellow truncate max-w-[200px] blur-[2px] hover:blur-none transition-all">
+                                  {basePrivateKey}
+                                </span>
+                                <Copy className="w-4 h-4 text-sw-yellow/60 group-hover:text-sw-yellow transition-colors" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        <button
+                          onClick={async () => {
+                            play('click');
+                            disconnectBaseWallet();
+                            toast.success("BASE wallet disconnected");
+                          }}
+                          className="w-full p-2 bg-sw-red/5 border border-sw-red/20 text-sw-red hover:bg-sw-red/10 transition-colors font-mono text-xs"
+                        >
+                          DISCONNECT BASE WALLET
+                        </button>
+                      </div>
+                    )}
+
+                    {baseError && (
+                      <div className="p-2 bg-sw-red/10 border border-sw-red/30 rounded">
+                        <p className="font-mono text-xs text-sw-red">{baseError}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bridge Deposit Address Section */}
+                  <div className="pt-3 border-t border-sw-green/20 space-y-2">
+                    <div className="p-2 bg-sw-blue/10 border border-sw-blue/30 rounded">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-3 h-3 text-sw-blue mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="font-mono text-[10px] text-sw-blue/90 font-semibold mb-1">
+                            Bridge Deposit Address (Different from Your Wallet)
+                          </p>
+                          <p className="font-mono text-[10px] text-sw-blue/70 leading-relaxed">
+                            This is a <strong>one-way forwarding address</strong> for Base → Keeta L1 transfers only. 
+                            You cannot control this address.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="font-mono text-[10px] text-sw-blue/60">BRIDGE DEPOSIT ADDRESS</span>
+                      {loadingBaseAddress ? (
+                        <div className="p-2 bg-sw-blue/5 border border-sw-blue/20 rounded flex items-center justify-center gap-2">
+                          <Loader2 className="w-3 h-3 animate-spin text-sw-blue" />
+                          <span className="font-mono text-[10px] text-sw-blue/70">Loading...</span>
+                        </div>
+                      ) : baseDepositAddress ? (
+                        <button
+                          onClick={() => copyAddress(baseDepositAddress)}
+                          className="w-full flex items-center justify-between p-2 bg-sw-blue/5 border border-sw-blue/20 rounded hover:bg-sw-blue/10 transition-colors group"
+                        >
+                          <span className="font-mono text-[10px] text-sw-blue truncate max-w-[180px]">
+                            {baseDepositAddress}
+                          </span>
+                          <Copy className="w-3 h-3 text-sw-blue/60 group-hover:text-sw-yellow transition-colors" />
+                        </button>
+                      ) : (
+                        <div className="p-2 bg-sw-yellow/10 border border-sw-yellow/30 rounded">
+                          <p className="font-mono text-[10px] text-sw-yellow/80 text-center">
+                            Visit Bridge page to generate
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </StarWarsPanel>
+            )}
 
             <StarWarsPanel title="ACTIONS" className="animate-slide-up [animation-delay:200ms]">
               <div className="space-y-3">

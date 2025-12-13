@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { KeetaWalletProvider } from "./contexts/KeetaWalletContext";
+import { BaseWalletProvider } from "./contexts/BaseWalletContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
 import { SwipeablePages } from "./components/SwipeablePages";
 import Index from "./pages/Index";
@@ -21,6 +22,7 @@ import Install from "./pages/Install";
 import NFTGallery from "./pages/NFTGallery";
 import DAppBrowser from "./pages/DAppBrowser";
 import Swap from "./pages/Swap";
+import Buy from "./pages/Buy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +32,7 @@ const AppRoutes = () => (
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/pay" element={<Pay />} />
+      <Route path="/buy" element={<Buy />} />
       <Route path="/send" element={<Send />} />
       <Route path="/receive" element={<Receive />} />
       <Route path="/bridge" element={<Bridge />} />
@@ -49,20 +52,25 @@ const AppRoutes = () => (
   </SwipeablePages>
 );
 
-const App = () => (
+const App = () => {
+  console.log("App mounting...");
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <SettingsProvider>
         <KeetaWalletProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
+          <BaseWalletProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </BaseWalletProvider>
         </KeetaWalletProvider>
       </SettingsProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
