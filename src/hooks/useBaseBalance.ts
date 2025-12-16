@@ -40,7 +40,10 @@ export const useBaseBalance = (): BaseBalance => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchBalances = useCallback(async () => {
+    console.log('[useBaseBalance] fetchBalances called, isConnected:', isConnected, 'address:', address);
+    
     if (!isConnected || !address) {
+      console.log('[useBaseBalance] Not connected or no address, returning 0s');
       setEthBalance('0');
       setKtaBalance('0');
       setUsdcBalance('0');
@@ -51,17 +54,21 @@ export const useBaseBalance = (): BaseBalance => {
     setError(null);
 
     try {
-      const [eth, kta, usdc] = await Promise.all([
-        getBalance(),
+      console.log('[useBaseBalance] Fetching ETH balance for address:', address);
+      const eth = await getBalance();
+      console.log('[useBaseBalance] ETH balance result:', eth);
+      
+      const [kta, usdc] = await Promise.all([
         getKtaBalance(KTA_TOKEN_ADDRESS),
         getKtaBalance(USDC_TOKEN_ADDRESS),
       ]);
+      console.log('[useBaseBalance] KTA balance:', kta, 'USDC balance:', usdc);
 
       setEthBalance(eth);
       setKtaBalance(kta);
       setUsdcBalance(usdc);
     } catch (err: any) {
-      console.error('Failed to fetch BASE balances:', err);
+      console.error('[useBaseBalance] Failed to fetch BASE balances:', err);
       setError(err.message || 'Failed to fetch balances');
     } finally {
       setIsLoading(false);

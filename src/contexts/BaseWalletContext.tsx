@@ -204,15 +204,20 @@ export const BaseWalletProvider = ({ children }: { children: ReactNode }) => {
   }, [state.provider]);
 
   const getBalance = useCallback(async (): Promise<string> => {
+    console.log('[BaseWallet] getBalance called, provider:', !!state.provider, 'address:', state.address);
     if (!state.provider || !state.address) {
+      console.log('[BaseWallet] No provider or address, returning 0');
       return '0';
     }
 
     try {
+      console.log('[BaseWallet] Fetching balance from RPC for:', state.address);
       const balance = await state.provider.getBalance(state.address);
-      return ethers.formatEther(balance);
+      const formatted = ethers.formatEther(balance);
+      console.log('[BaseWallet] Raw balance:', balance.toString(), 'Formatted:', formatted);
+      return formatted;
     } catch (err) {
-      console.error('Failed to get balance:', err);
+      console.error('[BaseWallet] Failed to get balance:', err);
       return '0';
     }
   }, [state.provider, state.address]);
