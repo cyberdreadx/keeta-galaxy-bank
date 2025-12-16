@@ -91,7 +91,7 @@ export const BaseWalletProvider = ({ children }: { children: ReactNode }) => {
     setState(prev => ({ ...prev, isConnecting: true, error: null }));
 
     try {
-      let wallet: ethers.Wallet;
+      let wallet: ethers.Wallet | ethers.HDNodeWallet;
 
       // Check if it's a mnemonic (12 or 24 words)
       const words = privateKeyOrMnemonic.trim().split(/\s+/);

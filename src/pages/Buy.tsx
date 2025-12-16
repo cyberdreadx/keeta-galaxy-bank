@@ -131,7 +131,7 @@ const Buy = () => {
       <Header />
       
       <main className="container mx-auto px-4 pt-24 relative z-10">
-        <StarWarsPanel title="INSTANT RAMP" subtitle="TURBO LANE">
+        <StarWarsPanel title="INSTANT RAMP">
           <div className="space-y-6">
             {/* BASE Wallet Status */}
             {!isBaseConnected && (
