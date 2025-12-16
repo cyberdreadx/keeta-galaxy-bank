@@ -10,6 +10,7 @@ import { CreditCard, ArrowRight, RefreshCw, CheckCircle2, Plane, ExternalLink, W
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useBaseWallet } from "@/contexts/BaseWalletContext";
 import { useBaseBalance } from "@/hooks/useBaseBalance";
+import { useEthPrice } from "@/hooks/useEthPrice";
 import { useToast } from "@/hooks/use-toast";
 import { StarField } from "@/components/StarField";
 import { generateCoinbaseSessionToken } from "@/lib/coinbase";
@@ -18,12 +19,14 @@ const Buy = () => {
   const { isConnected } = useKeetaWallet();
   const { isConnected: isBaseConnected, address: baseAddress } = useBaseWallet();
   const { ethBalance, ktaBalance, usdcBalance } = useBaseBalance();
+  const { price: ethPrice } = useEthPrice();
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [buyAmount, setBuyAmount] = useState("20");
 
   const KTA_ADDRESS = "0xc0634090F2Fe6c6d75e61Be2b949464aBB498973";
+  const ethFiatValue = ethPrice ? parseFloat(ethBalance) * ethPrice : 0;
 
   const handleBuyEth = async () => {
     if (!isBaseConnected || !baseAddress) {
@@ -169,6 +172,9 @@ const Buy = () => {
                     <p className="font-mono text-[10px] text-green-400/60 mb-1">ETH (GAS)</p>
                     <p className="font-mono text-xs text-green-400">
                       {parseFloat(ethBalance).toFixed(4)}
+                      <span className="opacity-70 ml-1">
+                        (${ethFiatValue.toFixed(2)})
+                      </span>
                     </p>
                   </div>
                   <div>

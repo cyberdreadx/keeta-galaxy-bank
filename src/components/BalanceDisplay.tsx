@@ -6,6 +6,9 @@ import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useKeetaBalance } from "@/hooks/useKeetaBalance";
 import { useKtaPrice } from "@/hooks/useKtaPrice";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useBaseWallet } from "@/contexts/BaseWalletContext";
+import { useBaseBalance } from "@/hooks/useBaseBalance";
+import { useEthPrice } from "@/hooks/useEthPrice";
 
 export const BalanceDisplay = () => {
   const [isHidden, setIsHidden] = useState(false);
@@ -14,12 +17,18 @@ export const BalanceDisplay = () => {
   const { convertToFiat } = useKtaPrice();
   const { formatFiat } = useSettings();
   
+  // Base Wallet
+  const { isConnected: isBaseConnected } = useBaseWallet();
+  const { ethBalance } = useBaseBalance();
+  const { price: ethPrice } = useEthPrice();
+
   const accountName = getActiveAccountName();
   const isChecking = activeAccountType === 'checking';
   const isSavings = activeAccountType === 'savings';
   const isCustom = !isChecking && !isSavings;
 
   const fiatValue = convertToFiat(balance);
+  const ethFiatValue = ethPrice ? parseFloat(ethBalance) * ethPrice : 0;
 
   const formatBalance = (amount: number) => {
     // Truncate to 2 decimals without rounding
@@ -93,6 +102,30 @@ export const BalanceDisplay = () => {
             </p>
           )}
         </div>
+
+        {/* Base Wallet Balance Section */}
+        {isBaseConnected && (
+          <div className="border-t border-sw-blue/20 pt-4 px-4 pb-2">
+            <p className="font-mono text-xs text-sw-blue/60 tracking-[0.2em] uppercase mb-3 text-center">
+              BASE NETWORK WALLET
+            </p>
+            <div className="flex items-center justify-between">
+              <div className="text-left">
+                <span className={`block font-display text-2xl text-sw-blue font-bold ${isHidden ? 'blur-md' : ''}`}>
+                  {parseFloat(ethBalance).toFixed(4)} <span className="text-sm font-mono opacity-70">ETH</span>
+                </span>
+                <span className={`block font-mono text-sm text-sw-blue/60 ${isHidden ? 'blur-md' : ''}`}>
+                  ≈ ${ethFiatValue.toFixed(2)}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="block font-mono text-xs text-green-400 border border-green-500/30 bg-green-500/10 px-2 py-1 rounded">
+                  CONNECTED
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats Row */}
         <div className="grid grid-cols-3 gap-4 pt-4 border-t border-sw-blue/20">

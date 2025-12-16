@@ -7,8 +7,8 @@ if (typeof ethers === 'undefined') {
 }
 
 // Base network configuration
-// using reliable public RPC that supports CORS
-const BASE_RPC_URL = 'https://base.llamarpc.com'; 
+// using 1rpc as fallback for reliability
+const BASE_RPC_URL = 'https://1rpc.io/base';
 const BASE_CHAIN_ID = 8453;
 
 interface BaseWalletState {
