@@ -28,6 +28,7 @@ interface BaseWalletContextType extends BaseWalletState {
   getBalance: () => Promise<string>;
   getKtaBalance: (ktaTokenAddress?: string) => Promise<string>;
   sendTransaction: (to: string, amount: string) => Promise<ethers.TransactionResponse>;
+  sendErc20: (to: string, amount: string, tokenAddress: string) => Promise<ethers.TransactionResponse>;
 }
 
 const BaseWalletContext = createContext<BaseWalletContextType | null>(null);
@@ -273,6 +274,32 @@ export const BaseWalletProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [state.signer]);
 
+  const sendErc20 = useCallback(async (
+    to: string,
+    amount: string,
+    tokenAddress: string
+  ): Promise<ethers.TransactionResponse> => {
+    if (!state.signer) {
+      throw new Error('Wallet not connected');
+    }
+
+    try {
+      const tokenABI = [
+        'function transfer(address to, uint256 amount) returns (bool)',
+        'function decimals() view returns (uint8)'
+      ];
+      
+      const tokenContract = new ethers.Contract(tokenAddress, tokenABI, state.signer);
+      const decimals = await tokenContract.decimals();
+      const rawAmount = ethers.parseUnits(amount, decimals);
+      
+      const tx = await tokenContract.transfer(to, rawAmount);
+      return tx;
+    } catch (err: any) {
+      throw new Error(err.message || 'ERC20 Transfer failed');
+    }
+  }, [state.signer]);
+
   return (
     <BaseWalletContext.Provider
       value={{
@@ -283,6 +310,7 @@ export const BaseWalletProvider = ({ children }: { children: ReactNode }) => {
         getBalance,
         getKtaBalance,
         sendTransaction,
+        sendErc20,
       }}
     >
       {children}
