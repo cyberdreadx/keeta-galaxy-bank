@@ -32,6 +32,9 @@ const Buy = lazy(() => import("./pages/Buy"));
 const Connect = lazy(() => import("./pages/Connect"));
 const ConnectedSites = lazy(() => import("./pages/ConnectedSites"));
 const ConfirmTransaction = lazy(() => import("./pages/ConfirmTransaction"));
+const ConnectBase = lazy(() => import("./pages/ConnectBase"));
+const ConfirmBaseTransaction = lazy(() => import("./pages/ConfirmBaseTransaction"));
+const ConfirmBaseSign = lazy(() => import("./pages/ConfirmBaseSign"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading fallback
@@ -66,6 +69,9 @@ const AppRoutes = () => (
               <Route path="/connect" element={<Connect />} />
               <Route path="/connected-sites" element={<ConnectedSites />} />
               <Route path="/confirm-tx" element={<ConfirmTransaction />} />
+              <Route path="/connect-base" element={<ConnectBase />} />
+              <Route path="/confirm-base-tx" element={<ConfirmBaseTransaction />} />
+              <Route path="/confirm-base-sign" element={<ConfirmBaseSign />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

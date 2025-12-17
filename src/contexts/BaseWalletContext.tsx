@@ -24,11 +24,13 @@ interface BaseWalletState {
 interface BaseWalletContextType extends BaseWalletState {
   generateNewWallet: () => Promise<void>;
   importWallet: (privateKeyOrMnemonic: string) => Promise<void>;
-  disconnect: () => void;
+  disconnect: () => Promise<void>;
   getBalance: () => Promise<string>;
   getKtaBalance: (ktaTokenAddress?: string) => Promise<string>;
   sendTransaction: (to: string, amount: string) => Promise<ethers.TransactionResponse>;
   sendErc20: (to: string, amount: string, tokenAddress: string) => Promise<ethers.TransactionResponse>;
+  signAndSendTransaction: (txParams: ethers.TransactionRequest) => Promise<string>;
+  signMessage: (message: string) => Promise<string>;
 }
 
 const BaseWalletContext = createContext<BaseWalletContextType | null>(null);
@@ -120,6 +122,11 @@ export const BaseWalletProvider = ({ children }: { children: ReactNode }) => {
       const encrypted = encrypt(wallet.privateKey);
       localStorage.setItem(STORAGE_KEY, encrypted);
 
+      // Store address in chrome.storage for extension
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        await chrome.storage.local.set({ base_wallet_address: address });
+      }
+
       setState({
         isConnected: true,
         isConnecting: false,
@@ -191,8 +198,14 @@ export const BaseWalletProvider = ({ children }: { children: ReactNode }) => {
     await connectWithPrivateKey(privateKeyOrMnemonic.trim());
   }, [connectWithPrivateKey]);
 
-  const disconnect = useCallback(() => {
+  const disconnect = useCallback(async () => {
     localStorage.removeItem(STORAGE_KEY);
+    
+    // Clear chrome.storage for extension
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      await chrome.storage.local.remove('base_wallet_address');
+    }
+    
     setState({
       isConnected: false,
       isConnecting: false,
@@ -300,6 +313,52 @@ export const BaseWalletProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [state.signer]);
 
+  // Sign and send a transaction from dApp (for extension provider)
+  const signAndSendTransaction = useCallback(async (txParams: ethers.TransactionRequest): Promise<string> => {
+    if (!state.signer) {
+      throw new Error('Wallet not connected');
+    }
+
+    try {
+      console.log('[BaseWallet] Signing transaction:', txParams);
+      
+      // Send the transaction
+      const tx = await state.signer.sendTransaction(txParams);
+      console.log('[BaseWallet] Transaction sent:', tx.hash);
+      
+      return tx.hash;
+    } catch (err: any) {
+      console.error('[BaseWallet] Transaction failed:', err);
+      throw new Error(err.message || 'Transaction failed');
+    }
+  }, [state.signer]);
+
+  // Sign a message (for dApp requests)
+  const signMessage = useCallback(async (message: string): Promise<string> => {
+    if (!state.signer) {
+      throw new Error('Wallet not connected');
+    }
+
+    try {
+      console.log('[BaseWallet] Signing message:', message);
+      
+      // If message is hex-encoded, convert to bytes first
+      let messageToSign = message;
+      if (message.startsWith('0x')) {
+        // It's already hex-encoded, ethers will handle it
+        messageToSign = message;
+      }
+      
+      const signature = await state.signer.signMessage(ethers.getBytes(messageToSign));
+      console.log('[BaseWallet] Message signed:', signature);
+      
+      return signature;
+    } catch (err: any) {
+      console.error('[BaseWallet] Signing failed:', err);
+      throw new Error(err.message || 'Signature failed');
+    }
+  }, [state.signer]);
+
   return (
     <BaseWalletContext.Provider
       value={{
@@ -311,6 +370,8 @@ export const BaseWalletProvider = ({ children }: { children: ReactNode }) => {
         getKtaBalance,
         sendTransaction,
         sendErc20,
+        signAndSendTransaction,
+        signMessage,
       }}
     >
       {children}

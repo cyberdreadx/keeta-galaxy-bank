@@ -43,12 +43,14 @@
     "https://*.base.org/*",
     "https://*.coinbase.com/*",
     "https://*.coingecko.com/*",
-    "https://*.1rpc.io/*",
+    "https://1rpc.io/*",
+    "https://base.llamarpc.com/*",
+    "https://mainnet.base.org/*",
     "https://*.keeta.com/*",
     "https://*.dexscreener.com/*"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://*.base.org https://*.coinbase.com https://*.coingecko.com https://*.1rpc.io https://base.llamarpc.com https://mainnet.base.org https://*.keeta.com https://*.dexscreener.com wss://*.walletconnect.org; img-src 'self' https: data: blob:;"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://*.base.org https://*.coinbase.com https://*.coingecko.com https://1rpc.io https://base.llamarpc.com https://mainnet.base.org https://*.keeta.com https://*.dexscreener.com wss://*.walletconnect.org; img-src 'self' https: data: blob:;"
   },
   "web_accessible_resources": [
     {

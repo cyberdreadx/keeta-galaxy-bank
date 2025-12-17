@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { StarField } from "@/components/StarField";
-import { Header } from "@/components/Header";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useKeetaBalance } from "@/hooks/useKeetaBalance";
@@ -164,7 +163,6 @@ const ConfirmTransaction = () => {
   return (
     <div className="relative flex flex-col h-full">
       <StarField />
-      <Header />
       <main className="relative z-10 flex-1 flex items-center justify-center p-4">
         <StarWarsPanel title="// CONFIRM TRANSACTION" className="w-full max-w-md">
           {confirmed ? (

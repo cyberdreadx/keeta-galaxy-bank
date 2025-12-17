@@ -26,6 +26,7 @@ async function handleRequest(request, tabId) {
   console.log('[Yoda Background] Handling method:', method);
 
   switch (method) {
+    // Keeta methods
     case 'keeta_requestAccounts':
       return handleRequestAccounts(tabId);
     
@@ -40,6 +41,33 @@ async function handleRequest(request, tabId) {
     
     case 'keeta_disconnect':
       return handleDisconnect(tabId);
+    
+    // Ethereum/Base methods
+    case 'eth_requestAccounts':
+      return handleEthRequestAccounts(tabId);
+    
+    case 'eth_accounts':
+      return handleEthAccounts();
+    
+    case 'eth_chainId':
+      return handleEthChainId();
+    
+    case 'eth_getBalance':
+      return handleEthGetBalance(params);
+    
+    case 'eth_sendTransaction':
+      return handleEthSendTransaction(params[0], tabId);
+    
+    case 'personal_sign':
+    case 'eth_sign':
+      return handleEthSign(params, tabId);
+    
+    case 'eth_signTypedData':
+    case 'eth_signTypedData_v4':
+      return handleEthSignTypedData(params, tabId);
+    
+    case 'wallet_switchEthereumChain':
+      return handleSwitchChain(params[0]);
     
     default:
       throw new Error(`Method ${method} not supported`);
@@ -111,7 +139,7 @@ async function handleRequestAccounts(tabId) {
       url: popupUrl,
       type: 'popup',
       width: 400,
-      height: 600,
+      height: 700,
       focused: true
     });
     
@@ -313,16 +341,386 @@ async function handleDisconnect(tabId) {
   return { result: true };
 }
 
+// ========== ETHEREUM/BASE HANDLERS ==========
+
+// Handle eth_requestAccounts
+async function handleEthRequestAccounts(tabId) {
+  console.log('[Yoda Background] eth_requestAccounts...');
+  
+  // Get tab info for origin
+  let origin = 'Unknown';
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    const url = new URL(tab.url);
+    origin = url.origin;
+  } catch (error) {
+    console.error('[Yoda Background] Error getting tab info:', error);
+  }
+  
+  // Get stored wallet data and connected sites
+  const data = await chrome.storage.local.get(['base_wallet_address', 'base_connected_sites']);
+  
+  console.log('[Yoda Background] Base wallet data:', { 
+    hasAddress: !!data.base_wallet_address,
+    connectedSites: data.base_connected_sites 
+  });
+  
+  if (data.base_wallet_address) {
+    // Check if this site is already connected
+    const connectedSites = data.base_connected_sites || [];
+    const isConnected = connectedSites.some(site => site.origin === origin);
+    
+    console.log('[Yoda Background] Site already in base_connected_sites?', isConnected);
+    
+    if (isConnected) {
+      // Site is already connected, return address without prompting
+      console.log('[Yoda Background] Auto-approving for already connected Base site:', origin);
+      
+      // Update last used time
+      const updatedSites = connectedSites.map(site => 
+        site.origin === origin 
+          ? { ...site, lastUsed: Date.now() }
+          : site
+      );
+      await chrome.storage.local.set({ base_connected_sites: updatedSites });
+      
+      return { result: [data.base_wallet_address] };
+    }
+  }
+  
+  // Open extension popup to connect
+  console.log('[Yoda Background] Opening Base connection popup for:', origin);
+  
+  // Store pending connection request
+  await chrome.storage.local.set({ 
+    pending_base_connection: true,
+    pending_base_tab_id: tabId,
+    pending_base_origin: origin
+  });
+  
+  // Open popup to /connect-base route
+  try {
+    const popupUrl = chrome.runtime.getURL('index.html#/connect-base');
+    const popupWindow = await chrome.windows.create({
+      url: popupUrl,
+      type: 'popup',
+      width: 400,
+      height: 600,
+      focused: true,
+    });
+    
+    console.log('[Yoda Background] Base connection popup created:', popupWindow.id);
+    await chrome.storage.local.set({ base_popup_window_id: popupWindow.id });
+  } catch (error) {
+    console.error('[Yoda Background] Error opening popup:', error);
+    await chrome.storage.local.remove(['pending_base_connection', 'pending_base_tab_id', 'pending_base_origin']);
+    throw new Error('Failed to open connection popup');
+  }
+  
+  // Wait for user to connect
+  return new Promise((resolve, reject) => {
+    const checkConnection = async () => {
+      const data = await chrome.storage.local.get(['base_wallet_address', 'pending_base_connection']);
+      
+      if (!data.pending_base_connection && data.base_wallet_address) {
+        // User approved connection
+        try {
+          chrome.tabs.sendMessage(tabId, {
+            type: 'eth_accountsChanged',
+            accounts: [data.base_wallet_address]
+          });
+        } catch (error) {
+          console.error('[Yoda Background] Error sending accounts changed:', error);
+        }
+        
+        resolve({ result: [data.base_wallet_address] });
+      } else if (data.pending_base_connection === false) {
+        // User rejected
+        reject(new Error('User rejected connection'));
+      } else {
+        setTimeout(checkConnection, 500);
+      }
+    };
+    
+    checkConnection();
+    
+    // Timeout after 60 seconds
+    setTimeout(async () => {
+      const data = await chrome.storage.local.get('pending_base_connection');
+      if (data.pending_base_connection) {
+        await chrome.storage.local.remove(['pending_base_connection', 'pending_base_tab_id', 'pending_base_origin']);
+        reject(new Error('Connection request timeout'));
+      }
+    }, 60000);
+  });
+}
+
+// Handle eth_accounts
+async function handleEthAccounts() {
+  const data = await chrome.storage.local.get('base_wallet_address');
+  return { result: data.base_wallet_address ? [data.base_wallet_address] : [] };
+}
+
+// Handle eth_chainId
+async function handleEthChainId() {
+  // Base Mainnet = 8453 (0x2105)
+  // Could make this configurable later
+  return { result: '0x2105' };
+}
+
+// Handle eth_getBalance
+async function handleEthGetBalance(params) {
+  const [address, blockTag] = params;
+  console.log('[Yoda Background] eth_getBalance for:', address, 'at block:', blockTag);
+  
+  try {
+    // Use fetch to query Base RPC directly
+    const response = await fetch('https://1rpc.io/base', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'eth_getBalance',
+        params: [address, blockTag || 'latest'],
+        id: 1
+      })
+    });
+    
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+    
+    return { result: data.result };
+  } catch (error) {
+    console.error('[Yoda Background] eth_getBalance failed:', error);
+    throw error;
+  }
+}
+
+// Handle eth_sendTransaction
+async function handleEthSendTransaction(txParams, tabId) {
+  console.log('[Yoda Background] eth_sendTransaction:', txParams);
+  
+  // Get tab info for origin
+  let origin = 'Unknown';
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    const url = new URL(tab.url);
+    origin = url.origin;
+  } catch (error) {
+    console.error('[Yoda Background] Error getting tab info:', error);
+  }
+  
+  // Store pending transaction
+  await chrome.storage.local.set({ 
+    pending_base_tx: txParams,
+    pending_base_tx_origin: origin,
+    pending_base_tab_id: tabId 
+  });
+  
+  // Open popup for confirmation
+  try {
+    const popupUrl = chrome.runtime.getURL('index.html#/confirm-base-tx');
+    const popupWindow = await chrome.windows.create({
+      url: popupUrl,
+      type: 'popup',
+      width: 400,
+      height: 600,
+      focused: true,
+    });
+    
+    await chrome.storage.local.set({ base_tx_popup_window_id: popupWindow.id });
+  } catch (error) {
+    console.error('[Yoda Background] Error opening transaction popup:', error);
+    await chrome.storage.local.remove(['pending_base_tx', 'pending_base_tx_origin', 'pending_base_tab_id']);
+    throw new Error('Failed to open transaction confirmation popup');
+  }
+
+  // Wait for user to confirm
+  return new Promise((resolve, reject) => {
+    const checkTx = async () => {
+      const data = await chrome.storage.local.get(['pending_base_tx', 'base_tx_result', 'base_tx_error']);
+      
+      if (!data.pending_base_tx && data.base_tx_result) {
+        const result = data.base_tx_result;
+        await chrome.storage.local.remove(['base_tx_result', 'base_tx_error', 'base_tx_popup_window_id']);
+        resolve({ result });
+      } else if (!data.pending_base_tx && data.base_tx_error) {
+        const error = data.base_tx_error;
+        await chrome.storage.local.remove(['base_tx_result', 'base_tx_error', 'base_tx_popup_window_id']);
+        reject(new Error(error));
+      } else {
+        setTimeout(checkTx, 500);
+      }
+    };
+    
+    checkTx();
+    
+    setTimeout(async () => {
+      const data = await chrome.storage.local.get('pending_base_tx');
+      if (data.pending_base_tx) {
+        await chrome.storage.local.remove(['pending_base_tx', 'pending_base_tx_origin', 'pending_base_tab_id', 'base_tx_popup_window_id']);
+        reject(new Error('Transaction confirmation timeout'));
+      }
+    }, 60000);
+  });
+}
+
+// Handle eth_sign / personal_sign
+async function handleEthSign(params, tabId) {
+  console.log('[Yoda Background] eth_sign/personal_sign:', params);
+  
+  // Get tab info for origin
+  let origin = 'Unknown';
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    const url = new URL(tab.url);
+    origin = url.origin;
+  } catch (error) {
+    console.error('[Yoda Background] Error getting tab info:', error);
+  }
+  
+  // personal_sign: params = [message, address]
+  // eth_sign: params = [address, message]
+  // We need to detect which one it is
+  let message, address;
+  if (params[0] && params[0].startsWith('0x') && params[0].length > 42) {
+    // Likely personal_sign format (message first)
+    message = params[0];
+    address = params[1];
+  } else {
+    // Likely eth_sign format (address first)
+    address = params[0];
+    message = params[1];
+  }
+  
+  // Store pending signature request
+  await chrome.storage.local.set({ 
+    pending_base_sign: {
+      message,
+      address,
+      origin
+    },
+    pending_base_sign_tab_id: tabId 
+  });
+  
+  // Open popup for confirmation
+  try {
+    const popupUrl = chrome.runtime.getURL('index.html#/confirm-base-sign');
+    const popupWindow = await chrome.windows.create({
+      url: popupUrl,
+      type: 'popup',
+      width: 400,
+      height: 700,
+      focused: true,
+    });
+    
+    await chrome.storage.local.set({ base_sign_popup_window_id: popupWindow.id });
+  } catch (error) {
+    console.error('[Yoda Background] Error opening sign popup:', error);
+    await chrome.storage.local.remove(['pending_base_sign', 'pending_base_sign_tab_id']);
+    throw new Error('Failed to open signature confirmation popup');
+  }
+
+  // Wait for user to confirm
+  return new Promise((resolve, reject) => {
+    const checkSign = async () => {
+      const data = await chrome.storage.local.get(['pending_base_sign', 'base_sign_result', 'base_sign_error']);
+      
+      if (!data.pending_base_sign && data.base_sign_result) {
+        const result = data.base_sign_result;
+        await chrome.storage.local.remove(['base_sign_result', 'base_sign_error', 'base_sign_popup_window_id']);
+        resolve({ result });
+      } else if (!data.pending_base_sign && data.base_sign_error) {
+        const error = data.base_sign_error;
+        await chrome.storage.local.remove(['base_sign_result', 'base_sign_error', 'base_sign_popup_window_id']);
+        reject(new Error(error));
+      } else {
+        setTimeout(checkSign, 500);
+      }
+    };
+    
+    checkSign();
+    
+    setTimeout(async () => {
+      const data = await chrome.storage.local.get('pending_base_sign');
+      if (data.pending_base_sign) {
+        await chrome.storage.local.remove(['pending_base_sign', 'pending_base_sign_tab_id', 'base_sign_popup_window_id']);
+        reject(new Error('Signature request timeout'));
+      }
+    }, 60000);
+  });
+}
+
+// Handle eth_signTypedData
+async function handleEthSignTypedData(params, tabId) {
+  console.log('[Yoda Background] eth_signTypedData:', params);
+  // TODO: Implement typed data signature confirmation popup
+  throw new Error('Sign typed data not yet implemented for Base');
+}
+
+// Handle wallet_switchEthereumChain
+async function handleSwitchChain(params) {
+  const requestedChainId = params.chainId;
+  console.log('[Yoda Background] wallet_switchEthereumChain:', requestedChainId);
+  
+  // For now, only support Base Mainnet
+  if (requestedChainId === '0x2105') {
+    return { result: null };
+  }
+  
+  throw new Error(`Chain ${requestedChainId} not supported. Only Base Mainnet (0x2105) is supported.`);
+}
+
 // Handle popup window closing
 chrome.windows.onRemoved.addListener(async (windowId) => {
-  const data = await chrome.storage.local.get(['popup_window_id', 'pending_connection']);
+  const data = await chrome.storage.local.get([
+    'popup_window_id', 
+    'pending_connection',
+    'base_popup_window_id',
+    'pending_base_connection',
+    'base_tx_popup_window_id',
+    'pending_base_tx',
+    'base_sign_popup_window_id',
+    'pending_base_sign'
+  ]);
   
+  // Handle Keeta connection popup
   if (data.popup_window_id === windowId && data.pending_connection) {
-    // User closed popup without approving - reject connection
-    console.log('[Yoda Background] Popup closed, rejecting connection');
+    console.log('[Yoda Background] Keeta popup closed without response');
     await chrome.storage.local.set({ 
       pending_connection: false,
       popup_window_id: null 
+    });
+  }
+  
+  // Handle Base connection popup
+  if (data.base_popup_window_id === windowId && data.pending_base_connection) {
+    console.log('[Yoda Background] Base popup closed without response');
+    await chrome.storage.local.set({ 
+      pending_base_connection: false,
+      base_popup_window_id: null 
+    });
+  }
+  
+  // Handle Base transaction popup
+  if (data.base_tx_popup_window_id === windowId && data.pending_base_tx) {
+    console.log('[Yoda Background] Base transaction popup closed without response');
+    await chrome.storage.local.set({ 
+      pending_base_tx: null,
+      base_tx_error: 'User closed popup',
+      base_tx_popup_window_id: null 
+    });
+  }
+  
+  // Handle Base signature popup
+  if (data.base_sign_popup_window_id === windowId && data.pending_base_sign) {
+    console.log('[Yoda Background] Base signature popup closed without response');
+    await chrome.storage.local.set({ 
+      pending_base_sign: null,
+      base_sign_error: 'User closed popup',
+      base_sign_popup_window_id: null 
     });
   }
 });

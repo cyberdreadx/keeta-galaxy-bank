@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yoda Wallet - Base Network Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0052FF 0%, #1652F0 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 32px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .network-badge {
+      display: inline-block;
+      padding: 8px 16px;
+      background: linear-gradient(135deg, #0052FF 0%, #1652F0 100%);
+      color: white;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .status {
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+
+    .status.disconnected {
+      background: #fee;
+      color: #c33;
+      border: 2px solid #fcc;
+    }
+
+    .status.connected {
+      background: #efe;
+      color: #3c3;
+      border: 2px solid #cfc;
+    }
+
+    .info-box {
+      background: #f5f5f5;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      font-weight: 600;
+      color: #666;
+    }
+
+    .info-value {
+      font-family: 'Courier New', monospace;
+      color: #333;
+      font-size: 14px;
+      word-break: break-all;
+      max-width: 300px;
+      overflow: hidden;
+    }
+
+    button {
+      background: linear-gradient(135deg, #0052FF 0%, #1652F0 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin: 10px 5px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    button:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    button.disconnect {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5253 100%);
+    }
+
+    button.disconnect:hover {
+      background: linear-gradient(135deg, #ff4757 0%, #eb3b5a 100%);
+    }
+
+    button.secondary {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    }
+
+    .send-form {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 10px;
+      text-align: left;
+    }
+
+    .send-form label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .send-form input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .log {
+      background: #f0f0f0;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 30px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #555;
+      text-align: left;
+    }
+
+    .log-entry {
+      margin-bottom: 5px;
+      border-bottom: 1px dashed #eee;
+      padding-bottom: 5px;
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #0052FF;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="network-badge">⚡ BASE MAINNET</span>
+    <h1>🧙‍♂️ Yoda Wallet</h1>
+    <p class="subtitle">Base Network dApp Test</p>
+
+    <div id="status" class="status disconnected">
+      🔴 Not Connected
+    </div>
+
+    <div id="wallet-info" class="info-box" style="display: none;">
+      <div class="info-row">
+        <span class="info-label">Address:</span>
+        <span class="info-value" id="address">-</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Chain ID:</span>
+        <span class="info-value"><span class="badge" id="chainId">-</span></span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">ETH Balance:</span>
+        <span class="info-value" id="balance">- ETH</span>
+      </div>
+    </div>
+
+    <button id="connectBtn" onclick="connect()">
+      🚀 Connect Wallet
+    </button>
+
+    <button id="disconnectBtn" onclick="disconnect()" class="disconnect" style="display: none;">
+      🔌 Disconnect
+    </button>
+
+    <button id="balanceBtn" onclick="refreshBalance()" style="display: none;">
+      🔄 Refresh Balance
+    </button>
+
+    <button id="showSendBtn" onclick="toggleSendForm()" class="secondary" style="display: none;">
+      💸 Send ETH
+    </button>
+
+    <div id="sendForm" class="send-form" style="display: none;">
+      <h2>Send ETH on Base</h2>
+      <label for="recipientAddress">Recipient Address:</label>
+      <input type="text" id="recipientAddress" placeholder="0x...">
+      <label for="sendAmount">Amount (ETH):</label>
+      <input type="number" id="sendAmount" step="0.0001" placeholder="0.00">
+      <button onclick="sendETH()">Send Transaction</button>
+      <button onclick="toggleSendForm()" class="disconnect">Cancel</button>
+    </div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    let connected = false;
+    let currentAddress = null;
+
+    function log(message) {
+      const logEl = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // Check if Ethereum provider is available
+    window.addEventListener('load', () => {
+      if (window.ethereum) {
+        log('✅ Ethereum provider detected!');
+        log(`Provider: ${window.ethereum.isYoda ? 'Yoda Wallet' : 'Other'}`);
+        log(`Chain ID: ${window.ethereum.chainId}`);
+      } else {
+        log('❌ No Ethereum provider found. Please install Yoda Wallet extension.');
+      }
+    });
+
+    // Listen for Ethereum initialization
+    window.addEventListener('ethereum#initialized', () => {
+      log('✅ Ethereum provider initialized!');
+    });
+
+    // Connect to wallet
+    async function connect() {
+      log('🔄 Requesting accounts...');
+      
+      if (!window.ethereum) {
+        alert('No Ethereum provider found! Please install Yoda Wallet extension.');
+        return;
+      }
+
+      try {
+        const accounts = await window.ethereum.request({ 
+          method: 'eth_requestAccounts' 
+        });
+        
+        log(`✅ Connected! Account: ${accounts[0]}`);
+        
+        currentAddress = accounts[0];
+        connected = true;
+        updateUI();
+        
+        // Get balance
+        await refreshBalance();
+        
+        // Get chain ID
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        log(`Chain ID: ${chainId} (${parseInt(chainId, 16)})`);
+        document.getElementById('chainId').textContent = `${parseInt(chainId, 16)}`;
+      } catch (error) {
+        log(`❌ Connection failed: ${error.message}`);
+        alert('Failed to connect: ' + error.message);
+      }
+    }
+
+    // Disconnect wallet
+    async function disconnect() {
+      log('🔄 Disconnecting...');
+      
+      connected = false;
+      currentAddress = null;
+      updateUI();
+      log('✅ Disconnected!');
+    }
+
+    // Refresh balance
+    async function refreshBalance() {
+      if (!currentAddress) return;
+      
+      log(`🔄 Fetching balance for ${currentAddress}...`);
+      
+      try {
+        const balance = await window.ethereum.request({
+          method: 'eth_getBalance',
+          params: [currentAddress, 'latest']
+        });
+        
+        // Convert from wei to ETH
+        const ethBalance = parseInt(balance, 16) / 1e18;
+        log(`✅ Balance: ${ethBalance.toFixed(4)} ETH`);
+        
+        document.getElementById('balance').textContent = `${ethBalance.toFixed(4)} ETH`;
+      } catch (error) {
+        log(`❌ Balance fetch failed: ${error.message}`);
+      }
+    }
+
+    // Send ETH
+    async function sendETH() {
+      if (!currentAddress) {
+        alert('Please connect your wallet first.');
+        return;
+      }
+
+      const recipientAddress = document.getElementById('recipientAddress').value;
+      const sendAmount = parseFloat(document.getElementById('sendAmount').value);
+
+      if (!recipientAddress || !sendAmount || isNaN(sendAmount) || sendAmount <= 0) {
+        alert('Please enter a valid recipient address and amount.');
+        return;
+      }
+
+      // Convert ETH to Wei (hex)
+      const weiAmount = '0x' + Math.floor(sendAmount * 1e18).toString(16);
+
+      log(`🔄 Sending ${sendAmount} ETH to ${recipientAddress}...`);
+
+      try {
+        const txHash = await window.ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: currentAddress,
+            to: recipientAddress,
+            value: weiAmount,
+          }]
+        });
+        
+        log(`✅ Transaction sent! Hash: ${txHash}`);
+        alert(`Transaction successful!\n\nHash: ${txHash}\n\nView on BaseScan: https://basescan.org/tx/${txHash}`);
+        toggleSendForm();
+        refreshBalance();
+      } catch (error) {
+        log(`❌ Transaction failed: ${error.message}`);
+        alert(`Transaction failed: ${error.message}`);
+      }
+    }
+
+    function toggleSendForm() {
+      const sendForm = document.getElementById('sendForm');
+      const showSendBtn = document.getElementById('showSendBtn');
+      if (sendForm.style.display === 'none') {
+        sendForm.style.display = 'block';
+        showSendBtn.style.display = 'none';
+      } else {
+        sendForm.style.display = 'none';
+        showSendBtn.style.display = 'block';
+      }
+    }
+
+    // Update UI
+    function updateUI() {
+      const statusEl = document.getElementById('status');
+      const walletInfo = document.getElementById('wallet-info');
+      const connectBtn = document.getElementById('connectBtn');
+      const disconnectBtn = document.getElementById('disconnectBtn');
+      const balanceBtn = document.getElementById('balanceBtn');
+      const showSendBtn = document.getElementById('showSendBtn');
+      const sendForm = document.getElementById('sendForm');
+      
+      if (connected && currentAddress) {
+        statusEl.className = 'status connected';
+        statusEl.textContent = '🟢 Connected';
+        
+        document.getElementById('address').textContent = 
+          currentAddress.slice(0, 8) + '...' + currentAddress.slice(-6);
+        
+        walletInfo.style.display = 'block';
+        connectBtn.style.display = 'none';
+        disconnectBtn.style.display = 'block';
+        balanceBtn.style.display = 'block';
+        showSendBtn.style.display = 'block';
+      } else {
+        statusEl.className = 'status disconnected';
+        statusEl.textContent = '🔴 Not Connected';
+        
+        walletInfo.style.display = 'none';
+        connectBtn.style.display = 'block';
+        disconnectBtn.style.display = 'none';
+        balanceBtn.style.display = 'none';
+        showSendBtn.style.display = 'none';
+        sendForm.style.display = 'none';
+      }
+    }
+
+    // Initial UI update
+    updateUI();
+
+    // Listen for events from the provider
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', (accounts) => {
+        log(`🔔 Accounts changed: ${accounts.join(', ')}`);
+        if (accounts.length > 0) {
+          currentAddress = accounts[0];
+          connected = true;
+          updateUI();
+          refreshBalance();
+        } else {
+          currentAddress = null;
+          connected = false;
+          updateUI();
+        }
+      });
+      
+      window.ethereum.on('chainChanged', (chainId) => {
+        log(`🔔 Chain changed: ${chainId} (${parseInt(chainId, 16)})`);
+        document.getElementById('chainId').textContent = `${parseInt(chainId, 16)}`;
+        window.location.reload(); // Recommended by MetaMask
+      });
+      
+      window.ethereum.on('disconnect', () => {
+        log('🔔 Disconnected from provider');
+        currentAddress = null;
+        connected = false;
+        updateUI();
+      });
+    }
+  </script>
+</body>
+</html>
+
