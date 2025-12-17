@@ -19,7 +19,7 @@ export const BalanceDisplay = () => {
   
   // Base Wallet
   const { isConnected: isBaseConnected } = useBaseWallet();
-  const { ethBalance } = useBaseBalance();
+  const { ethBalance, ktaBalance } = useBaseBalance();
   const { price: ethPrice } = useEthPrice();
 
   const accountName = getActiveAccountName();
@@ -29,6 +29,7 @@ export const BalanceDisplay = () => {
 
   const fiatValue = convertToFiat(balance);
   const ethFiatValue = ethPrice ? parseFloat(ethBalance) * ethPrice : 0;
+  const baseKtaFiatValue = convertToFiat(parseFloat(ktaBalance));
 
   const formatBalance = (amount: number) => {
     // Truncate to 2 decimals without rounding
@@ -106,21 +107,35 @@ export const BalanceDisplay = () => {
         {/* Base Wallet Balance Section */}
         {isBaseConnected && (
           <div className="border-t border-sw-blue/20 pt-4 px-4 pb-2 overflow-hidden">
-            <p className="font-mono text-xs text-sw-blue/60 tracking-[0.2em] uppercase mb-3 text-center">
-              BASE NETWORK WALLET
-            </p>
-            <div className="flex items-center justify-between gap-2">
-              <div className="text-left flex-1 min-w-0">
-                <span className={`block font-display text-2xl text-sw-blue font-bold truncate ${isHidden ? 'blur-md' : ''}`}>
-                  {parseFloat(ethBalance).toFixed(4)} <span className="text-sm font-mono opacity-70">ETH</span>
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-mono text-xs text-sw-blue/60 tracking-[0.2em] uppercase">
+                BASE NETWORK WALLET
+              </p>
+              <span className="font-mono text-xs text-green-400 border border-green-500/30 bg-green-500/10 px-2 py-1 rounded whitespace-nowrap">
+                CONNECTED
+              </span>
+            </div>
+            
+            {/* ETH Balance */}
+            <div className="mb-3 pb-3 border-b border-sw-blue/10">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className={`font-display text-xl text-sw-blue font-bold truncate ${isHidden ? 'blur-md' : ''}`}>
+                  {parseFloat(ethBalance).toFixed(4)} <span className="text-xs font-mono opacity-70">ETH</span>
                 </span>
-                <span className={`block font-mono text-sm text-sw-blue/60 truncate ${isHidden ? 'blur-md' : ''}`}>
+                <span className={`font-mono text-xs text-sw-blue/60 ${isHidden ? 'blur-md' : ''}`}>
                   ≈ ${ethFiatValue.toFixed(2)}
                 </span>
               </div>
-              <div className="text-right flex-shrink-0">
-                <span className="block font-mono text-xs text-green-400 border border-green-500/30 bg-green-500/10 px-2 py-1 rounded whitespace-nowrap">
-                  CONNECTED
+            </div>
+            
+            {/* KTA Balance */}
+            <div>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className={`font-display text-xl text-sw-yellow font-bold truncate ${isHidden ? 'blur-md' : ''}`}>
+                  {parseFloat(ktaBalance).toFixed(4)} <span className="text-xs font-mono opacity-70">KTA</span>
+                </span>
+                <span className={`font-mono text-xs text-sw-blue/60 ${isHidden ? 'blur-md' : ''}`}>
+                  ≈ {formatFiat(baseKtaFiatValue)}
                 </span>
               </div>
             </div>

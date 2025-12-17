@@ -69,6 +69,9 @@ async function handleRequest(request, tabId) {
     case 'wallet_switchEthereumChain':
       return handleSwitchChain(params[0]);
     
+    case 'wallet_getCapabilities':
+      return handleGetCapabilities(params);
+    
     default:
       throw new Error(`Method ${method} not supported`);
   }
@@ -671,6 +674,23 @@ async function handleSwitchChain(params) {
   }
   
   throw new Error(`Chain ${requestedChainId} not supported. Only Base Mainnet (0x2105) is supported.`);
+}
+
+// Handle wallet_getCapabilities (EIP-5792)
+async function handleGetCapabilities(params) {
+  console.log('[Yoda Background] wallet_getCapabilities:', params);
+  
+  // Return empty capabilities for now
+  // This indicates no special capabilities like paymasters, session keys, etc.
+  const address = params[0];
+  
+  return {
+    result: {
+      '0x2105': { // Base Mainnet
+        // No special capabilities yet
+      }
+    }
+  };
 }
 
 // Handle popup window closing

@@ -11,6 +11,16 @@ interface SwipeablePagesProps {
 const MAIN_PAGES = ["/", "/pay", "/bridge", "/account"];
 const PAGE_LABELS = ["HOME", "PAY", "BRIDGE", "ACCOUNT"];
 
+// Routes that should not show bottom navigation (approval/confirmation modals)
+const NO_NAV_ROUTES = [
+  "/connect",
+  "/confirm-tx",
+  "/connect-base",
+  "/confirm-base-tx",
+  "/confirm-base-sign",
+  "/landing"
+];
+
 export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -23,6 +33,7 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
 
   const currentIndex = MAIN_PAGES.indexOf(location.pathname);
   const isSwipeEnabled = currentIndex !== -1;
+  const shouldShowNav = !NO_NAV_ROUTES.includes(location.pathname);
 
   const minSwipeDistance = 50;
 
@@ -91,7 +102,7 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           {children}
         </div>
-        <BottomNav />
+        {shouldShowNav && <BottomNav />}
       </div>
     );
   }
@@ -154,8 +165,8 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
         </motion.div>
       </div>
       
-      {/* BottomNav outside motion wrapper - hidden on landing page */}
-      {location.pathname !== '/landing' && <BottomNav />}
+      {/* BottomNav outside motion wrapper - hidden on approval/confirmation pages */}
+      {shouldShowNav && <BottomNav />}
     </div>
   );
 };
