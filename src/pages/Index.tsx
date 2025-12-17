@@ -8,7 +8,7 @@ import { AssetPortfolio } from "@/components/AssetPortfolio";
 
 const Index = () => {
   return (
-    <div className="min-h-screen relative">
+    <div className="relative">
       {/* Animated star background */}
       <StarField />
 

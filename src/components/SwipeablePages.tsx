@@ -87,10 +87,12 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
 
   if (!isSwipeEnabled) {
     return (
-      <>
-        {children}
+      <div className="h-full w-full flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          {children}
+        </div>
         <BottomNav />
-      </>
+      </div>
     );
   }
 
@@ -98,9 +100,9 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
   const hasNext = currentIndex < MAIN_PAGES.length - 1;
 
   return (
-    <>
+    <div className="h-full w-full flex flex-col overflow-hidden">
       <div 
-        className="relative min-h-screen overflow-x-hidden"
+        className="relative flex-1 overflow-y-auto overflow-x-hidden"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
@@ -146,7 +148,7 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
           initial={{ opacity: 0, y: 15, filter: "blur(4px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="min-h-screen"
+          className="pb-4"
         >
           {children}
         </motion.div>
@@ -154,6 +156,6 @@ export const SwipeablePages = ({ children }: SwipeablePagesProps) => {
       
       {/* BottomNav outside motion wrapper - hidden on landing page */}
       {location.pathname !== '/landing' && <BottomNav />}
-    </>
+    </div>
   );
 };

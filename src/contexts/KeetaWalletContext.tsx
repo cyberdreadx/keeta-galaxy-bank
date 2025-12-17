@@ -434,6 +434,31 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
     return accounts;
   }, [state.checkingAccount, state.savingsAccount, state.customAccounts]);
 
+  // Sync wallet state to chrome.storage for Web3 provider
+  useEffect(() => {
+    const syncToStorage = async () => {
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        try {
+          await chrome.storage.local.set({
+            keeta_wallet_connected: state.isConnected,
+            keeta_public_key: state.publicKey,
+            keeta_network: state.network
+          });
+          console.log('[KeetaWallet] Synced to chrome.storage:', {
+            connected: state.isConnected,
+            publicKey: state.publicKey,
+            network: state.network
+          });
+        } catch (error) {
+          // Not in extension context, ignore
+          console.log('[KeetaWallet] Not in extension context');
+        }
+      }
+    };
+    
+    syncToStorage();
+  }, [state.isConnected, state.publicKey, state.network]);
+
   return (
     <KeetaWalletContext.Provider
       value={{

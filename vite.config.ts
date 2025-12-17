@@ -13,41 +13,32 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
-    VitePWA({
-      registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "robots.txt"],
-      manifest: {
-        name: "Yoda Wallet",
-        short_name: "Yoda Wallet",
-        description: "Galactic Banking Protocol powered by Keeta Network",
-        theme_color: "#0a0e17",
-        background_color: "#0a0e17",
-        display: "standalone",
-        orientation: "portrait",
-        start_url: "/",
-        icons: [
-          {
-            src: "/pwa-192x192.png",
-            sizes: "192x192",
-            type: "image/png",
-          },
-          {
-            src: "/pwa-512x512.png",
-            sizes: "512x512",
-            type: "image/png",
-          },
-          {
-            src: "/pwa-512x512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "maskable",
-          },
-        ],
-      },
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-      },
-    }),
+    // PWA plugin disabled for Chrome Extension build
+    // VitePWA({
+    //   registerType: "autoUpdate",
+    //   injectRegister: null,
+    //   filename: "manifest.webmanifest",
+    //   includeAssets: ["favicon.ico", "robots.txt"],
+    //   manifest: {
+    //     name: "Yoda Wallet",
+    //     short_name: "Yoda Wallet",
+    //     description: "Galactic Banking Protocol powered by Keeta Network",
+    //     theme_color: "#0a0e17",
+    //     background_color: "#0a0e17",
+    //     display: "standalone",
+    //     orientation: "portrait",
+    //     start_url: "/",
+    //     icons: [
+    //       { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" },
+    //       { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png" },
+    //       { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+    //     ],
+    //   },
+    //   workbox: {
+    //     globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+    //     maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+    //   },
+    // }),
   ].filter(Boolean),
   resolve: {
     alias: {

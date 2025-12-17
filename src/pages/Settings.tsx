@@ -4,8 +4,9 @@ import { StarWarsPanel } from "@/components/StarWarsPanel";
 import { useSettings, SUPPORTED_CURRENCIES, FiatCurrency } from "@/contexts/SettingsContext";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
-import { Volume2, VolumeX, Check, Globe, AlertTriangle } from "lucide-react";
+import { Volume2, VolumeX, Check, Globe, AlertTriangle, Shield, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const NETWORKS = [
   { id: 'test' as const, name: 'Testnet', description: 'For testing and development' },
@@ -13,6 +14,7 @@ const NETWORKS = [
 ];
 
 const Settings = () => {
+  const navigate = useNavigate();
   const { play } = useSoundEffects();
   const { fiatCurrency, setFiatCurrency, soundEnabled, setSoundEnabled } = useSettings();
   const { network, switchNetwork, isConnected } = useKeetaWallet();
@@ -45,7 +47,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-screen relative">
+    <div className="relative">
       <StarField />
       <Header />
 
@@ -205,6 +207,32 @@ const Settings = () => {
                       : 'bg-sw-red/60 translate-x-0'
                   }`} />
                 </div>
+              </button>
+            </StarWarsPanel>
+
+            {/* Privacy & Security */}
+            <StarWarsPanel title="PRIVACY & SECURITY" className="sw-materialize">
+              <button
+                onClick={() => {
+                  play('click');
+                  navigate('/connected-sites');
+                }}
+                className="w-full flex items-center gap-3 p-3 bg-sw-blue/5 border border-sw-blue/20 rounded hover:bg-sw-blue/10 hover:border-sw-blue/40 transition-all group"
+              >
+                <div className="w-10 h-10 flex items-center justify-center border border-sw-blue/30 bg-sw-blue/10 rounded group-hover:border-sw-blue/50 group-hover:bg-sw-blue/20 transition-all">
+                  <Shield className="w-5 h-5 text-sw-blue/70 group-hover:text-sw-blue transition-colors" />
+                </div>
+                
+                <div className="flex-1 text-left">
+                  <h3 className="font-display text-sm tracking-wider text-foreground">
+                    CONNECTED SITES
+                  </h3>
+                  <p className="font-mono text-[10px] text-foreground/50">
+                    Manage dApp connections
+                  </p>
+                </div>
+
+                <ChevronRight className="w-5 h-5 text-sw-blue/50 group-hover:text-sw-blue group-hover:translate-x-1 transition-all" />
               </button>
             </StarWarsPanel>
 

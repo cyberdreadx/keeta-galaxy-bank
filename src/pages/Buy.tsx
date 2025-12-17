@@ -129,7 +129,7 @@ const Buy = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-keeta-gold font-mono relative overflow-hidden pb-20">
+    <div className="bg-black text-keeta-gold font-mono relative overflow-hidden pb-4">
       <StarField />
       <Header />
       

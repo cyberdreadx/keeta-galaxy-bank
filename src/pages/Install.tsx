@@ -52,7 +52,7 @@ const Install = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
+    <div className="bg-background text-foreground relative overflow-hidden">
       <StarField />
       <Header />
 

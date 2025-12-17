@@ -139,7 +139,7 @@ const Send = () => {
   const isConnected = selectedNetwork === 'keeta' ? isKeetaConnected : isBaseConnected;
 
   return (
-    <div className="min-h-screen bg-sw-space text-sw-white relative overflow-hidden">
+    <div className="bg-sw-space text-sw-white relative overflow-hidden">
       <StarField />
       <Header />
       

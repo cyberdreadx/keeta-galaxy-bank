@@ -99,7 +99,7 @@ const AddressBook = () => {
   };
 
   return (
-    <div className="min-h-screen relative">
+    <div className="relative">
       <StarField />
       <Header />
 

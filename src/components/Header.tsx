@@ -61,10 +61,10 @@ export const Header = () => {
               {/* Logo */}
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-10 h-10 relative">
-                    <Hexagon className="w-10 h-10 text-sw-blue [filter:drop-shadow(0_0_10px_hsl(var(--sw-blue)/0.5))]" strokeWidth={1.5} />
-                    <span className="absolute inset-0 flex items-center justify-center font-display font-bold text-sm text-sw-green">Y</span>
-                  </div>
+                  <Hexagon className="w-10 h-10 text-sw-green [filter:drop-shadow(0_0_10px_rgba(34,197,94,0.5))]" />
+                  <span className="absolute inset-0 flex items-center justify-center text-xl font-display font-bold text-sw-yellow [text-shadow:0_0_10px_hsl(var(--sw-yellow)/0.8)]">
+                    Y
+                  </span>
                   <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-sw-green animate-pulse" />
                 </div>
                 <div>

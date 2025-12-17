@@ -79,20 +79,20 @@ export const BalanceDisplay = () => {
 
       <div className="space-y-6">
         {/* Main Balance */}
-        <div className="text-center py-4">
+        <div className="text-center py-4 overflow-hidden">
           <p className="font-mono text-xs text-sw-blue/60 tracking-[0.3em] uppercase mb-2">
             {isConnected ? `${network.toUpperCase()}NET BALANCE` : 'CONNECT WALLET'}
           </p>
-          <div className={`flex items-baseline justify-center gap-3 transition-all duration-300 ${isHidden ? 'blur-lg select-none' : ''}`}>
-            <span className="text-5xl md:text-6xl font-display font-bold text-sw-yellow [text-shadow:0_0_30px_hsl(var(--sw-yellow)/0.6),2px_2px_0_hsl(var(--sw-yellow-dim))]">
+          <div className={`flex items-baseline justify-center gap-3 transition-all duration-300 ${isHidden ? 'blur-lg select-none' : ''} flex-wrap`}>
+            <span className="text-5xl md:text-6xl font-display font-bold text-sw-yellow [text-shadow:0_0_30px_hsl(var(--sw-yellow)/0.6),2px_2px_0_hsl(var(--sw-yellow-dim))] break-all max-w-full">
               {!isConnected ? "---" : isLoading ? "..." : isHidden ? "••••••" : formatBalance(balance)}
             </span>
-            <span className="text-2xl font-mono text-sw-yellow/80">
+            <span className="text-2xl font-mono text-sw-yellow/80 flex-shrink-0">
               KTA
             </span>
           </div>
           {isConnected && fiatValue !== null && (
-            <p className={`font-mono text-lg text-sw-blue/80 mt-1 transition-all duration-300 ${isHidden ? 'blur-lg select-none' : ''}`}>
+            <p className={`font-mono text-lg text-sw-blue/80 mt-1 transition-all duration-300 ${isHidden ? 'blur-lg select-none' : ''} break-all`}>
               ≈ {isHidden ? "••••" : formatFiat(fiatValue)}
             </p>
           )}
@@ -105,21 +105,21 @@ export const BalanceDisplay = () => {
 
         {/* Base Wallet Balance Section */}
         {isBaseConnected && (
-          <div className="border-t border-sw-blue/20 pt-4 px-4 pb-2">
+          <div className="border-t border-sw-blue/20 pt-4 px-4 pb-2 overflow-hidden">
             <p className="font-mono text-xs text-sw-blue/60 tracking-[0.2em] uppercase mb-3 text-center">
               BASE NETWORK WALLET
             </p>
-            <div className="flex items-center justify-between">
-              <div className="text-left">
-                <span className={`block font-display text-2xl text-sw-blue font-bold ${isHidden ? 'blur-md' : ''}`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-left flex-1 min-w-0">
+                <span className={`block font-display text-2xl text-sw-blue font-bold truncate ${isHidden ? 'blur-md' : ''}`}>
                   {parseFloat(ethBalance).toFixed(4)} <span className="text-sm font-mono opacity-70">ETH</span>
                 </span>
-                <span className={`block font-mono text-sm text-sw-blue/60 ${isHidden ? 'blur-md' : ''}`}>
+                <span className={`block font-mono text-sm text-sw-blue/60 truncate ${isHidden ? 'blur-md' : ''}`}>
                   ≈ ${ethFiatValue.toFixed(2)}
                 </span>
               </div>
-              <div className="text-right">
-                <span className="block font-mono text-xs text-green-400 border border-green-500/30 bg-green-500/10 px-2 py-1 rounded">
+              <div className="text-right flex-shrink-0">
+                <span className="block font-mono text-xs text-green-400 border border-green-500/30 bg-green-500/10 px-2 py-1 rounded whitespace-nowrap">
                   CONNECTED
                 </span>
               </div>

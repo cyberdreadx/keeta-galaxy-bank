@@ -37,7 +37,7 @@ const staggerContainer = {
 
 const Landing = () => {
   return (
-    <div className="min-h-screen relative bg-sw-space overflow-x-hidden">
+    <div className="relative bg-sw-space overflow-x-hidden">
       <StarField />
       
       {/* Navigation */}
@@ -91,7 +91,7 @@ const Landing = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center pt-20 pb-20 px-6 overflow-hidden">
+      <section className="relative flex items-center pt-20 pb-20 px-6 overflow-hidden">
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden">
           <motion.div 

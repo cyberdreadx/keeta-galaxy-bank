@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yoda Wallet Test Page</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      overflow: hidden; /* Prevent expansion */
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 32px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .status {
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+
+    .status.disconnected {
+      background: #fee;
+      color: #c33;
+      border: 2px solid #fcc;
+    }
+
+    .status.connected {
+      background: #efe;
+      color: #3c3;
+      border: 2px solid #cfc;
+    }
+
+    .info-box {
+      background: #f5f5f5;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      font-weight: 600;
+      color: #666;
+    }
+
+    .info-value {
+      font-family: 'Courier New', monospace;
+      color: #333;
+      font-size: 14px;
+      word-break: break-all; /* Break long numbers */
+      max-width: 300px; /* Limit width */
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      width: 100%;
+      margin: 10px 0;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    button.disconnect {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .log {
+      background: #1e1e1e;
+      color: #00ff00;
+      font-family: 'Courier New', monospace;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 20px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 12px;
+    }
+
+    .log-entry {
+      margin: 5px 0;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #667eea;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧙‍♂️ Yoda Wallet</h1>
+    <p class="subtitle">Test Connection Page</p>
+
+    <div id="status" class="status disconnected">
+      🔴 Not Connected
+    </div>
+
+    <div id="wallet-info" class="info-box" style="display: none;">
+      <div class="info-row">
+        <span class="info-label">Address:</span>
+        <span class="info-value" id="address">-</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Network:</span>
+        <span class="info-value"><span class="badge" id="network">-</span></span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">KTA Balance:</span>
+        <span class="info-value" id="balance">- KTA</span>
+      </div>
+    </div>
+
+    <button id="connectBtn" onclick="connect()">
+      🚀 Connect Yoda Wallet
+    </button>
+
+          <button id="disconnectBtn" onclick="disconnect()" class="disconnect" style="display: none;">
+            🔌 Disconnect
+          </button>
+
+          <button id="balanceBtn" onclick="refreshBalance()" style="display: none;">
+            🔄 Refresh Balance
+          </button>
+
+          <button id="sendBtn" onclick="showSendForm()" style="display: none;">
+            💸 Send KTA
+          </button>
+
+          <!-- Send Transaction Form -->
+          <div id="sendForm" style="display: none; margin-top: 20px;">
+            <h3 style="color: #667eea; margin-bottom: 15px;">Send KTA</h3>
+            <input 
+              type="text" 
+              id="recipientAddress" 
+              placeholder="Recipient Address"
+              style="width: 100%; padding: 12px; margin-bottom: 10px; border: 2px solid #667eea; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 13px;"
+            />
+            <input 
+              type="number" 
+              id="sendAmount" 
+              placeholder="Amount (KTA)"
+              step="0.0001"
+              style="width: 100%; padding: 12px; margin-bottom: 15px; border: 2px solid #667eea; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 14px;"
+            />
+            <div style="display: flex; gap: 10px;">
+              <button onclick="sendTransaction()" style="flex: 1; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">
+                ✅ Send
+              </button>
+              <button onclick="hideSendForm()" style="flex: 1; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                ❌ Cancel
+              </button>
+            </div>
+          </div>
+
+          <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    let connected = false;
+    let currentAddress = null;
+
+    // Format large numbers with commas
+    function formatBalance(balance) {
+      const num = parseFloat(balance);
+      if (isNaN(num)) return balance;
+      
+      // If number is very large, use exponential notation
+      if (num > 1e9) {
+        return num.toExponential(2);
+      }
+      
+      // Otherwise, add commas and limit decimals
+      return num.toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 4
+      });
+    }
+
+    function log(message) {
+      const logEl = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // Check if Yoda Wallet is available
+    window.addEventListener('load', () => {
+      if (window.yoda) {
+        log('✅ Yoda Wallet detected!');
+        log(`Provider: window.yoda (isYoda: ${window.yoda.isYoda})`);
+      } else {
+        log('❌ Yoda Wallet not found. Please install the extension.');
+      }
+    });
+
+    // Listen for Yoda initialization
+    window.addEventListener('yoda#initialized', () => {
+      log('✅ Yoda Wallet initialized!');
+    });
+
+    // Connect to wallet
+    async function connect() {
+      log('🔄 Requesting accounts...');
+      
+      if (!window.yoda) {
+        alert('Yoda Wallet not found! Please install the extension.');
+        return;
+      }
+
+      try {
+        const accounts = await window.yoda.request({ 
+          method: 'keeta_requestAccounts' 
+        });
+        
+        log(`✅ Connected! Accounts: ${accounts.join(', ')}`);
+        
+        currentAddress = accounts[0];
+        connected = true;
+        updateUI();
+        
+        // Get balance
+        await refreshBalance();
+      } catch (error) {
+        log(`❌ Connection failed: ${error.message}`);
+        alert('Failed to connect: ' + error.message);
+      }
+    }
+
+    // Disconnect wallet
+    async function disconnect() {
+      log('🔄 Disconnecting...');
+      
+      try {
+        await window.yoda.disconnect();
+        log('✅ Disconnected!');
+        
+        connected = false;
+        currentAddress = null;
+        updateUI();
+      } catch (error) {
+        log(`❌ Disconnect failed: ${error.message}`);
+      }
+    }
+
+    // Refresh balance
+    async function refreshBalance() {
+      if (!currentAddress) return;
+      
+      log(`🔄 Fetching balance for ${currentAddress}...`);
+      
+      try {
+        const balance = await window.yoda.getBalance(currentAddress);
+        log(`✅ Balance: ${balance} KTA`);
+        
+        const formatted = formatBalance(balance);
+        document.getElementById('balance').textContent = `${formatted} KTA`;
+      } catch (error) {
+        log(`❌ Balance fetch failed: ${error.message}`);
+      }
+    }
+
+    // Show/hide send form
+    function showSendForm() {
+      document.getElementById('sendForm').style.display = 'block';
+      log('📝 Send form opened');
+    }
+
+    function hideSendForm() {
+      document.getElementById('sendForm').style.display = 'none';
+      document.getElementById('recipientAddress').value = '';
+      document.getElementById('sendAmount').value = '';
+      log('📝 Send form closed');
+    }
+
+    // Send transaction
+    async function sendTransaction() {
+      const recipient = document.getElementById('recipientAddress').value;
+      const amount = document.getElementById('sendAmount').value;
+
+      if (!recipient || !amount) {
+        alert('Please enter both recipient address and amount');
+        return;
+      }
+
+      log(`🔄 Sending ${amount} KTA to ${recipient.slice(0, 8)}...${recipient.slice(-6)}`);
+
+      try {
+        const txHash = await window.yoda.sendTransaction({
+          to: recipient,
+          amount: amount
+        });
+
+        log(`✅ Transaction sent! Hash: ${txHash}`);
+        alert(`Transaction successful!\n\nTx Hash: ${txHash}`);
+        
+        hideSendForm();
+        
+        // Refresh balance after sending
+        setTimeout(() => refreshBalance(), 2000);
+      } catch (error) {
+        log(`❌ Transaction failed: ${error.message}`);
+        alert('Transaction failed: ' + error.message);
+      }
+    }
+
+    // Update UI
+    function updateUI() {
+      const statusEl = document.getElementById('status');
+      const walletInfo = document.getElementById('wallet-info');
+      const connectBtn = document.getElementById('connectBtn');
+      const disconnectBtn = document.getElementById('disconnectBtn');
+      const balanceBtn = document.getElementById('balanceBtn');
+      const sendBtn = document.getElementById('sendBtn');
+      
+      if (connected && currentAddress) {
+        statusEl.className = 'status connected';
+        statusEl.textContent = '🟢 Connected';
+        
+        document.getElementById('address').textContent = 
+          currentAddress.slice(0, 8) + '...' + currentAddress.slice(-6);
+        document.getElementById('network').textContent = window.yoda.chainId || 'keeta-main';
+        
+        walletInfo.style.display = 'block';
+        connectBtn.style.display = 'none';
+        disconnectBtn.style.display = 'block';
+        balanceBtn.style.display = 'block';
+        sendBtn.style.display = 'block';
+      } else {
+        statusEl.className = 'status disconnected';
+        statusEl.textContent = '🔴 Not Connected';
+        
+        walletInfo.style.display = 'none';
+        connectBtn.style.display = 'block';
+        disconnectBtn.style.display = 'none';
+        balanceBtn.style.display = 'none';
+        sendBtn.style.display = 'none';
+        document.getElementById('sendForm').style.display = 'none';
+      }
+    }
+
+    // Listen for account changes
+    if (window.yoda) {
+      window.yoda.on('accountsChanged', (accounts) => {
+        log(`🔔 Accounts changed: ${accounts.join(', ')}`);
+        
+        if (accounts.length > 0) {
+          currentAddress = accounts[0];
+          connected = true;
+          updateUI();
+          refreshBalance();
+        } else {
+          currentAddress = null;
+          connected = false;
+          updateUI();
+        }
+      });
+
+      window.yoda.on('disconnect', () => {
+        log('🔔 Disconnected event received');
+        connected = false;
+        currentAddress = null;
+        updateUI();
+      });
+    }
+
+    // Initial UI
+    updateUI();
+  </script>
+</body>
+</html>
+

@@ -202,7 +202,7 @@ export default function Swap() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-sw-space relative overflow-hidden">
+      <div className="bg-sw-space relative overflow-hidden">
         <StarField />
         <Header />
         <main className="relative z-10 pt-20 pb-24 px-4">
@@ -219,7 +219,7 @@ export default function Swap() {
   // Show Coming Soon state when FX service isn't available
   if (comingSoon || !fxServiceAvailable) {
     return (
-      <div className="min-h-screen bg-sw-space relative overflow-hidden">
+      <div className="bg-sw-space relative overflow-hidden">
         <StarField />
         <Header />
         <main className="relative z-10 pt-20 pb-24 px-4 max-w-md mx-auto">
@@ -279,7 +279,7 @@ export default function Swap() {
   }
 
   return (
-    <div className="min-h-screen bg-sw-space relative overflow-x-hidden overflow-y-auto">
+    <div className="bg-sw-space relative overflow-x-hidden">
       <StarField />
       <Header />
       

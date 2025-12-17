@@ -110,7 +110,7 @@ const Bridge = () => {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen relative">
+      <div className="relative">
         <StarField />
         <Header />
         <main className="relative z-10 pt-20 pb-24">
@@ -136,7 +136,7 @@ const Bridge = () => {
   const isTestnet = network === 'test';
 
   return (
-    <div className="min-h-screen relative">
+    <div className="relative">
       <StarField />
       <Header />
       

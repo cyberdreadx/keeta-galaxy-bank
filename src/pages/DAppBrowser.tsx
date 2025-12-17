@@ -195,7 +195,7 @@ export default function DAppBrowser() {
   // Show native-only message on web
   if (!isNative) {
     return (
-      <div className="min-h-screen bg-sw-space flex flex-col">
+      <div className="bg-sw-space flex flex-col">
         <StarField />
         <Header />
         <main className="flex-1 flex items-center justify-center p-4 pt-20">
@@ -219,7 +219,7 @@ export default function DAppBrowser() {
   }
 
   return (
-    <div className="min-h-screen bg-sw-space flex flex-col">
+    <div className="bg-sw-space flex flex-col">
       <StarField />
       <Header />
       

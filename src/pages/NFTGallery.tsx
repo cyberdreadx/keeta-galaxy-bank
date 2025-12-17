@@ -14,7 +14,7 @@ export default function NFTGallery() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-sw-space flex flex-col">
+      <div className="bg-sw-space flex flex-col">
         <StarField />
         <Header />
         <main className="flex-1 flex items-center justify-center p-4">
@@ -32,7 +32,7 @@ export default function NFTGallery() {
   }
 
   return (
-    <div className="min-h-screen bg-sw-space flex flex-col">
+    <div className="bg-sw-space flex flex-col">
       <StarField />
       <Header />
       

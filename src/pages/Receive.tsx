@@ -45,7 +45,7 @@ const Receive = () => {
 
   if (!isConnected || !publicKey) {
     return (
-      <div className="min-h-screen bg-sw-space text-sw-white relative overflow-hidden">
+      <div className="bg-sw-space text-sw-white relative overflow-hidden">
         <StarField />
         <Header />
         <main className="container mx-auto px-4 py-8 pt-20 pb-24 relative z-10">
@@ -58,7 +58,7 @@ const Receive = () => {
   }
 
   return (
-    <div className="min-h-screen bg-sw-space text-sw-white relative overflow-hidden">
+    <div className="bg-sw-space text-sw-white relative overflow-hidden">
       <StarField />
       <Header />
       

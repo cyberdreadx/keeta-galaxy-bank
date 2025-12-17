@@ -1,0 +1,60 @@
+{
+  "manifest_version": 3,
+  "name": "Yoda Wallet",
+  "version": "1.0.1",
+  "description": "The intergalactic wallet for Keeta and Base networks.",
+  "icons": {
+    "16": "pwa-192x192.png",
+    "32": "pwa-192x192.png",
+    "48": "pwa-192x192.png",
+    "128": "pwa-192x192.png",
+    "192": "pwa-192x192.png",
+    "512": "pwa-512x512.png"
+  },
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "Yoda Wallet",
+    "default_icon": {
+      "16": "pwa-192x192.png",
+      "32": "pwa-192x192.png",
+      "48": "pwa-192x192.png",
+      "128": "pwa-192x192.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "clipboardWrite",
+    "clipboardRead"
+  ],
+  "host_permissions": [
+    "https://*.base.org/*",
+    "https://*.coinbase.com/*",
+    "https://*.coingecko.com/*",
+    "https://*.1rpc.io/*",
+    "https://*.keeta.com/*",
+    "https://*.dexscreener.com/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://*.base.org https://*.coinbase.com https://*.coingecko.com https://*.1rpc.io https://base.llamarpc.com https://mainnet.base.org https://*.keeta.com https://*.dexscreener.com wss://*.walletconnect.org; img-src 'self' https: data: blob:;"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*", "pwa-192x192.png", "inject.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
+

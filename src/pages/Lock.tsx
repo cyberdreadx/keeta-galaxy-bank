@@ -51,7 +51,7 @@ const LockScreen = () => {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center">
+    <div className="relative h-full flex items-center justify-center">
       <StarField />
 
       <div className="relative z-10 w-full max-w-sm mx-auto px-4">

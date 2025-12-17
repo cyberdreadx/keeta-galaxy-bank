@@ -157,5 +157,25 @@ export const useKeetaBalance = (): KeetaBalance => {
     return () => clearInterval(interval);
   }, [fetchBalance]);
 
+  // Sync balance to chrome.storage for Web3 provider
+  useEffect(() => {
+    const syncBalanceToStorage = async () => {
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        try {
+          await chrome.storage.local.set({
+            keeta_balance: balance.toString()
+          });
+          console.log('[useKeetaBalance] Synced balance to chrome.storage:', balance);
+        } catch (error) {
+          // Not in extension context, ignore
+        }
+      }
+    };
+    
+    if (balance > 0) {
+      syncBalanceToStorage();
+    }
+  }, [balance]);
+
   return { balance, allTokens, isLoading, error, refetch: fetchBalance };
 };
