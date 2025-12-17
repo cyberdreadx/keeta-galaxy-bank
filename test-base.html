@@ -268,6 +268,39 @@
       logEl.scrollTop = logEl.scrollHeight;
     }
 
+    // Format large numbers with K/M/B suffixes
+    function formatBalance(balance) {
+      const num = parseFloat(balance);
+      if (isNaN(num)) return balance;
+      if (num === 0) return '0';
+      
+      const absNum = Math.abs(num);
+      const sign = num < 0 ? '-' : '';
+      
+      // Billions (1,000,000,000+)
+      if (absNum >= 1_000_000_000) {
+        return sign + (absNum / 1_000_000_000).toFixed(2) + 'B';
+      }
+      
+      // Millions (1,000,000+)
+      if (absNum >= 1_000_000) {
+        return sign + (absNum / 1_000_000).toFixed(2) + 'M';
+      }
+      
+      // Thousands (1,000+)
+      if (absNum >= 1_000) {
+        return sign + (absNum / 1_000).toFixed(2) + 'K';
+      }
+      
+      // Less than 1,000 - show with appropriate decimals
+      if (absNum >= 1) {
+        return sign + absNum.toFixed(2);
+      }
+      
+      // Very small amounts - show up to 6 decimals
+      return sign + absNum.toFixed(6).replace(/\.?0+$/, '');
+    }
+
     // Check if Ethereum provider is available
     window.addEventListener('load', () => {
       if (window.ethereum) {
@@ -341,9 +374,9 @@
         
         // Convert from wei to ETH
         const ethBalance = parseInt(balance, 16) / 1e18;
-        log(`✅ Balance: ${ethBalance.toFixed(4)} ETH`);
+        log(`✅ Balance: ${formatBalance(ethBalance)} ETH`);
         
-        document.getElementById('balance').textContent = `${ethBalance.toFixed(4)} ETH`;
+        document.getElementById('balance').textContent = `${formatBalance(ethBalance)} ETH`;
       } catch (error) {
         log(`❌ Balance fetch failed: ${error.message}`);
       }

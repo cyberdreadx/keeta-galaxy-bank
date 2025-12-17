@@ -9,6 +9,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { useBaseWallet } from "@/contexts/BaseWalletContext";
 import { useBaseBalance } from "@/hooks/useBaseBalance";
 import { useEthPrice } from "@/hooks/useEthPrice";
+import { formatBalance } from "@/lib/formatNumber";
 
 export const BalanceDisplay = () => {
   const [isHidden, setIsHidden] = useState(false);
@@ -30,15 +31,6 @@ export const BalanceDisplay = () => {
   const fiatValue = convertToFiat(balance);
   const ethFiatValue = ethPrice ? parseFloat(ethBalance) * ethPrice : 0;
   const baseKtaFiatValue = convertToFiat(parseFloat(ktaBalance));
-
-  const formatBalance = (amount: number) => {
-    // Truncate to 2 decimals without rounding
-    const truncated = Math.floor(amount * 100) / 100;
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(truncated);
-  };
 
   return (
     <StarWarsPanel title="// GALACTIC CREDIT BALANCE" className="h-full">

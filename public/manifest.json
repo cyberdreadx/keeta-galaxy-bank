@@ -2,7 +2,9 @@
   "manifest_version": 3,
   "name": "Yoda Wallet",
   "version": "1.0.2",
-  "description": "The intergalactic wallet for Keeta and Base networks.",
+  "description": "Secure Web3 wallet for Keeta L1 and Base networks. Manage assets, NFTs, and interact with dApps seamlessly.",
+  "author": "Keeta Network",
+  "homepage_url": "https://keeta.com",
   "icons": {
     "16": "icon-16.png",
     "48": "icon-48.png",

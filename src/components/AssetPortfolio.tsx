@@ -9,6 +9,7 @@ import { useKtaPrice } from "@/hooks/useKtaPrice";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useHiddenTokens } from "@/hooks/useHiddenTokens";
 import { WalletIcon, Loader2, RefreshCw, Eye, EyeOff } from "lucide-react";
+import { formatBalance } from "@/lib/formatNumber";
 
 interface TokenDetail {
   symbol: string;
@@ -133,7 +134,7 @@ export const AssetPortfolio = () => {
                       <div>
                         <p className="font-mono text-sm text-sw-white">{asset.name}</p>
                         <p className="font-mono text-xs text-sw-blue/60">
-                          {asset.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })} {asset.symbol}
+                          {formatBalance(asset.balance)} {asset.symbol}
                         </p>
                       </div>
                     </div>
