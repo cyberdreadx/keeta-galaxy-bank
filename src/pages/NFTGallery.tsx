@@ -155,11 +155,11 @@ export default function NFTGallery() {
       {/* NFT Detail Modal */}
       {selectedNFT && (
         <div 
-          className="fixed inset-0 bg-sw-space/90 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-sw-space/90 z-50 flex items-center justify-center p-4 overflow-y-auto"
           onClick={() => setSelectedNFT(null)}
         >
           <div 
-            className="max-w-md w-full border border-sw-blue/50 bg-sw-space p-4"
+            className="max-w-md w-full border border-sw-blue/50 bg-sw-space p-6 relative my-auto max-h-[90vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
             {/* Corner brackets */}
@@ -168,28 +168,65 @@ export default function NFTGallery() {
             <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-sw-blue" />
             <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-sw-blue" />
             
-            <img
-              src={selectedNFT.image}
-              alt={selectedNFT.name}
-              className="w-full aspect-square object-cover mb-4 border border-sw-blue/30"
-            />
-            <h3 className="text-sw-blue font-mono text-lg mb-1">{selectedNFT.name}</h3>
+            {/* NFT Image */}
+            <div className="w-full aspect-square mb-4 border border-sw-blue/30 bg-sw-blue/5 flex items-center justify-center overflow-hidden">
+              {selectedNFT.image ? (
+                <img
+                  src={selectedNFT.image}
+                  alt={selectedNFT.name}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <Image className="w-16 h-16 text-sw-blue/30" />
+              )}
+            </div>
+
+            {/* NFT Info */}
+            <h3 className="text-sw-blue font-mono text-lg mb-1 break-words">{selectedNFT.name}</h3>
             <p className="text-sw-yellow font-mono text-xs mb-2">{selectedNFT.collection}</p>
-            <p className="text-sw-blue/70 font-mono text-xs mb-4">{selectedNFT.description}</p>
+            {selectedNFT.description && (
+              <p className="text-sw-blue/70 font-mono text-xs mb-4 break-words">{selectedNFT.description}</p>
+            )}
             
-            <div className="flex gap-2">
-              <button
-                onClick={() => setSelectedNFT(null)}
-                className="flex-1 py-2 border border-sw-blue/50 text-sw-blue font-mono text-xs hover:bg-sw-blue/10 transition-colors"
-              >
-                CLOSE
-              </button>
-              <button
-                className="flex-1 py-2 bg-sw-blue/20 border border-sw-blue text-sw-blue font-mono text-xs hover:bg-sw-blue/30 transition-colors flex items-center justify-center gap-2"
+            <div className="space-y-2">
+              {/* Token Address */}
+              <div className="p-2 bg-sw-blue/5 border border-sw-blue/20 rounded">
+                <p className="text-sw-blue/50 font-mono text-[10px] mb-1">TOKEN ADDRESS</p>
+                <p className="text-sw-blue font-mono text-xs break-all">{selectedNFT.tokenAddress}</p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedNFT(null)}
+                  className="flex-1 py-2 border border-sw-blue/50 text-sw-blue font-mono text-xs hover:bg-sw-blue/10 transition-colors"
+                >
+                  CLOSE
+                </button>
+                <a
+                  href={`https://explorer.${network === 'main' ? 'main' : 'test'}.keeta.com/token/${selectedNFT.tokenAddress}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2 bg-sw-blue/20 border border-sw-blue text-sw-blue font-mono text-xs hover:bg-sw-blue/30 transition-colors flex items-center justify-center gap-2"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  EXPLORER
+                </a>
+              </div>
+
+              {/* Marketplace Button */}
+              <a
+                href={`https://degenswap.rougee.app/nft/${selectedNFT.tokenAddress}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2 bg-sw-green/20 border border-sw-green text-sw-green font-mono text-xs hover:bg-sw-green/30 transition-colors flex items-center justify-center gap-2"
               >
                 <ExternalLink className="w-3 h-3" />
-                VIEW ON CHAIN
-              </button>
+                VIEW ON MARKETPLACE
+              </a>
             </div>
           </div>
         </div>

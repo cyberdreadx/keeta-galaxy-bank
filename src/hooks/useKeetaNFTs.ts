@@ -6,6 +6,34 @@ const KEETA_API = {
   test: 'https://rep2.test.network.api.keeta.com/api',
 };
 
+// Convert IPFS URLs to HTTP gateway URLs
+function convertIpfsToHttp(url: string): string {
+  if (!url) return '';
+  
+  // If it's already an HTTP(S) URL, return as-is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  // Handle ipfs:// protocol
+  if (url.startsWith('ipfs://')) {
+    const hash = url.replace('ipfs://', '');
+    return `https://ipfs.io/ipfs/${hash}`;
+  }
+  
+  // Handle /ipfs/ path
+  if (url.startsWith('/ipfs/')) {
+    return `https://ipfs.io${url}`;
+  }
+  
+  // If it looks like a bare IPFS hash (starts with Qm or baf)
+  if (url.match(/^(Qm[a-zA-Z0-9]{44}|baf[a-zA-Z0-9]+)/)) {
+    return `https://ipfs.io/ipfs/${url}`;
+  }
+  
+  return url;
+}
+
 export interface NFT {
   id: string;
   tokenAddress: string;
@@ -138,10 +166,13 @@ export function useKeetaNFTs() {
           // Extract image from metadata
           let image = '';
           if (tokenInfo.metadata) {
-            image = tokenInfo.metadata.image || 
-                    tokenInfo.metadata.imageUrl || 
-                    tokenInfo.metadata.uri ||
-                    '';
+            const rawImage = tokenInfo.metadata.image || 
+                            tokenInfo.metadata.imageUrl || 
+                            tokenInfo.metadata.uri ||
+                            '';
+            // Convert IPFS URLs to HTTP gateway URLs
+            image = convertIpfsToHttp(rawImage);
+            console.log('[useKeetaNFTs] Image URL:', rawImage, '->', image);
           }
 
           nftList.push({
