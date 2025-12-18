@@ -1,18 +1,45 @@
 import { KEYUTIL, jws } from 'jsrsasign';
 
-const CDP_API_KEY_NAME = "organizations/cd44dadf-d0a2-48e5-b909-b741c83020a7/apiKeys/56b8f1f1-e06f-48ae-bf88-32bc6fa12b75";
+// ⚠️ SECURITY: NEVER hardcode API keys in source code!
+// Users must provide their own Coinbase API credentials
 
-// Constructing key line by line to avoid escaping issues
-const KEY_HEADER = "-----BEGIN EC PRIVATE KEY-----";
-const KEY_BODY_1 = "MHcCAQEEID65wRnDlaEckIE+sStaFFprO+UFfB37QEMvBOudgvfdoAoGCCqGSM49";
-const KEY_BODY_2 = "AwEHoUQDQgAEerUkLSVbCrNcMOXRENT95Vi1d2t+kHsNCNGQoWfBtu7ssNkvwF9a";
-const KEY_BODY_3 = "lGB2Cy/PpFBZH66/QtPm9fznZF8DLJhTlg==";
-const KEY_FOOTER = "-----END EC PRIVATE KEY-----";
+interface CoinbaseConfig {
+  apiKeyName: string;
+  privateKey: string;
+}
 
-const CDP_PRIVATE_KEY = `${KEY_HEADER}\n${KEY_BODY_1}\n${KEY_BODY_2}\n${KEY_BODY_3}\n${KEY_FOOTER}`;
+// Get API credentials from secure storage
+async function getCoinbaseCredentials(): Promise<CoinbaseConfig | null> {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      const result = await chrome.storage.local.get(['coinbase_api_key_name', 'coinbase_private_key']);
+      
+      if (!result.coinbase_api_key_name || !result.coinbase_private_key) {
+        console.warn('⚠️ Coinbase API credentials not configured. User must set them up.');
+        return null;
+      }
+      
+      return {
+        apiKeyName: result.coinbase_api_key_name,
+        privateKey: result.coinbase_private_key
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting Coinbase credentials:', error);
+    return null;
+  }
+}
 
 export async function generateCoinbaseSessionToken(walletAddress: string) {
   try {
+    // Get API credentials from secure storage
+    const credentials = await getCoinbaseCredentials();
+    
+    if (!credentials) {
+      throw new Error('Coinbase API credentials not configured. Please set up in Settings.');
+    }
+
     const now = Math.floor(Date.now() / 1000);
     const requestMethod = 'POST';
     const host = 'api.developer.coinbase.com';
@@ -23,7 +50,7 @@ export async function generateCoinbaseSessionToken(walletAddress: string) {
     const header = { 
       alg: 'ES256', 
       typ: 'JWT', 
-      kid: CDP_API_KEY_NAME,
+      kid: credentials.apiKeyName,
       nonce: crypto.randomUUID() // Add nonce for security
     };
     
@@ -33,14 +60,14 @@ export async function generateCoinbaseSessionToken(walletAddress: string) {
       iss: 'cdp',
       nbf: now - 10,
       exp: now + 120,
-      sub: CDP_API_KEY_NAME, // Subject is the API Key Name
+      sub: credentials.apiKeyName, // Subject is the API Key Name
       uri: `${requestMethod} ${host}${requestPath}`, // Format: "POST api.developer.coinbase.com/onramp/v1/token"
     };
 
-    console.log("Signing JWT for CDP API...", payload.uri);
+    console.log("Signing JWT for CDP API...");
     
     // Parse key
-    const keyObj = KEYUTIL.getKey(CDP_PRIVATE_KEY);
+    const keyObj = KEYUTIL.getKey(credentials.privateKey);
     
     const sHeader = JSON.stringify(header);
     const sPayload = JSON.stringify(payload);
@@ -77,7 +104,7 @@ export async function generateCoinbaseSessionToken(walletAddress: string) {
     }
 
     const data = await response.json();
-    console.log("Session Token received:", data.token);
+    console.log("Session Token received");
     return data.token;
 
   } catch (error) {
@@ -87,4 +114,20 @@ export async function generateCoinbaseSessionToken(walletAddress: string) {
     }
     return null;
   }
+}
+
+// Helper function to save Coinbase API credentials securely
+export async function saveCoinbaseCredentials(apiKeyName: string, privateKey: string): Promise<void> {
+  if (typeof chrome !== 'undefined' && chrome.storage) {
+    await chrome.storage.local.set({
+      coinbase_api_key_name: apiKeyName,
+      coinbase_private_key: privateKey
+    });
+  }
+}
+
+// Helper function to check if credentials are configured
+export async function hasCoinbaseCredentials(): Promise<boolean> {
+  const credentials = await getCoinbaseCredentials();
+  return credentials !== null;
 }

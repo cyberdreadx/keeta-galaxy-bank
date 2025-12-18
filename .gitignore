@@ -22,3 +22,21 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# API Keys and Secrets (CRITICAL SECURITY)
+.env
+.env.local
+.env.production
+.env.test
+*.pem
+*.key
+*-key.json
+secrets/
+config/secrets.json
+api-keys.txt
+credentials.json
+
+# Private Keys
+*private-key*
+*privatekey*
+*private_key*

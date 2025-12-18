@@ -18,7 +18,12 @@ const NO_NAV_ROUTES = [
   "/connect-base",
   "/confirm-base-tx",
   "/confirm-base-sign",
-  "/landing"
+  "/setup-password",
+  "/unlock",
+  "/landing",
+  "/lock",
+  "/install",
+  "/security"
 ];
 
 export const SwipeablePages = ({ children }: SwipeablePagesProps) => {

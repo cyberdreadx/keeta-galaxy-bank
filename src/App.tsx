@@ -35,6 +35,8 @@ const ConfirmTransaction = lazy(() => import("./pages/ConfirmTransaction"));
 const ConnectBase = lazy(() => import("./pages/ConnectBase"));
 const ConfirmBaseTransaction = lazy(() => import("./pages/ConfirmBaseTransaction"));
 const ConfirmBaseSign = lazy(() => import("./pages/ConfirmBaseSign"));
+const SetupPassword = lazy(() => import("./pages/SetupPassword"));
+const UnlockWallet = lazy(() => import("./pages/UnlockWallet"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading fallback
@@ -66,12 +68,14 @@ const AppRoutes = () => (
         <Route path="/nfts" element={<NFTGallery />} />
         <Route path="/browser" element={<DAppBrowser />} />
         <Route path="/swap" element={<Swap />} />
-              <Route path="/connect" element={<Connect />} />
-              <Route path="/connected-sites" element={<ConnectedSites />} />
-              <Route path="/confirm-tx" element={<ConfirmTransaction />} />
-              <Route path="/connect-base" element={<ConnectBase />} />
-              <Route path="/confirm-base-tx" element={<ConfirmBaseTransaction />} />
-              <Route path="/confirm-base-sign" element={<ConfirmBaseSign />} />
+        <Route path="/connect" element={<Connect />} />
+        <Route path="/connected-sites" element={<ConnectedSites />} />
+        <Route path="/confirm-tx" element={<ConfirmTransaction />} />
+        <Route path="/connect-base" element={<ConnectBase />} />
+        <Route path="/confirm-base-tx" element={<ConfirmBaseTransaction />} />
+        <Route path="/confirm-base-sign" element={<ConfirmBaseSign />} />
+        <Route path="/setup-password" element={<SetupPassword />} />
+        <Route path="/unlock" element={<UnlockWallet />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
