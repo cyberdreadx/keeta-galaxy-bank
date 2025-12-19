@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yoda Wallet - Token Transfer Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 100%);
+      color: #00f3ff;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      text-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #ffeb3b;
+      margin-bottom: 40px;
+      font-size: 1.2em;
+    }
+
+    .card {
+      background: rgba(0, 0, 0, 0.4);
+      border: 2px solid #00f3ff;
+      padding: 30px;
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .card::before,
+    .card::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #00f3ff;
+    }
+
+    .card::before {
+      top: -2px;
+      left: -2px;
+      border-right: none;
+      border-bottom: none;
+    }
+
+    .card::after {
+      bottom: -2px;
+      right: -2px;
+      border-left: none;
+      border-top: none;
+    }
+
+    h2 {
+      color: #ffeb3b;
+      margin-bottom: 20px;
+      font-size: 1.5em;
+    }
+
+    .status {
+      padding: 15px;
+      margin-bottom: 20px;
+      border-left: 4px solid;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .status.disconnected {
+      border-color: #f44336;
+      color: #f44336;
+    }
+
+    .status.connected {
+      border-color: #4caf50;
+      color: #4caf50;
+    }
+
+    .info-grid {
+      display: grid;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .info-item {
+      background: rgba(0, 243, 255, 0.05);
+      padding: 15px;
+      border: 1px solid rgba(0, 243, 255, 0.2);
+    }
+
+    .info-item label {
+      display: block;
+      color: #ffeb3b;
+      margin-bottom: 8px;
+      font-size: 0.9em;
+    }
+
+    .info-item .value {
+      color: #00f3ff;
+      word-break: break-all;
+      font-size: 1.1em;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      color: #ffeb3b;
+      margin-bottom: 8px;
+      font-size: 0.9em;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid #00f3ff;
+      color: #00f3ff;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #ffeb3b;
+      box-shadow: 0 0 10px rgba(255, 235, 59, 0.3);
+    }
+
+    button {
+      background: linear-gradient(135deg, #00f3ff 0%, #0066ff 100%);
+      color: #000;
+      border: none;
+      padding: 15px 30px;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      font-size: 1em;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      transition: all 0.3s ease;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0, 243, 255, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-disconnect {
+      background: linear-gradient(135deg, #f44336 0%, #c62828 100%);
+      color: #fff;
+    }
+
+    .btn-send-nft {
+      background: linear-gradient(135deg, #ffeb3b 0%, #ff9800 100%);
+    }
+
+    .log {
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      padding: 15px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 0.9em;
+      color: #4caf50;
+    }
+
+    .log-entry {
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(0, 243, 255, 0.1);
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .log-entry .timestamp {
+      color: #00f3ff;
+      margin-right: 10px;
+    }
+
+    .log-entry.error {
+      color: #f44336;
+    }
+
+    .highlight {
+      color: #ffeb3b;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌌 YODA WALLET</h1>
+    <p class="subtitle">Token/NFT Transfer Test Page</p>
+
+    <!-- Connection Status Card -->
+    <div class="card">
+      <h2>// CONNECTION STATUS</h2>
+      <div id="status" class="status disconnected">
+        ⚠️ Not Connected - Please connect your Yoda wallet
+      </div>
+      
+      <div id="account-info" style="display: none;">
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Connected Account:</label>
+            <div id="account" class="value">-</div>
+          </div>
+          <div class="info-item">
+            <label>Network:</label>
+            <div id="network" class="value">-</div>
+          </div>
+          <div class="info-item">
+            <label>Balance:</label>
+            <div id="balance" class="value">-</div>
+          </div>
+        </div>
+      </div>
+      
+      <button id="connectBtn" onclick="connect()">Connect Wallet</button>
+      <button id="disconnectBtn" class="btn-disconnect" onclick="disconnect()" style="display: none;">Disconnect</button>
+    </div>
+
+    <!-- KTA Transfer Card -->
+    <div class="card">
+      <h2>// SEND KTA (Native Token)</h2>
+      <div class="form-group">
+        <label>Recipient Address:</label>
+        <input type="text" id="kta-recipient" placeholder="keeta_..." />
+      </div>
+      <div class="form-group">
+        <label>Amount (KTA):</label>
+        <input type="number" id="kta-amount" placeholder="0.0" step="0.0001" />
+      </div>
+      <button onclick="sendKTA()">Send KTA</button>
+    </div>
+
+    <!-- NFT Transfer Card -->
+    <div class="card">
+      <h2>// SEND NFT</h2>
+      <div class="form-group">
+        <label>NFT Token Address:</label>
+        <input type="text" id="nft-token" placeholder="keeta_..." />
+      </div>
+      <div class="form-group">
+        <label>Recipient Address:</label>
+        <input type="text" id="nft-recipient" placeholder="keeta_..." />
+      </div>
+      <button class="btn-send-nft" onclick="sendNFT()">Transfer NFT</button>
+    </div>
+
+    <!-- Token Transfer Card -->
+    <div class="card">
+      <h2>// SEND CUSTOM TOKEN</h2>
+      <div class="form-group">
+        <label>Token Address:</label>
+        <input type="text" id="token-address" placeholder="keeta_..." />
+      </div>
+      <div class="form-group">
+        <label>Recipient Address:</label>
+        <input type="text" id="token-recipient" placeholder="keeta_..." />
+      </div>
+      <div class="form-group">
+        <label>Amount (Raw Units):</label>
+        <input type="text" id="token-amount" placeholder="100" />
+      </div>
+      <button onclick="sendToken()">Send Token</button>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="card">
+      <h2>// ACTIVITY LOG</h2>
+      <div id="log" class="log">
+        <div class="log-entry">
+          <span class="timestamp">[SYSTEM]</span>
+          <span>Waiting for wallet connection...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let connectedAccount = null;
+
+    // Add log entry
+    function addLog(message, isError = false) {
+      const log = document.getElementById('log');
+      const timestamp = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = 'log-entry' + (isError ? ' error' : '');
+      entry.innerHTML = `<span class="timestamp">[${timestamp}]</span><span>${message}</span>`;
+      log.insertBefore(entry, log.firstChild);
+    }
+
+    // Check if Yoda wallet is available
+    window.addEventListener('load', () => {
+      if (window.yoda) {
+        addLog('✅ Yoda wallet detected!');
+      } else {
+        addLog('❌ Yoda wallet not found. Please install the extension.', true);
+      }
+    });
+
+    // Connect wallet
+    async function connect() {
+      if (!window.yoda) {
+        addLog('❌ Yoda wallet not installed', true);
+        alert('Yoda wallet extension is not installed!');
+        return;
+      }
+
+      try {
+        addLog('🔄 Requesting account connection...');
+        const accounts = await window.yoda.request({ method: 'keeta_requestAccounts' });
+        
+        if (accounts && accounts.length > 0) {
+          connectedAccount = accounts[0];
+          addLog(`✅ Connected: <span class="highlight">${connectedAccount}</span>`);
+          
+          // Update UI
+          document.getElementById('status').className = 'status connected';
+          document.getElementById('status').innerHTML = '✅ Connected to Yoda Wallet';
+          document.getElementById('account-info').style.display = 'block';
+          document.getElementById('account').textContent = connectedAccount;
+          document.getElementById('network').textContent = window.yoda.chainId || 'Unknown';
+          document.getElementById('connectBtn').style.display = 'none';
+          document.getElementById('disconnectBtn').style.display = 'block';
+          
+          // Get balance
+          await updateBalance();
+        }
+      } catch (error) {
+        addLog(`❌ Connection failed: ${error.message}`, true);
+        console.error('Connection error:', error);
+      }
+    }
+
+    // Disconnect wallet
+    async function disconnect() {
+      if (!window.yoda) return;
+
+      try {
+        await window.yoda.disconnect();
+        connectedAccount = null;
+        
+        addLog('🔌 Disconnected from wallet');
+        
+        // Update UI
+        document.getElementById('status').className = 'status disconnected';
+        document.getElementById('status').innerHTML = '⚠️ Not Connected';
+        document.getElementById('account-info').style.display = 'none';
+        document.getElementById('connectBtn').style.display = 'block';
+        document.getElementById('disconnectBtn').style.display = 'none';
+      } catch (error) {
+        addLog(`❌ Disconnect failed: ${error.message}`, true);
+      }
+    }
+
+    // Update balance
+    async function updateBalance() {
+      if (!connectedAccount) return;
+
+      try {
+        const balance = await window.yoda.getBalance(connectedAccount);
+        document.getElementById('balance').textContent = `${balance} KTA`;
+        addLog(`💰 Balance updated: ${balance} KTA`);
+      } catch (error) {
+        addLog(`❌ Failed to fetch balance: ${error.message}`, true);
+      }
+    }
+
+    // Send KTA
+    async function sendKTA() {
+      if (!connectedAccount) {
+        alert('Please connect your wallet first');
+        return;
+      }
+
+      const recipient = document.getElementById('kta-recipient').value.trim();
+      const amount = document.getElementById('kta-amount').value.trim();
+
+      if (!recipient || !amount) {
+        alert('Please fill in all fields');
+        return;
+      }
+
+      try {
+        addLog(`🚀 Sending ${amount} KTA to ${recipient}...`);
+        
+        const txHash = await window.yoda.sendTransaction({
+          to: recipient,
+          amount: amount
+        });
+        
+        addLog(`✅ KTA transfer successful! TX: <span class="highlight">${txHash}</span>`);
+        await updateBalance();
+      } catch (error) {
+        addLog(`❌ KTA transfer failed: ${error.message}`, true);
+        console.error('Send KTA error:', error);
+      }
+    }
+
+    // Send NFT
+    async function sendNFT() {
+      if (!connectedAccount) {
+        alert('Please connect your wallet first');
+        return;
+      }
+
+      const tokenAddress = document.getElementById('nft-token').value.trim();
+      const recipient = document.getElementById('nft-recipient').value.trim();
+
+      if (!tokenAddress || !recipient) {
+        alert('Please fill in all fields');
+        return;
+      }
+
+      try {
+        addLog(`🎨 Transferring NFT ${tokenAddress} to ${recipient}...`);
+        
+        const txHash = await window.yoda.sendTransaction({
+          to: recipient,
+          amount: '1', // NFTs are typically quantity 1
+          token: tokenAddress
+        });
+        
+        addLog(`✅ NFT transfer successful! TX: <span class="highlight">${txHash}</span>`);
+      } catch (error) {
+        addLog(`❌ NFT transfer failed: ${error.message}`, true);
+        console.error('Send NFT error:', error);
+      }
+    }
+
+    // Send custom token
+    async function sendToken() {
+      if (!connectedAccount) {
+        alert('Please connect your wallet first');
+        return;
+      }
+
+      const tokenAddress = document.getElementById('token-address').value.trim();
+      const recipient = document.getElementById('token-recipient').value.trim();
+      const amount = document.getElementById('token-amount').value.trim();
+
+      if (!tokenAddress || !recipient || !amount) {
+        alert('Please fill in all fields');
+        return;
+      }
+
+      try {
+        addLog(`🪙 Sending ${amount} tokens to ${recipient}...`);
+        
+        const txHash = await window.yoda.sendTransaction({
+          to: recipient,
+          amount: amount,
+          token: tokenAddress
+        });
+        
+        addLog(`✅ Token transfer successful! TX: <span class="highlight">${txHash}</span>`);
+      } catch (error) {
+        addLog(`❌ Token transfer failed: ${error.message}`, true);
+        console.error('Send token error:', error);
+      }
+    }
+
+    // Listen for account changes
+    if (window.yoda) {
+      window.yoda.on('accountsChanged', (accounts) => {
+        if (accounts.length === 0) {
+          disconnect();
+        } else {
+          connectedAccount = accounts[0];
+          document.getElementById('account').textContent = connectedAccount;
+          addLog(`🔄 Account changed: ${connectedAccount}`);
+          updateBalance();
+        }
+      });
+    }
+  </script>
+</body>
+</html>
+

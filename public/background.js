@@ -210,7 +210,7 @@ async function handleGetBalance(address) {
   return { result: '0' };
 }
 
-// Send transaction
+// Send transaction (KTA or token/NFT)
 async function handleSendTransaction(txParams, tabId) {
   console.log('[Yoda Background] Send transaction:', txParams);
   console.log('[Yoda Background] Tab ID:', tabId);
@@ -227,10 +227,17 @@ async function handleSendTransaction(txParams, tabId) {
       console.error('[Yoda Background] Error getting tab info:', error);
     }
     
-    // Store pending transaction
+    // Detect if this is a token transfer (includes token parameter)
+    const isTokenTransfer = txParams.token && txParams.token !== null;
+    console.log('[Yoda Background] Is token transfer?', isTokenTransfer);
+    
+    // Store pending transaction with token info
     console.log('[Yoda Background] Storing pending transaction...');
     await chrome.storage.local.set({ 
-      pending_tx: txParams,
+      pending_tx: {
+        ...txParams,
+        isTokenTransfer // Flag for UI
+      },
       pending_tx_origin: origin,
       pending_tab_id: tabId 
     });

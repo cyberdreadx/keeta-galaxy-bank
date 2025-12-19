@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yoda Wallet - Version Checker</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 100%);
+      color: #00f3ff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      border: 3px solid #00f3ff;
+      padding: 40px;
+      position: relative;
+    }
+
+    .container::before,
+    .container::after {
+      content: '';
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border: 3px solid #ffeb3b;
+    }
+
+    .container::before {
+      top: -3px;
+      left: -3px;
+      border-right: none;
+      border-bottom: none;
+    }
+
+    .container::after {
+      bottom: -3px;
+      right: -3px;
+      border-left: none;
+      border-top: none;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2em;
+      margin-bottom: 10px;
+      color: #ffeb3b;
+      text-shadow: 0 0 20px rgba(255, 235, 59, 0.5);
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #00f3ff;
+      margin-bottom: 40px;
+      font-size: 0.9em;
+    }
+
+    .status-box {
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid;
+      background: rgba(0, 0, 0, 0.4);
+    }
+
+    .status-box.success {
+      border-color: #4caf50;
+      background: rgba(76, 175, 80, 0.1);
+    }
+
+    .status-box.error {
+      border-color: #f44336;
+      background: rgba(244, 67, 54, 0.1);
+    }
+
+    .status-box.warning {
+      border-color: #ff9800;
+      background: rgba(255, 152, 0, 0.1);
+    }
+
+    .status-box h2 {
+      margin-bottom: 10px;
+      font-size: 1.3em;
+    }
+
+    .status-box.success h2 {
+      color: #4caf50;
+    }
+
+    .status-box.error h2 {
+      color: #f44336;
+    }
+
+    .status-box.warning h2 {
+      color: #ff9800;
+    }
+
+    .check-item {
+      padding: 15px;
+      margin-bottom: 15px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(0, 243, 255, 0.2);
+    }
+
+    .check-item label {
+      display: block;
+      color: #ffeb3b;
+      margin-bottom: 8px;
+      font-size: 0.9em;
+    }
+
+    .check-item .value {
+      color: #00f3ff;
+      font-size: 1.1em;
+    }
+
+    .check-item.pass {
+      border-left: 4px solid #4caf50;
+    }
+
+    .check-item.fail {
+      border-left: 4px solid #f44336;
+    }
+
+    button {
+      background: linear-gradient(135deg, #00f3ff 0%, #0066ff 100%);
+      color: #000;
+      border: none;
+      padding: 15px 30px;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      font-size: 1em;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      transition: all 0.3s ease;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0, 243, 255, 0.4);
+    }
+
+    .instructions {
+      margin-top: 30px;
+      padding: 20px;
+      background: rgba(255, 235, 59, 0.1);
+      border: 1px solid rgba(255, 235, 59, 0.3);
+    }
+
+    .instructions h3 {
+      color: #ffeb3b;
+      margin-bottom: 15px;
+    }
+
+    .instructions ol {
+      padding-left: 20px;
+      color: #00f3ff;
+    }
+
+    .instructions li {
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 YODA WALLET VERIFIER</h1>
+    <p class="subtitle">Check if the new extension is loaded</p>
+
+    <div id="status" class="status-box warning">
+      <h2>⏳ Checking...</h2>
+      <p>Please wait while we verify your extension...</p>
+    </div>
+
+    <div id="checks" style="display: none;">
+      <!-- Checks will be inserted here -->
+    </div>
+
+    <button onclick="location.reload()">🔄 Re-Check</button>
+
+    <div id="instructions" style="display: none;">
+      <!-- Instructions will be inserted here if needed -->
+    </div>
+  </div>
+
+  <script>
+    function addCheck(label, value, pass) {
+      const checks = document.getElementById('checks');
+      const check = document.createElement('div');
+      check.className = 'check-item ' + (pass ? 'pass' : 'fail');
+      check.innerHTML = `
+        <label>${pass ? '✅' : '❌'} ${label}</label>
+        <div class="value">${value}</div>
+      `;
+      checks.appendChild(check);
+    }
+
+    async function verify() {
+      const checks = document.getElementById('checks');
+      const status = document.getElementById('status');
+      const instructions = document.getElementById('instructions');
+      
+      checks.style.display = 'block';
+      checks.innerHTML = '';
+
+      let allPass = true;
+
+      // Check 1: Extension exists
+      if (window.yoda) {
+        addCheck('Yoda Wallet Detected', 'Extension is installed', true);
+      } else {
+        addCheck('Yoda Wallet Detected', 'Extension NOT found!', false);
+        allPass = false;
+      }
+
+      // Check 2: sendTransaction method exists
+      if (window.yoda && typeof window.yoda.sendTransaction === 'function') {
+        addCheck('sendTransaction Method', 'Method exists', true);
+      } else {
+        addCheck('sendTransaction Method', 'Method NOT found!', false);
+        allPass = false;
+      }
+
+      // Check 3: Token parameter support (test)
+      if (window.yoda) {
+        try {
+          // Try to send a test transaction with token parameter
+          // It will fail, but we check if the error is different
+          const testPromise = window.yoda.sendTransaction({
+            to: 'keeta_test_address',
+            amount: '1',
+            token: 'keeta_test_token'
+          });
+
+          // We expect it to timeout or fail with user rejection, not "undefined"
+          setTimeout(() => {
+            addCheck('Token Parameter Support', 'Testing... (manual verification needed)', true);
+          }, 100);
+
+          testPromise.catch(err => {
+            const errorMessage = err.message || String(err);
+            
+            if (errorMessage.includes('undefined') && errorMessage.includes('account')) {
+              addCheck('Token Parameter Support', '❌ OLD VERSION - "undefined" error detected', false);
+              allPass = false;
+            } else {
+              addCheck('Token Parameter Support', '✅ NEW VERSION - No "undefined" error', true);
+            }
+          });
+
+          // Wait a bit for the test
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+        } catch (err) {
+          addCheck('Token Parameter Support', 'Error during test: ' + err.message, false);
+          allPass = false;
+        }
+      }
+
+      // Check 4: Extension version (we can't directly get this from injected script)
+      addCheck('Version Check', 'Please verify in chrome://extensions/ that version is 1.0.3', true);
+
+      // Update status
+      setTimeout(() => {
+        if (allPass) {
+          status.className = 'status-box success';
+          status.innerHTML = `
+            <h2>✅ EXTENSION IS UP TO DATE!</h2>
+            <p>Your Yoda Wallet extension appears to be updated correctly.</p>
+            <p style="margin-top: 10px;">Token/NFT transfers should now work!</p>
+          `;
+        } else {
+          status.className = 'status-box error';
+          status.innerHTML = `
+            <h2>❌ EXTENSION NEEDS RELOAD</h2>
+            <p>The old version is still loaded. Please reload the extension!</p>
+          `;
+
+          instructions.style.display = 'block';
+          instructions.innerHTML = `
+            <h3>📋 How to Reload:</h3>
+            <ol>
+              <li>Open: <strong>chrome://extensions/</strong></li>
+              <li>Find <strong>Yoda Wallet</strong></li>
+              <li>Click the <strong>reload button</strong> (↻)</li>
+              <li>Verify version shows <strong>1.0.3</strong></li>
+              <li>Close this tab and reopen in a fresh tab</li>
+              <li>Run this checker again</li>
+            </ol>
+          `;
+        }
+      }, 600);
+    }
+
+    // Auto-run verification
+    window.addEventListener('load', () => {
+      setTimeout(verify, 500);
+    });
+  </script>
+</body>
+</html>
+

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Send as SendIcon, Loader2, Coins, Wallet } from "lucide-react";
 import { StarField } from "@/components/StarField";
 import { Header } from "@/components/Header";
@@ -13,12 +13,20 @@ import { useSoundEffects } from "@/hooks/useSoundEffects";
 type SendNetwork = 'keeta' | 'base';
 type BaseAsset = 'ETH' | 'KTA' | 'USDC';
 
+interface SelectedToken {
+  address: string;
+  symbol: string;
+  name: string;
+  balance: number;
+  decimals: number;
+}
+
 const Send = () => {
   const [selectedNetwork, setSelectedNetwork] = useState<SendNetwork>('keeta');
   
   // Keeta State
-  const { isConnected: isKeetaConnected, client, network } = useKeetaWallet();
-  const { balance: keetaBalance, refetch: refetchKeeta } = useKeetaBalance();
+  const { isConnected: isKeetaConnected, client, network, sendToken: sendCustomToken } = useKeetaWallet();
+  const { balance: keetaBalance, allTokens, refetch: refetchKeeta } = useKeetaBalance();
   
   // Base State
   const { isConnected: isBaseConnected, sendTransaction, sendErc20 } = useBaseWallet();
@@ -30,10 +38,19 @@ const Send = () => {
   const [amount, setAmount] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [selectedBaseAsset, setSelectedBaseAsset] = useState<BaseAsset>('ETH');
+  const [selectedKeetaToken, setSelectedKeetaToken] = useState<SelectedToken | null>(null);
 
   // Constants
   const KTA_ADDRESS = "0xc0634090F2Fe6c6d75e61Be2b949464aBB498973";
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+
+  // Initialize selected Keeta token when allTokens loads
+  useEffect(() => {
+    if (allTokens.length > 0 && !selectedKeetaToken) {
+      const ktaToken = allTokens.find(t => t.symbol === 'KTA') || allTokens[0];
+      setSelectedKeetaToken(ktaToken);
+    }
+  }, [allTokens]);
 
   const formatBalance = (amt: number | string) => {
     const val = typeof amt === 'string' ? parseFloat(amt) : amt;
@@ -42,11 +59,20 @@ const Send = () => {
   };
 
   const getActiveBalance = () => {
-    if (selectedNetwork === 'keeta') return keetaBalance;
+    if (selectedNetwork === 'keeta') {
+      return selectedKeetaToken?.balance || 0;
+    }
     if (selectedBaseAsset === 'ETH') return parseFloat(ethBalance);
     if (selectedBaseAsset === 'KTA') return parseFloat(ktaBalance);
     if (selectedBaseAsset === 'USDC') return parseFloat(usdcBalance);
     return 0;
+  };
+
+  const getActiveSymbol = () => {
+    if (selectedNetwork === 'keeta') {
+      return selectedKeetaToken?.symbol || 'KTA';
+    }
+    return selectedBaseAsset;
   };
 
   const handleMaxClick = () => {
@@ -103,11 +129,36 @@ const Send = () => {
 
     try {
       if (selectedNetwork === 'keeta') {
-        // Keeta Logic
-        const decimals = network === 'main' ? 18 : 9;
+        // Keeta Logic - send custom token
+        if (!selectedKeetaToken) {
+          throw new Error('No token selected');
+        }
+
+        const decimals = selectedKeetaToken.decimals;
         const amountInSmallestUnit = BigInt(Math.floor(sendAmount * Math.pow(10, decimals)));
-        const result = await client!.send(recipient.trim(), amountInSmallestUnit);
-        console.log('[Send] Keeta Result:', result);
+        
+        console.log('[Send] Sending token:', selectedKeetaToken.symbol);
+        console.log('[Send] Token address:', selectedKeetaToken.address);
+        console.log('[Send] Amount:', sendAmount, 'Decimals:', decimals);
+        console.log('[Send] Raw amount:', amountInSmallestUnit.toString());
+
+        // Check if this is KTA (base token) or custom token
+        const isKTA = selectedKeetaToken.symbol === 'KTA';
+        
+        if (isKTA) {
+          // Send KTA using the simple send method
+          const result = await client!.send(recipient.trim(), amountInSmallestUnit);
+          console.log('[Send] KTA transfer result:', result);
+        } else {
+          // Send custom token using sendToken method
+          const txHash = await sendCustomToken(
+            recipient.trim(),
+            amountInSmallestUnit.toString(),
+            selectedKeetaToken.address
+          );
+          console.log('[Send] Custom token transfer hash:', txHash);
+        }
+        
         await refetchKeeta();
       } else {
         // Base Logic
@@ -181,6 +232,32 @@ const Send = () => {
              </div>
           ) : (
             <div className="space-y-6">
+              {/* Token Selector (Keeta Only) */}
+              {selectedNetwork === 'keeta' && allTokens.length > 0 && (
+                <div className="space-y-2">
+                  <label className="font-mono text-xs text-sw-blue/80 tracking-widest uppercase">
+                    SELECT TOKEN
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={selectedKeetaToken?.address || ''}
+                      onChange={(e) => {
+                        const token = allTokens.find(t => t.address === e.target.value);
+                        if (token) setSelectedKeetaToken(token);
+                      }}
+                      className="w-full px-4 py-3 bg-sw-space/50 border border-sw-blue/30 text-sw-white font-mono text-sm focus:border-sw-blue/60 focus:outline-none transition-colors appearance-none cursor-pointer"
+                    >
+                      {allTokens.map(token => (
+                        <option key={token.address} value={token.address} className="bg-sw-space">
+                          {token.symbol} - {formatBalance(token.balance)} ({token.name})
+                        </option>
+                      ))}
+                    </select>
+                    <Coins className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-sw-blue/50 pointer-events-none" />
+                  </div>
+                </div>
+              )}
+
               {/* Asset Selector (Base Only) */}
               {selectedNetwork === 'base' && (
                 <div className="flex justify-center gap-3 mb-2">
@@ -203,12 +280,12 @@ const Send = () => {
               {/* Balance Display */}
               <div className="text-center py-4 border-b border-sw-blue/20">
                 <p className="font-mono text-xs text-sw-blue/60 tracking-widest uppercase mb-1">
-                  AVAILABLE {selectedNetwork === 'base' ? selectedBaseAsset : 'KTA'} BALANCE
+                  AVAILABLE {getActiveSymbol()} BALANCE
                 </p>
                 <p className={`text-3xl font-display font-bold ${selectedNetwork === 'base' ? 'text-yellow-400' : 'text-sw-yellow'}`}>
                   {formatBalance(getActiveBalance())} 
                   <span className={`text-lg ml-2 ${selectedNetwork === 'base' ? 'text-yellow-400/80' : 'text-sw-yellow/80'}`}>
-                    {selectedNetwork === 'base' ? selectedBaseAsset : 'KTA'}
+                    {getActiveSymbol()}
                   </span>
                 </p>
               </div>

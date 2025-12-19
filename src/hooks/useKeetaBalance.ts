@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useKeetaWallet } from '@/contexts/KeetaWalletContext';
+import pako from 'pako';
 
 interface TokenBalance {
   address: string;
@@ -8,6 +9,85 @@ interface TokenBalance {
   balance: number;
   rawBalance: string;
   decimals: number;
+}
+
+// Helper to fetch token metadata from Keeta API
+async function fetchTokenMetadata(tokenAddress: string, network: 'main' | 'test'): Promise<{ name: string; symbol: string; decimals: number } | null> {
+  try {
+    const apiUrl = network === 'main' 
+      ? 'https://rep1.main.network.api.keeta.com'
+      : 'https://rep1.test.network.api.keeta.com';
+    
+    const response = await fetch(`${apiUrl}/api/node/ledger/account/${tokenAddress}`);
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const info = data.info || {};
+    
+    // info.name = symbol (e.g., "MURF")
+    // info.description = full name (e.g., "Murphy")
+    const symbol = info.name || tokenAddress.substring(0, 10) + '...';
+    const name = info.description || symbol;
+    
+    // Try to get decimals from metadata (handles compressed data)
+    let decimals = 18; // default
+    let supply = '0';
+    
+    if (info.metadata) {
+      try {
+        // Decode base64 first
+        const binaryStr = atob(info.metadata);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+        
+        let jsonStr: string;
+        
+        // Check if it's zlib compressed (starts with 0x78)
+        if (bytes[0] === 0x78 && bytes.length > 1) {
+          // Use pako to decompress zlib data
+          try {
+            jsonStr = pako.inflate(bytes, { to: 'string' });
+          } catch (decompressErr) {
+            console.warn('[fetchTokenMetadata] Decompression failed, trying raw decode:', decompressErr);
+            jsonStr = new TextDecoder().decode(bytes);
+          }
+        } else {
+          jsonStr = new TextDecoder().decode(bytes);
+        }
+        
+        const metadata = JSON.parse(jsonStr);
+        console.log('[fetchTokenMetadata] Parsed metadata:', metadata);
+        
+        // Get decimals from metadata
+        decimals = metadata.decimalPlaces ?? metadata.DecimalPlaces ?? metadata.decimals ?? 18;
+        supply = metadata.supply || info.supply || '0';
+      } catch (e) {
+        console.warn('[fetchTokenMetadata] Metadata parse failed:', e);
+        // Try to get supply from info
+        if (info.supply) {
+          const supplyHex = info.supply;
+          supply = BigInt(supplyHex).toString();
+        }
+      }
+    } else if (info.supply) {
+      // No metadata, try to get supply from info
+      const supplyHex = info.supply;
+      supply = BigInt(supplyHex).toString();
+    }
+    
+    // If supply is 1, it's likely an NFT with 0 decimals
+    if (supply === '1' && decimals === 18) {
+      console.log('[fetchTokenMetadata] Detected NFT (supply=1), setting decimals to 0');
+      decimals = 0;
+    }
+    
+    return { name, symbol, decimals };
+  } catch (error) {
+    console.error(`[fetchTokenMetadata] Error for ${tokenAddress}:`, error);
+    return null;
+  }
 }
 
 interface KeetaBalance {
@@ -19,6 +99,7 @@ interface KeetaBalance {
 }
 
 // Known token addresses to symbols mapping for Keeta network
+// This will be populated with fetched metadata
 const TOKEN_MAP: Record<string, { symbol: string; decimals: number; name: string }> = {
   'keeta_anqdilpazdekdu4acw65fj7smltcp26wbrildkqtszqvverljpwpezmd44ssg': { symbol: 'KTA', decimals: 18, name: 'Keeta' },
   'keeta_amnkge74xitii5dsobstldatv3irmyimujfjotftx7plaaaseam4bntb7wnna': { symbol: 'USDC', decimals: 6, name: 'USD Coin' },
@@ -96,12 +177,27 @@ export const useKeetaBalance = (): KeetaBalance => {
         // Skip zero balances
         if (rawBalance === BigInt(0)) continue;
 
-        // Get token info from mapping or use defaults
-        const tokenMeta = TOKEN_MAP[tokenAddr] || { 
-          symbol: tokenAddr.substring(0, 10) + '...', 
-          decimals: 18,
-          name: tokenAddr.substring(0, 10) + '...'
-        };
+        // Get token info from mapping first
+        let tokenMeta = TOKEN_MAP[tokenAddr];
+        
+        // If not in mapping, fetch from API
+        if (!tokenMeta) {
+          console.log('[useKeetaBalance] Fetching metadata for unknown token:', tokenAddr);
+          const fetchedMeta = await fetchTokenMetadata(tokenAddr, network);
+          if (fetchedMeta) {
+            tokenMeta = fetchedMeta;
+            // Cache it in the TOKEN_MAP for future use
+            TOKEN_MAP[tokenAddr] = fetchedMeta;
+            console.log('[useKeetaBalance] Fetched metadata:', fetchedMeta);
+          } else {
+            // Fallback to defaults
+            tokenMeta = { 
+              symbol: tokenAddr.substring(0, 10) + '...', 
+              decimals: 18,
+              name: tokenAddr.substring(0, 10) + '...'
+            };
+          }
+        }
 
         const divisor = Math.pow(10, tokenMeta.decimals);
         const balanceNum = Number(rawBalance) / divisor;

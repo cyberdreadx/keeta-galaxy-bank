@@ -4,16 +4,24 @@ import { StarField } from "@/components/StarField";
 import { StarWarsPanel } from "@/components/StarWarsPanel";
 import { useKeetaWallet } from "@/contexts/KeetaWalletContext";
 import { useKeetaBalance } from "@/hooks/useKeetaBalance";
-import { Loader2, CheckCircle, XCircle, Send, AlertTriangle } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Send, AlertTriangle, Coins } from "lucide-react";
 import { toast } from "sonner";
 
 interface TransactionParams {
   to: string;
   amount: string;
+  token?: string; // Token address for NFT/token transfers
+  isTokenTransfer?: boolean; // Flag to indicate token transfer
+}
+
+interface TokenMetadata {
+  symbol: string;
+  name: string;
+  decimals: number;
 }
 
 const ConfirmTransaction = () => {
-  const { isConnected, publicKey, client } = useKeetaWallet();
+  const { isConnected, publicKey, client, sendToken, network } = useKeetaWallet();
   const { balance: ktaBalance, isLoading: isLoadingBalance } = useKeetaBalance();
   const navigate = useNavigate();
   const [txParams, setTxParams] = useState<TransactionParams | null>(null);
@@ -21,10 +29,46 @@ const ConfirmTransaction = () => {
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [tokenMetadata, setTokenMetadata] = useState<TokenMetadata | null>(null);
+  const [loadingMetadata, setLoadingMetadata] = useState(false);
 
   useEffect(() => {
     checkPendingTransaction();
   }, []);
+
+  // Fetch token metadata when txParams changes
+  useEffect(() => {
+    if (txParams?.isTokenTransfer && txParams.token) {
+      fetchTokenMetadata(txParams.token);
+    }
+  }, [txParams]);
+
+  const fetchTokenMetadata = async (tokenAddress: string) => {
+    setLoadingMetadata(true);
+    try {
+      const apiUrl = network === 'main' 
+        ? 'https://rep1.main.network.api.keeta.com'
+        : 'https://rep1.test.network.api.keeta.com';
+      
+      const response = await fetch(`${apiUrl}/api/node/ledger/account/${tokenAddress}`);
+      if (!response.ok) throw new Error('Failed to fetch token metadata');
+
+      const data = await response.json();
+      const info = data.info || {};
+      
+      const symbol = info.name || tokenAddress.substring(0, 8) + '...';
+      const name = info.description || symbol;
+      
+      setTokenMetadata({ symbol, name, decimals: 0 });
+      console.log('[ConfirmTx] Token metadata:', { symbol, name });
+    } catch (error) {
+      console.error('[ConfirmTx] Failed to fetch token metadata:', error);
+      // Fallback to showing generic label
+      setTokenMetadata(null);
+    } finally {
+      setLoadingMetadata(false);
+    }
+  };
 
   const checkPendingTransaction = async () => {
     try {
@@ -61,19 +105,29 @@ const ConfirmTransaction = () => {
     try {
       console.log('[ConfirmTx] Sending transaction:', txParams);
       
-      // Send the transaction using Keeta client
-      const result = await client.send(
-        txParams.to,
-        parseFloat(txParams.amount)
-      );
+      let txHash: string;
       
-      console.log('[ConfirmTx] Transaction successful:', result);
+      // Check if this is a token/NFT transfer
+      if (txParams.isTokenTransfer && txParams.token) {
+        console.log('[ConfirmTx] Sending token transfer...');
+        txHash = await sendToken(txParams.to, txParams.amount, txParams.token);
+      } else {
+        // Regular KTA transfer
+        console.log('[ConfirmTx] Sending KTA transfer...');
+        const result = await client.send(
+          txParams.to,
+          parseFloat(txParams.amount)
+        );
+        txHash = result.hash || result.txid || 'success';
+      }
+      
+      console.log('[ConfirmTx] Transaction successful:', txHash);
       
       // Clear pending transaction and store result
       await chrome.storage.local.set({
         pending_tx: null,
         pending_tx_origin: null,
-        tx_result: result.hash || result.txid || 'success',
+        tx_result: txHash,
         tx_error: null
       });
       
@@ -158,7 +212,8 @@ const ConfirmTransaction = () => {
   }
 
   const amountNum = parseFloat(txParams.amount);
-  const insufficientFunds = amountNum > ktaBalance;
+  // Only check insufficient funds for KTA transfers (not token/NFT transfers)
+  const insufficientFunds = !txParams.isTokenTransfer && amountNum > ktaBalance;
 
   return (
     <div className="relative flex flex-col h-full">
@@ -192,6 +247,16 @@ const ConfirmTransaction = () => {
 
               {/* Transaction Details */}
               <div className="mb-6 space-y-3">
+                {/* Token/NFT Transfer Indicator */}
+                {txParams.isTokenTransfer && (
+                  <div className="p-3 bg-sw-blue/10 border border-sw-blue/30 rounded flex items-center gap-2">
+                    <Coins className="w-5 h-5 text-sw-blue" />
+                    <span className="font-mono text-xs text-sw-blue tracking-wider">
+                      {txParams.amount === "1" ? "NFT TRANSFER" : "TOKEN TRANSFER"}
+                    </span>
+                  </div>
+                )}
+                
                 <div className="p-4 bg-black/30 border border-sw-yellow/20 rounded">
                   <p className="text-xs text-gray-400 mb-1">Recipient:</p>
                   <p className="font-mono text-sm text-sw-yellow break-all">
@@ -202,24 +267,58 @@ const ConfirmTransaction = () => {
                 <div className="p-4 bg-black/30 border border-sw-yellow/20 rounded">
                   <p className="text-xs text-gray-400 mb-1">Amount:</p>
                   <p className="font-mono text-2xl font-bold text-sw-yellow">
-                    {txParams.amount} KTA
+                    {txParams.amount} {
+                      txParams.isTokenTransfer 
+                        ? (loadingMetadata 
+                            ? "..." 
+                            : (tokenMetadata?.symbol || (txParams.amount === "1" ? "NFT" : "TOKENS"))
+                          )
+                        : "KTA"
+                    }
                   </p>
                 </div>
                 
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-400">Your Balance:</span>
-                  <span className="font-mono text-sm text-sw-green">
-                    {isLoadingBalance ? <Loader2 className="inline w-4 h-4 animate-spin" /> : `${ktaBalance.toFixed(4)} KTA`}
-                  </span>
-                </div>
+                {/* Show token info for token transfers */}
+                {txParams.isTokenTransfer && txParams.token && (
+                  <div className="p-4 bg-black/30 border border-sw-blue/20 rounded">
+                    {tokenMetadata && !loadingMetadata ? (
+                      <>
+                        <p className="text-xs text-gray-400 mb-1">Token:</p>
+                        <p className="font-mono text-sm text-sw-blue font-bold mb-2">
+                          {tokenMetadata.symbol} - {tokenMetadata.name}
+                        </p>
+                        <p className="font-mono text-xs text-sw-blue/50 break-all">
+                          {txParams.token}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs text-gray-400 mb-1">Token Address:</p>
+                        <p className="font-mono text-xs text-sw-blue break-all">
+                          {loadingMetadata ? "Loading token info..." : txParams.token}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
+                
+                {/* Only show KTA balance for KTA transfers */}
+                {!txParams.isTokenTransfer && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-400">Your Balance:</span>
+                    <span className="font-mono text-sm text-sw-green">
+                      {isLoadingBalance ? <Loader2 className="inline w-4 h-4 animate-spin" /> : `${ktaBalance.toFixed(4)} KTA`}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {/* Insufficient Funds Warning */}
+              {/* Insufficient Funds Warning (only for KTA transfers) */}
               {insufficientFunds && (
                 <div className="mb-6 p-4 bg-sw-red/10 border border-sw-red/30 rounded flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-sw-red flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm text-sw-red font-bold mb-1">Insufficient Funds</p>
+                    <p className="text-sm text-sw-red font-bold mb-1">Insufficient KTA Balance</p>
                     <p className="text-xs text-gray-400">
                       You don't have enough KTA to complete this transaction.
                     </p>

@@ -48,6 +48,7 @@ interface KeetaWalletContextType extends KeetaWalletState {
   createCustomAccount: (name: string) => Promise<void>;
   switchAccount: (accountType: AccountType) => void;
   transferBetweenAccounts: (from: AccountType, to: AccountType, amount: number) => Promise<void>;
+  sendToken: (to: string, amount: string, tokenAddress: string) => Promise<string>;
   getActiveAccountName: () => string;
   getAllAccounts: () => AccountInfo[];
 }
@@ -434,6 +435,52 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
     return accounts;
   }, [state.checkingAccount, state.savingsAccount, state.customAccounts]);
 
+  // Send token/NFT transaction
+  const sendToken = useCallback(async (to: string, amount: string, tokenAddress: string): Promise<string> => {
+    if (!KeetaNet || !state.client) {
+      throw new Error('Wallet not connected');
+    }
+
+    console.log('[KeetaWallet] sendToken - To:', to, 'Amount:', amount, 'Token:', tokenAddress);
+
+    try {
+      // Create recipient account object from public key string
+      const recipientAccount = KeetaNet.lib.Account.fromPublicKeyString(to);
+      
+      // Create token account object from token address
+      const tokenAccount = KeetaNet.lib.Account.fromPublicKeyString(tokenAddress);
+      
+      // Use the builder pattern for token transfer
+      const builder = state.client.initBuilder();
+      
+      // Convert amount to BigInt (amount is typically "1" for NFTs)
+      const amountBigInt = BigInt(amount);
+      
+      // Add send operation: amount to recipient using specified token
+      builder.send(recipientAccount, amountBigInt, tokenAccount);
+      console.log('[KeetaWallet] Send operation added to builder');
+      
+      // Compute transaction blocks
+      const computed = await state.client.computeBuilderBlocks(builder);
+      console.log('[KeetaWallet] Blocks computed:', computed?.blocks?.length || 0);
+      
+      // Publish the transaction
+      const transaction = await state.client.publishBuilder(builder);
+      console.log('[KeetaWallet] Token transaction published:', transaction);
+      
+      return transaction.hash || transaction.txid || 'success';
+    } catch (err: any) {
+      console.error('[KeetaWallet] sendToken error:', err);
+      
+      const errStr = String(err?.message || err || '');
+      
+      if (errStr.includes('insufficient') || errStr.includes('Insufficient') || errStr.includes('balance')) {
+        throw new Error('Insufficient token balance for this transfer');
+      }
+      throw new Error(err?.message || 'Token transfer failed. Please try again.');
+    }
+  }, [KeetaNet, state.client]);
+
   // Sync wallet state to chrome.storage for Web3 provider
   useEffect(() => {
     const syncToStorage = async () => {
@@ -471,6 +518,7 @@ export const KeetaWalletProvider = ({ children }: { children: ReactNode }) => {
         createCustomAccount,
         switchAccount,
         transferBetweenAccounts,
+        sendToken,
         getActiveAccountName,
         getAllAccounts,
       }}
