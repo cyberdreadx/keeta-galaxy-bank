@@ -23,7 +23,7 @@ interface PendingTransaction {
 const ConfirmBaseTransaction = () => {
   const { signAndSendTransaction, address } = useBaseWallet();
   const { ethBalance } = useBaseBalance();
-  const { ethPrice } = useEthPrice();
+  const { price: ethPrice } = useEthPrice();
   const [origin, setOrigin] = useState<string>('Unknown');
   const [txParams, setTxParams] = useState<PendingTransaction | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,7 +37,10 @@ const ConfirmBaseTransaction = () => {
       setLoading(true);
       try {
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-          const result = await chrome.storage.local.get(['pending_base_tx', 'pending_base_tx_origin']);
+          const result = await chrome.storage.local.get(['pending_base_tx', 'pending_base_tx_origin']) as {
+            pending_base_tx?: PendingTransaction;
+            pending_base_tx_origin?: string;
+          };
           console.log('[ConfirmBaseTransaction] Pending tx:', result);
 
           if (result.pending_base_tx) {
@@ -75,7 +78,7 @@ const ConfirmBaseTransaction = () => {
       console.log('[ConfirmBaseTransaction] Signing transaction:', txParams);
 
       // Sign and send the transaction
-      const txHash = await signAndSendTransaction(txParams as ethers.TransactionRequest);
+      const txHash = await signAndSendTransaction(txParams as unknown as ethers.TransactionRequest);
       console.log('[ConfirmBaseTransaction] Transaction sent:', txHash);
 
       // Store result in chrome.storage

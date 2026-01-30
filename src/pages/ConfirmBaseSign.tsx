@@ -23,7 +23,7 @@ const ConfirmBaseSign = () => {
       setLoading(true);
       try {
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-          const result = await chrome.storage.local.get('pending_base_sign');
+          const result = await chrome.storage.local.get('pending_base_sign') as { pending_base_sign?: PendingSignature };
           console.log('[ConfirmBaseSign] Pending signature:', result);
 
           if (result.pending_base_sign) {

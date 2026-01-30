@@ -19,7 +19,10 @@ export default function UnlockWallet() {
   useEffect(() => {
     const checkLockout = async () => {
       if (typeof chrome !== 'undefined' && chrome.storage) {
-        const result = await chrome.storage.local.get(['failed_unlock_attempts', 'lockout_until']);
+        const result = await chrome.storage.local.get(['failed_unlock_attempts', 'lockout_until']) as {
+          failed_unlock_attempts?: number;
+          lockout_until?: number;
+        };
         
         if (result.lockout_until && Date.now() < result.lockout_until) {
           setIsLocked(true);
@@ -73,8 +76,8 @@ export default function UnlockWallet() {
       let storedHash: string | null = null;
       
       if (typeof chrome !== 'undefined' && chrome.storage) {
-        const result = await chrome.storage.local.get('wallet_password_hash');
-        storedHash = result.wallet_password_hash;
+        const result = await chrome.storage.local.get('wallet_password_hash') as { wallet_password_hash?: string };
+        storedHash = result.wallet_password_hash || null;
       } else {
         storedHash = localStorage.getItem('wallet_password_hash');
       }
