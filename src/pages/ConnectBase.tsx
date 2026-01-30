@@ -18,7 +18,7 @@ interface ConnectedSite {
 const ConnectBase = () => {
   const { isConnected, address } = useBaseWallet();
   const { ethBalance, isLoading: isLoadingBalance } = useBaseBalance();
-  const { ethPrice } = useEthPrice();
+  const { price: ethPrice } = useEthPrice();
   const navigate = useNavigate();
   const [origin, setOrigin] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,10 @@ const ConnectBase = () => {
       setLoading(true);
       try {
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-          const result = await chrome.storage.local.get(['pending_base_connection', 'pending_base_origin']);
+          const result = await chrome.storage.local.get(['pending_base_connection', 'pending_base_origin']) as {
+            pending_base_connection?: boolean;
+            pending_base_origin?: string;
+          };
           console.log('[ConnectBase] Pending request check result:', result);
 
           if (result.pending_base_connection && result.pending_base_origin) {
@@ -65,7 +68,7 @@ const ConnectBase = () => {
     setLoading(true);
     try {
       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-        const result = await chrome.storage.local.get('base_connected_sites');
+        const result = await chrome.storage.local.get('base_connected_sites') as { base_connected_sites?: ConnectedSite[] };
         const connectedSites: ConnectedSite[] = result.base_connected_sites || [];
 
         const newSite: ConnectedSite = {

@@ -12,7 +12,10 @@ interface CoinbaseConfig {
 async function getCoinbaseCredentials(): Promise<CoinbaseConfig | null> {
   try {
     if (typeof chrome !== 'undefined' && chrome.storage) {
-      const result = await chrome.storage.local.get(['coinbase_api_key_name', 'coinbase_private_key']);
+      const result = await chrome.storage.local.get(['coinbase_api_key_name', 'coinbase_private_key']) as {
+        coinbase_api_key_name?: string;
+        coinbase_private_key?: string;
+      };
       
       if (!result.coinbase_api_key_name || !result.coinbase_private_key) {
         console.warn('⚠️ Coinbase API credentials not configured. User must set them up.');

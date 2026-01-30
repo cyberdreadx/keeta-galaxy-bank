@@ -22,7 +22,10 @@ const Connect = () => {
   const checkPendingRequest = async () => {
     try {
       console.log('[Connect] Checking for pending connection request...');
-      const result = await chrome.storage.local.get(['pending_connection', 'pending_origin']);
+      const result = await chrome.storage.local.get(['pending_connection', 'pending_origin']) as {
+        pending_connection?: boolean;
+        pending_origin?: string;
+      };
       console.log('[Connect] Pending request:', result);
       
       if (result.pending_connection && result.pending_origin) {
@@ -54,7 +57,7 @@ const Connect = () => {
       console.log('[Connect] Approving connection for:', origin);
       
       // Get existing connected sites
-      const result = await chrome.storage.local.get(['connected_sites']);
+      const result = await chrome.storage.local.get(['connected_sites']) as { connected_sites?: any[] };
       const connectedSites = result.connected_sites || [];
       
       // Add this site if not already connected
@@ -208,7 +211,7 @@ const Connect = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-400">Balance:</span>
                     <span className="font-mono text-sm text-sw-green">
-                      {parseFloat(balance).toFixed(2)} KTA
+                      {typeof balance === 'number' ? balance.toFixed(2) : parseFloat(String(balance)).toFixed(2)} KTA
                     </span>
                   </div>
                 </div>

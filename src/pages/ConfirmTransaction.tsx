@@ -73,7 +73,10 @@ const ConfirmTransaction = () => {
   const checkPendingTransaction = async () => {
     try {
       console.log('[ConfirmTx] Checking for pending transaction...');
-      const result = await chrome.storage.local.get(['pending_tx', 'pending_tx_origin']);
+      const result = await chrome.storage.local.get(['pending_tx', 'pending_tx_origin']) as {
+        pending_tx?: TransactionParams;
+        pending_tx_origin?: string;
+      };
       console.log('[ConfirmTx] Pending transaction:', result);
       
       if (result.pending_tx) {
@@ -116,7 +119,7 @@ const ConfirmTransaction = () => {
         console.log('[ConfirmTx] Sending KTA transfer...');
         const result = await client.send(
           txParams.to,
-          parseFloat(txParams.amount)
+          parseFloat(txParams.amount) as unknown as bigint
         );
         txHash = result.hash || result.txid || 'success';
       }

@@ -24,7 +24,7 @@ const ConnectedSites = () => {
   const loadConnectedSites = async () => {
     try {
       if (typeof chrome !== 'undefined' && chrome.storage) {
-        const result = await chrome.storage.local.get(['connected_sites']);
+        const result = await chrome.storage.local.get(['connected_sites']) as { connected_sites?: any[] };
         const connectedSites = result.connected_sites || [];
         setSites(connectedSites);
       }
