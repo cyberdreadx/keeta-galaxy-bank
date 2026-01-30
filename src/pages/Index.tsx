@@ -17,7 +17,7 @@ const Index = () => {
 
       {/* Main content */}
       <main className="relative z-10 pt-20 pb-24">
-        <div className="container mx-auto px-4">
+        <div className="w-full max-w-7xl mx-auto px-4">
           {/* Hero Title */}
           <div className="text-center mb-8 animate-fade-in">
             <div className="inline-block">
