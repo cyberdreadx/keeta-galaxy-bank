@@ -35,31 +35,22 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Dashboard grid */}
-          <div className="grid gap-6">
-            {/* Top row - Balance and Quick Actions */}
-            <div className="grid lg:grid-cols-2 gap-6">
-              <div className="animate-slide-up" style={{ animationDelay: '100ms' }}>
+          {/* Dashboard - Full Width Stack */}
+          <div className="flex flex-col gap-6">
+            <div className="animate-slide-up" style={{ animationDelay: '100ms' }}>
               <BalanceDisplay />
-              </div>
-              <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
-                <QuickActions />
-              </div>
             </div>
-
-            {/* Network Stats */}
+            <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
+              <QuickActions />
+            </div>
             <div className="animate-slide-up" style={{ animationDelay: '300ms' }}>
               <NetworkStats />
             </div>
-
-            {/* Bottom row - Transactions and Portfolio */}
-            <div className="grid lg:grid-cols-2 gap-6">
-              <div className="animate-slide-up" style={{ animationDelay: '400ms' }}>
-                <TransactionHistory />
-              </div>
-              <div className="animate-slide-up" style={{ animationDelay: '500ms' }}>
-                <AssetPortfolio />
-              </div>
+            <div className="animate-slide-up" style={{ animationDelay: '400ms' }}>
+              <TransactionHistory />
+            </div>
+            <div className="animate-slide-up" style={{ animationDelay: '500ms' }}>
+              <AssetPortfolio />
             </div>
           </div>
 
